@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -224,10 +225,10 @@ void OPL_Timer_ClearCallbacks(void)
     SDL_UnlockMutex(callback_queue_mutex);
 }
 
-void OPL_Timer_AdjustCallbacks(float factor)
+void OPL_Timer_AdjustCallbacks(unsigned int old_tempo, unsigned int new_tempo)
 {
     SDL_LockMutex(callback_queue_mutex);
-    OPL_Queue_AdjustCallbacks(callback_queue, current_time, factor);
+    OPL_Queue_AdjustCallbacks(callback_queue, current_time, old_tempo, new_tempo);
     SDL_UnlockMutex(callback_queue_mutex);
 }
 

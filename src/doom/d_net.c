@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -68,7 +69,6 @@ static void PlayerQuitGame(player_t *player)
 
 static void RunTic(ticcmd_t *cmds, boolean *ingame)
 {
-    extern boolean advancedemo;
     unsigned int i;
 
     // Check for player quits.
@@ -143,7 +143,11 @@ static void SaveGameSettings(net_gamesettings_t *settings)
     settings->episode = startepisode;
     settings->map = startmap;
     settings->skill = startskill;
+#if !DOOM_TINY
     settings->loadgame = startloadgame;
+#else
+    settings->loadgame = -1;
+#endif
     settings->gameversion = gameversion;
     settings->nomonsters = nomonsters;
     settings->fast_monsters = fastparm;
@@ -166,6 +170,7 @@ static void InitConnectData(net_connect_data_t *connect_data)
     // Run as the left screen in three screen mode.
     //
 
+#if !DOOM_TINY
     if (M_CheckParm("-left") > 0)
     {
         viewangleoffset = ANG90;
@@ -183,16 +188,17 @@ static void InitConnectData(net_connect_data_t *connect_data)
         viewangleoffset = ANG270;
         connect_data->drone = true;
     }
-
+#endif
     //
     // Connect data
     //
 
     // Game type fields:
 
-    connect_data->gamemode = gamemode;
+    connect_data->_gamemode = gamemode;
     connect_data->gamemission = gamemission;
 
+#if !DOOM_TINY
     // Are we recording a demo? Possibly set lowres turn mode
 
     connect_data->lowres_turn = (M_ParmExists("-record")
@@ -200,9 +206,14 @@ static void InitConnectData(net_connect_data_t *connect_data)
                               || M_ParmExists("-shorttics");
 
     // Read checksums of our WAD directory and dehacked information
+#endif
 
+#if !NO_USE_CHECKSUM
     W_Checksum(connect_data->wad_sha1sum);
     DEH_Checksum(connect_data->deh_sha1sum);
+#else
+    // leave as garbage for now
+#endif
 
     // Are we playing with the Freedoom IWAD?
 
@@ -214,6 +225,7 @@ void D_ConnectNetGame(void)
     net_connect_data_t connect_data;
 
     InitConnectData(&connect_data);
+#if !NO_USE_NET
     netgame = D_InitNetGame(&connect_data);
 
     //!
@@ -224,10 +236,13 @@ void D_ConnectNetGame(void)
     // demos.
     //
 
+#if !NO_USE_ARGS
     if (M_CheckParm("-solo-net") > 0)
     {
         netgame = true;
     }
+#endif
+#endif
 }
 
 //
@@ -249,6 +264,7 @@ void D_CheckNetGame (void)
     D_StartNetGame(&settings, NULL);
     LoadGameSettings(&settings);
 
+#if !DOOM_TINY
     DEH_printf("startskill %i  deathmatch: %i  startmap: %i  startepisode: %i\n",
                startskill, deathmatch, startmap, startepisode);
 
@@ -274,5 +290,6 @@ void D_CheckNetGame (void)
             printf(".\n");
         }
     }
+#endif
 }
 

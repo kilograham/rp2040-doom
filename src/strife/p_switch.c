@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -225,8 +226,8 @@ static void P_SpawnBrokenGlass(line_t* line)
         an = ((P_Random() << 13) / 255);
 
         glass->angle = (an << ANGLETOFINESHIFT);
-        glass->momx = FixedMul(finecosine[an], (P_Random() & 3) << FRACBITS);
-        glass->momy = FixedMul(finesine[an],   (P_Random() & 3) << FRACBITS);
+        glass->momx = FixedMul(finecosine(an), (P_Random() & 3) << FRACBITS);
+        glass->momy = FixedMul(finesine(an),   (P_Random() & 3) << FRACBITS);
         glass->momz = (P_Random() & 7) << FRACBITS;
         glass->tics += (P_Random() + 7) & 7;
     }

@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -32,36 +33,7 @@
 
 #include "tables.h"
 
-// to get a global angle from cartesian coordinates, the coordinates are
-// flipped until they are in the first octant of the coordinate system, then
-// the y (<=x) is scaled and divided by x to get a tangent (slope) value
-// which is looked up in the tantoangle[] table.  The +1 size is to handle
-// the case when x==y without additional checking.
-
-int SlopeDiv(unsigned int num, unsigned int den)
-{
-    unsigned ans;
-    
-    if (den < 512)
-    {
-        return SLOPERANGE;
-    }
-    else
-    {
-        ans = (num << 3) / (den >> 8);
-
-        if (ans <= SLOPERANGE)
-        {
-            return ans;
-        }
-        else
-        {
-            return SLOPERANGE;
-        }
-    }
-}
-
-const fixed_t finetangent[4096] =
+const fixed_t _finetangent[4096] =
 {
     -170910304,-56965752,-34178904,-24413316,-18988036,-15535599,-13145455,-11392683,
     -10052327,-8994149,-8137527,-7429880,-6835455,-6329090,-5892567,-5512368,
@@ -578,7 +550,14 @@ const fixed_t finetangent[4096] =
 };
 
 
-const fixed_t finesine[10240] =
+#if !DOOM_TINY
+const fixed_t _finesine[10240] =
+#else
+// values are between -65535 and 65536 so we really only care about 16 bits since the sign is obvious based on the index
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverflow"
+const uint16_t _finesine[10240] =
+#endif
 {
     25,75,125,175,226,276,326,376,
     427,477,527,578,628,678,728,779,
@@ -836,6 +815,7 @@ const fixed_t finesine[10240] =
     65525,65526,65527,65527,65528,65529,65530,65530,
     65531,65531,65532,65532,65533,65533,65534,65534,
     65534,65535,65535,65535,65535,65535,65535,65535,
+#if true || !DOOM_TINY
     65535,65535,65535,65535,65535,65535,65535,65534,
     65534,65534,65533,65533,65532,65532,65531,65531,
     65530,65530,65529,65528,65527,65527,65526,65525,
@@ -1860,9 +1840,15 @@ const fixed_t finesine[10240] =
     65525,65526,65527,65527,65528,65529,65530,65530,
     65531,65531,65532,65532,65533,65533,65534,65534,
     65534,65535,65535,65535,65535,65535,65535,65535
+#endif
 };
+#if DOOM_TINY
+#pragma GCC diagnostic pop
+#endif
 
-const fixed_t *finecosine = &finesine[FINEANGLES/4];
+#if !DOOM_TINY
+const fixed_t *_finecosine = &_finesine[FINEANGLES/4];
+#endif
 
 const angle_t tantoangle[2049] =
 {
@@ -2126,8 +2112,13 @@ const angle_t tantoangle[2049] =
 };
 
 // Now where did these came from?
+#if !DOOM_TINY
 const byte gammatable[5][256] =
+#else
+const byte gammatable[4][256] =
+#endif
 {
+#if !DOOM_TINY
     {
         1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
         17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
@@ -2146,7 +2137,7 @@ const byte gammatable[5][256] =
         224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,
         240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255
     },
-
+#endif
     {
         2,4,5,7,8,10,11,12,14,15,16,18,19,20,21,23,
         24,25,26,27,29,30,31,32,33,34,36,37,38,39,40,41,

@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,6 +28,7 @@
 
 #include "deh_mapping.h"
 
+#if !NO_USE_DEH
 static deh_mapping_entry_t *GetMappingEntryByName(deh_context_t *context,
                                                   deh_mapping_t *mapping,
                                                   char *name)
@@ -198,3 +200,4 @@ void DEH_StructSHA1Sum(sha1_context_t *context, deh_mapping_t *mapping,
     }
 }
 
+#endif

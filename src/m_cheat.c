@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,6 +27,10 @@
 //
 // CHEAT SEQUENCE PACKAGE
 //
+
+#if DOOM_TINY
+static char parameter_buf[MAX_CHEAT_PARAMS];
+#endif
 
 //
 // Called in st_stuff module, which handles the input.
@@ -59,8 +64,12 @@ cht_CheckCheat
     {
         // we have passed the end of the cheat sequence and are 
         // entering parameters now 
-        
+
+#if !DOOM_TINY
         cht->parameter_buf[cht->param_chars_read] = key;
+#else
+        parameter_buf[cht->param_chars_read] = key;
+#endif
         
         ++cht->param_chars_read;
     }
@@ -83,7 +92,11 @@ cht_GetParam
 ( cheatseq_t*	cht,
   char*		buffer )
 {
+#if !DOOM_TINY
     memcpy(buffer, cht->parameter_buf, cht->parameter_chars);
+#else
+    memcpy(buffer, parameter_buf, cht->parameter_chars);
+#endif
 }
 
 

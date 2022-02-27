@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -34,8 +35,11 @@
 //
 // sky mapping
 //
-int			skyflatnum;
-int			skytexture;
+flatnum_t	skyflatnum;
+texnum_t 	skytexture;
+#if DOOM_TINY
+lumpindex_t   skytexture_patch;
+#endif
 int			skytexturemid;
 
 

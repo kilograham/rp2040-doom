@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -196,6 +197,28 @@ int R_PointOnSegSide(fixed_t x, fixed_t y, seg_t * line)
 */
 
 #define	DBITS		(FRACBITS-SLOPEBITS)
+static int SlopeDiv(unsigned int num, unsigned int den)
+{
+    unsigned ans;
+
+    if (den < 512)
+    {
+        return SLOPERANGE;
+    }
+    else
+    {
+        ans = (num << 3) / (den >> 8);
+
+        if (ans <= SLOPERANGE)
+        {
+            return ans;
+        }
+        else
+        {
+            return SLOPERANGE;
+        }
+    }
+}
 
 angle_t R_PointToAngle(fixed_t x, fixed_t y)
 {
@@ -272,7 +295,7 @@ fixed_t R_PointToDist(fixed_t x, fixed_t y)
     angle =
         (tantoangle[FixedDiv(dy, dx) >> DBITS] + ANG90) >> ANGLETOFINESHIFT;
 
-    dist = FixedDiv(dx, finesine[angle]);       // use as cosine
+    dist = FixedDiv(dx, finesine(angle));       // use as cosine
 
     return dist;
 }
@@ -330,9 +353,9 @@ fixed_t R_ScaleFromGlobalAngle(angle_t visangle)
         fixed_t dist, z;
         fixed_t sinv, cosv;
 
-        sinv = finesine[(visangle - rw_normalangle) >> ANGLETOFINESHIFT];
+        sinv = finesine((visangle - rw_normalangle) >> ANGLETOFINESHIFT);
         dist = FixedDiv(rw_distance, sinv);
-        cosv = finecosine[(viewangle - visangle) >> ANGLETOFINESHIFT];
+        cosv = finecosine((viewangle - visangle) >> ANGLETOFINESHIFT);
         z = abs(FixedMul(dist, cosv));
         scale = FixedDiv(projection, z);
         return scale;
@@ -342,8 +365,8 @@ fixed_t R_ScaleFromGlobalAngle(angle_t visangle)
     anglea = ANG90 + (visangle - viewangle);
     angleb = ANG90 + (visangle - rw_normalangle);
 // bothe sines are allways positive
-    sinea = finesine[anglea >> ANGLETOFINESHIFT];
-    sineb = finesine[angleb >> ANGLETOFINESHIFT];
+    sinea = finesine(anglea >> ANGLETOFINESHIFT);
+    sineb = finesine(angleb >> ANGLETOFINESHIFT);
     num = FixedMul(projection, sineb) << detailshift;
     den = FixedMul(rw_distance, sinea);
     if (den > num >> 16)
@@ -397,7 +420,7 @@ void R_InitTables(void)
 // OPTIMIZE: mirror...
         a = (i + 0.5) * PI * 2 / FINEANGLES;
         t = FRACUNIT * sin(a);
-        finesine[i] = t;
+        finesine(i) = t;
     }
 #endif
 
@@ -426,17 +449,17 @@ void R_InitTextureMapping(void)
 //
     // calc focallength so FIELDOFVIEW angles covers SCREENWIDTH
     focallength =
-        FixedDiv(centerxfrac, finetangent[FINEANGLES / 4 + FIELDOFVIEW / 2]);
+        FixedDiv(centerxfrac, finetangent(FINEANGLES / 4 + FIELDOFVIEW / 2));
 
     for (i = 0; i < FINEANGLES / 2; i++)
     {
-        if (finetangent[i] > FRACUNIT * 2)
+        if (finetangent(i) > FRACUNIT * 2)
             t = -1;
-        else if (finetangent[i] < -FRACUNIT * 2)
+        else if (finetangent(i) < -FRACUNIT * 2)
             t = viewwidth + 1;
         else
         {
-            t = FixedMul(finetangent[i], focallength);
+            t = FixedMul(finetangent(i), focallength);
             t = (centerxfrac - t + FRACUNIT - 1) >> FRACBITS;
             if (t < -1)
                 t = -1;
@@ -463,7 +486,7 @@ void R_InitTextureMapping(void)
 //
     for (i = 0; i < FINEANGLES / 2; i++)
     {
-        t = FixedMul(finetangent[i], focallength);
+        t = FixedMul(finetangent(i), focallength);
         t = centerx - t;
         if (viewangletox[i] == -1)
             viewangletox[i] = 0;
@@ -616,7 +639,7 @@ void R_ExecuteSetViewSize(void)
 
     for (i = 0; i < viewwidth; i++)
     {
-        cosadj = abs(finecosine[xtoviewangle[i] >> ANGLETOFINESHIFT]);
+        cosadj = abs(finecosine(xtoviewangle[i] >> ANGLETOFINESHIFT));
         distscale[i] = FixedDiv(FRACUNIT, cosadj);
     }
 
@@ -746,8 +769,8 @@ void R_SetupFrame(player_t * player)
                                      FRACUNIT / 2));
         }
     }
-    viewsin = finesine[tableAngle];
-    viewcos = finecosine[tableAngle];
+    viewsin = finesine(tableAngle);
+    viewcos = finecosine(tableAngle);
     sscount = 0;
     if (player->fixedcolormap)
     {

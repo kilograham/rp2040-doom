@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -21,6 +22,7 @@
 
 #include "d_mode.h"
 
+#if !DOOM_ONLY
 #define IWAD_MASK_DOOM    ((1 << doom)           \
                          | (1 << doom2)          \
                          | (1 << pack_tnt)       \
@@ -30,6 +32,12 @@
 #define IWAD_MASK_HERETIC (1 << heretic)
 #define IWAD_MASK_HEXEN   (1 << hexen)
 #define IWAD_MASK_STRIFE  (1 << strife)
+#else
+#define IWAD_MASK_DOOM    ((1 << doom)           \
+                         | (1 << doom2)          \
+                         | (1 << pack_tnt)       \
+                         | (1 << pack_plut))
+#endif
 
 typedef struct
 {
@@ -47,6 +55,8 @@ const char *D_SaveGameIWADName(GameMission_t gamemission);
 const char *D_SuggestIWADName(GameMission_t mission, GameMode_t mode);
 const char *D_SuggestGameName(GameMission_t mission, GameMode_t mode);
 void D_CheckCorrectIWAD(GameMission_t mission);
-
+#if DOOM_TINY
+GameMission_t IdentifyIWADByName(const char *name);
+#endif
 #endif
 

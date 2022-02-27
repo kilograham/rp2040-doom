@@ -1,0 +1,49 @@
+/*
+ * Copyright (c) 20222 Graham Sanderson
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+; Default scanline program (|| means aligned word boundary, | means hword boundary)
+.program video_doom
+
+.origin 0 ; must load at zero (offsets are hardcoded in instruction stream)
+.define bpp 16
+
+public end_of_scanline_skip_ALIGN:              ; || jmp end_of_scanline_skip_ALIGN | ignored ||
+  ; was 16 but we just discard the reset of the OSR
+  ; so as to also support 8 bit grayscale
+  out  null, 32;
+
+public end_of_scanline_ALIGN:                   ; | jmp end_of_scanline_ALIGN ||
+public entry_point:
+  wait irq, 4                                   ; todo perhaps change this to out exec, 16... so that we can do multiple things (including setting black pixel)
+public nop_raw:
+  out  pc, bpp
+
+public raw_run:                                 ; | jmp raw_run | color | n | <n + 2 colors> |
+  out  pins, bpp [2]
+  out  x, bpp
+pixel_loop:
+  out  pins, bpp [2]
+  jmp  x-- pixel_loop
+public raw_1p:                                   ; | jmp raw_1p | color |
+  out  pins, bpp [2]
+  out  pc, bpp
+
+public raw_run_half:                             ; | jmp raw_run | color | n | <n + 2 colors> |
+  out  pins, bpp
+  out  x, bpp
+pixel_loop_half:
+  out  pins, bpp
+  jmp  x-- pixel_loop_half
+public raw_1p_half:                              ; | jmp raw_1p | color |
+  out  pins, bpp
+  out  pc, bpp
+
+public color_run:                               ; | jmp color_run | color | count-3 |
+  out  pins, bpp [2]
+  out  x, bpp
+color_loop:
+  jmp  x-- color_loop  [3]
+  out  pc, bpp [3]

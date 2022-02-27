@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,6 +21,14 @@
 
 typedef struct midi_file_s midi_file_t;
 typedef struct midi_track_iter_s midi_track_iter_t;
+
+#if !USE_MUSX
+#define midifile_numtracks(f) ((f)->num_tracks)
+#define midifile_timedivision(f) SDL_SwapBE16((f)->header.time_division)
+#else
+#define midifile_numtracks(m) 1
+#define midifile_timedivision(f) 0x46 // seems to be 0x46 always in mus2mid
+#endif
 
 #define MIDI_CHANNELS_PER_TRACK 16
 
@@ -116,7 +125,7 @@ typedef struct
 typedef struct
 {
     // Time between the previous event and this event.
-    unsigned int delta_time;
+    uint32_t delta_time;
 
     // Type of event:
     midi_event_type_t event_type;
@@ -132,6 +141,17 @@ typedef struct
 // Load a MIDI file.
 
 midi_file_t *MIDI_LoadFile(char *filename);
+
+#if USE_DIRECT_MIDI_LUMP
+#if !USE_MUSX
+midi_file_t *MIDI_LoadRaw(const void *data, int len);
+#else
+midi_file_t *MUSX_LoadRaw(const void *data, int len);
+#endif
+#endif
+#if USE_MIDI_DUMP_FILE
+void MIDI_DumpFile(midi_file_t *file, const char *filename);
+#endif
 
 // Free a MIDI file.
 

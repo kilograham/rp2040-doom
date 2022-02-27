@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -33,14 +34,16 @@ typedef struct
 {
     // upper right-hand corner
     //  of the number (right-justified)
-    int		x;
-    int		y;
+    isb_int16_t 		x;
+    isb_int16_t 		y;
 
     // max # of digits in number
-    int width;    
+    isb_int8_t width;
 
+#if !DOOM_TINY
     // last number value
     int		oldnum;
+#endif
     
     // pointer to current value
     int*	num;
@@ -49,11 +52,14 @@ typedef struct
     //  whether to update number
     boolean*	on;
 
-    // list of patches for 0-9
-    patch_t**	p;
-
+    vpatch_sequence_t p;
+#if DOOM_TINY
+    int16_t cached;
+#endif
+#if !DOOM_TINY
     // user data
     int data;
+#endif
     
 } st_number_t;
 
@@ -67,7 +73,7 @@ typedef struct
     st_number_t		n;
 
     // percent sign graphic
-    patch_t*		p;
+    vpatch_handle_small_t		p;
     
 } st_percent_t;
 
@@ -77,55 +83,64 @@ typedef struct
 typedef struct
 {
      // center-justified location of icons
-    int			x;
-    int			y;
+    isb_int16_t 			x;
+    isb_int16_t 			y;
 
+#if !DOOM_TINY
     // last icon number
     int			oldinum;
+#endif
 
     // pointer to current icon
-    int*		inum;
+    isb_int8_t*		inum;
 
     // pointer to boolean stating
     //  whether to update icon
     boolean*		on;
 
     // list of icons
-    patch_t**		p;
-    
+    vpatch_handle_small_t*		p;
+
+#if DOOM_TINY
+    int8_t cached;
+#endif
+#if !DOOM_TINY
     // user data
     int			data;
+#endif
     
 } st_multicon_t;
-
-
-
 
 // Binary Icon widget
 
 typedef struct
 {
     // center-justified location of icon
-    int			x;
-    int			y;
+    isb_uint8_t 			x;
+    isb_uint8_t 			y;
+    vpatch_handle_small_t		p;	// icon
 
+#if !DOOM_TINY
     // last icon value
     boolean		oldval;
+#endif
 
     // pointer to current icon status
     boolean*		val;
 
     // pointer to boolean
     //  stating whether to update icon
-    boolean*		on;  
+    boolean*		on;
 
+#if DOOM_TINY
+    int8_t cached;
+#endif
 
-    patch_t*		p;	// icon
+#if !DOOM_TINY
     int			data;   // user data
-    
+#endif
+
 } st_binicon_t;
-
-
 
 //
 // Widget creation, access, and update routines
@@ -145,7 +160,7 @@ STlib_initNum
 ( st_number_t*		n,
   int			x,
   int			y,
-  patch_t**		pl,
+  vpatch_sequence_t 		pl,
   int*			num,
   boolean*		on,
   int			width );
@@ -162,10 +177,10 @@ STlib_initPercent
 ( st_percent_t*		p,
   int			x,
   int			y,
-  patch_t**		pl,
+  vpatch_sequence_t 	pl,
   int*			num,
   boolean*		on,
-  patch_t*		percent );
+  vpatch_handle_small_t		percent );
 
 
 void
@@ -180,8 +195,8 @@ STlib_initMultIcon
 ( st_multicon_t*	mi,
   int			x,
   int			y,
-  patch_t**		il,
-  int*			inum,
+  vpatch_handle_small_t*		il,
+  isb_int8_t*			inum,
   boolean*		on );
 
 
@@ -197,7 +212,7 @@ STlib_initBinIcon
 ( st_binicon_t*		b,
   int			x,
   int			y,
-  patch_t*		i,
+  vpatch_handle_small_t		i,
   boolean*		val,
   boolean*		on );
 

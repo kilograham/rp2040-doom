@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,14 +29,14 @@
 typedef struct
 {
     ammotype_t	ammo;
-    int		upstate;
-    int		downstate;
-    int		readystate;
-    int		atkstate;
-    int		flashstate;
+    isb_int16_t 		upstate;
+    isb_int16_t 		downstate;
+    isb_int16_t 		readystate;
+    isb_int16_t 		atkstate;
+    isb_int16_t 		flashstate;
 
 } weaponinfo_t;
 
-extern  weaponinfo_t    weaponinfo[NUMWEAPONS];
+extern  should_be_const weaponinfo_t    weaponinfo[NUMWEAPONS];
 
 #endif

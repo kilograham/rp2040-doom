@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
 // Copyright(C) 2005, 2006 Andrey Budko
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -68,26 +69,26 @@ P_PointOnLineSide
     fixed_t	left;
     fixed_t	right;
 	
-    if (!line->dx)
+    if (line_is_vert(line))
     {
-	if (x <= line->v1->x)
-	    return line->dy > 0;
+	if (x <= vertex_x(line_v1(line)))
+	    return line_dy_gt_0(line);
 	
-	return line->dy < 0;
+	return line_dy_lt_0(line);
     }
-    if (!line->dy)
+    if (line_is_horiz(line))
     {
-	if (y <= line->v1->y)
-	    return line->dx < 0;
+	if (y <= vertex_y(line_v1(line)))
+	    return line_dx_lt_0(line);
 	
-	return line->dx > 0;
+	return line_dx_gt_0(line);
     }
 	
-    dx = (x - line->v1->x);
-    dy = (y - line->v1->y);
+    dx = (x - vertex_x(line_v1(line)));
+    dy = (y - vertex_y(line_v1(line)));
 	
-    left = FixedMul ( line->dy>>FRACBITS , dx );
-    right = FixedMul ( dy , line->dx>>FRACBITS );
+    left = FixedMul ( line_dy(line)>>FRACBITS , dx );
+    right = FixedMul ( dy , line_dx(line)>>FRACBITS );
 	
     if (right < left)
 	return 0;		// front side
@@ -108,23 +109,23 @@ P_BoxOnLineSide
 {
     int		p1 = 0;
     int		p2 = 0;
-	
-    switch (ld->slopetype)
+
+    switch (line_slopetype(ld))
     {
       case ST_HORIZONTAL:
-	p1 = tmbox[BOXTOP] > ld->v1->y;
-	p2 = tmbox[BOXBOTTOM] > ld->v1->y;
-	if (ld->dx < 0)
+	p1 = tmbox[BOXTOP] > vertex_y(line_v1(ld));
+	p2 = tmbox[BOXBOTTOM] > vertex_y(line_v1(ld));
+	if (line_dx_gt_0(ld))
 	{
 	    p1 ^= 1;
 	    p2 ^= 1;
 	}
 	break;
-	
+
       case ST_VERTICAL:
-	p1 = tmbox[BOXRIGHT] < ld->v1->x;
-	p2 = tmbox[BOXLEFT] < ld->v1->x;
-	if (ld->dy < 0)
+	p1 = tmbox[BOXRIGHT] < vertex_x(line_v1(ld));
+	p2 = tmbox[BOXLEFT] < vertex_x(line_v1(ld));
+	if (line_dy_lt_0(ld))
 	{
 	    p1 ^= 1;
 	    p2 ^= 1;
@@ -207,10 +208,10 @@ P_MakeDivline
 ( line_t*	li,
   divline_t*	dl )
 {
-    dl->x = li->v1->x;
-    dl->y = li->v1->y;
-    dl->dx = li->dx;
-    dl->dy = li->dy;
+    dl->x = vertex_x(line_v1(li));
+    dl->y = vertex_y(line_v1(li));
+    dl->dx = line_dx(li);
+    dl->dy = line_dy(li);
 }
 
 
@@ -297,30 +298,30 @@ void P_LineOpening (line_t* linedef)
     sector_t*	front;
     sector_t*	back;
 	
-    if (linedef->sidenum[1] == -1)
+    if (line_onesided(linedef))
     {
 	// single sided line
 	openrange = 0;
 	return;
     }
 	 
-    front = linedef->frontsector;
-    back = linedef->backsector;
+    front = line_frontsector(linedef);
+    back = line_backsector(linedef);
 	
-    if (front->ceilingheight < back->ceilingheight)
-	opentop = front->ceilingheight;
+    if (front->rawceilingheight < back->rawceilingheight)
+	opentop = sector_ceilingheight(front);
     else
-	opentop = back->ceilingheight;
+	opentop = sector_ceilingheight(back);
 
-    if (front->floorheight > back->floorheight)
+    if (front->rawfloorheight > back->rawfloorheight)
     {
-	openbottom = front->floorheight;
-	lowfloor = back->floorheight;
+	openbottom = sector_floorheight(front);
+	lowfloor = sector_floorheight(back);
     }
     else
     {
-	openbottom = back->floorheight;
-	lowfloor = front->floorheight;
+	openbottom = sector_floorheight(back);
+	lowfloor = sector_floorheight(front);
     }
 	
     openrange = opentop - openbottom;
@@ -346,37 +347,71 @@ void P_UnsetThingPosition (mobj_t* thing)
 
     if ( ! (thing->flags & MF_NOSECTOR) )
     {
+#if !SHRINK_MOBJ
 	// inert things don't need to be in blockmap?
 	// unlink from subsector
-	if (thing->snext)
-	    thing->snext->sprev = thing->sprev;
+	if (thing->sp_snext)
+            mobj_snext(thing)->sp_sprev = thing->sp_sprev;
 
-	if (thing->sprev)
-	    thing->sprev->snext = thing->snext;
+	if (thing->sp_sprev)
+	    mobj_sprev(thing)->sp_snext = thing->sp_snext;
 	else
-	    thing->subsector->sector->thinglist = thing->snext;
+	    mobj_sector(thing)->thinglist = thing->sp_snext;
+#else
+	// removed back link, so start from beginning
+	shortptr_t *prev = &mobj_sector(thing)->thinglist;
+	//assert(*prev);
+	while (*prev) {
+	    mobj_t *mobj = shortptr_to_mobj(*prev);
+	    if (mobj == thing) {
+	        *prev = mobj->sp_snext;
+	        break;
+	    }
+	    prev = &mobj->sp_snext;
+	}
+#endif
     }
 	
     if ( ! (thing->flags & MF_NOBLOCKMAP) )
     {
+#if !SHRINK_MOBJ
 	// inert things don't need to be in blockmap
 	// unlink from block map
-	if (thing->bnext)
-	    thing->bnext->bprev = thing->bprev;
+	if (thing->sp_bnext)
+	    mobj_bnext(thing)->sp_bprev = thing->sp_bprev;
 	
-	if (thing->bprev)
-	    thing->bprev->bnext = thing->bnext;
+	if (thing->sp_bprev)
+	    mobj_bprev(thing)->sp_bnext = thing->sp_bnext;
 	else
 	{
-	    blockx = (thing->x - bmaporgx)>>MAPBLOCKSHIFT;
-	    blocky = (thing->y - bmaporgy)>>MAPBLOCKSHIFT;
+	    blockx = (thing->xy.x - bmaporgx) >> MAPBLOCKSHIFT;
+	    blocky = (thing->xy.y - bmaporgy) >> MAPBLOCKSHIFT;
 
 	    if (blockx>=0 && blockx < bmapwidth
 		&& blocky>=0 && blocky <bmapheight)
 	    {
-		blocklinks[blocky*bmapwidth+blockx] = thing->bnext;
+		blocklinks[blocky*bmapwidth+blockx] = thing->sp_bnext;
 	    }
 	}
+#else
+        blockx = (thing->xy.x - bmaporgx) >> MAPBLOCKSHIFT;
+        blocky = (thing->xy.y - bmaporgy) >> MAPBLOCKSHIFT;
+        if (blockx>=0 && blockx < bmapwidth
+            && blocky>=0 && blocky <bmapheight) {
+            shortptr_t *prev = &blocklinks[blocky*bmapwidth+blockx];
+            //assert(*prev);
+            while (*prev) {
+                mobj_t *mobj = shortptr_to_mobj(*prev);
+                if (mobj == thing) {
+                    *prev = mobj->sp_bnext;
+                    break;
+                }
+                prev = &mobj->sp_bnext;
+            }
+        } else {
+            assert(!thing->sp_bnext);
+        }
+#endif
     }
 }
 
@@ -394,25 +429,33 @@ P_SetThingPosition (mobj_t* thing)
     sector_t*		sec;
     int			blockx;
     int			blocky;
-    mobj_t**		link;
+    shortptr_t /*mobj_t**/*		link;
 
     
     // link into subsector
-    ss = R_PointInSubsector (thing->x,thing->y);
+    ss = R_PointInSubsector (thing->xy.x, thing->xy.y);
+#if !SHRINK_MOBJ
     thing->subsector = ss;
+#else
+    thing->sector_num = subsector_sector(ss) - sectors;
+#endif
     
     if ( ! (thing->flags & MF_NOSECTOR) )
     {
 	// invisible things don't go into the sector links
-	sec = ss->sector;
-	
-	thing->sprev = NULL;
-	thing->snext = sec->thinglist;
+	sec = subsector_sector(ss);
 
+#if !SHRINK_MOBJ
+	thing->sp_sprev = 0;
+#endif
+	thing->sp_snext = sec->thinglist;
+
+#if !SHRINK_MOBJ
 	if (sec->thinglist)
-	    sec->thinglist->sprev = thing;
+	    shortptr_to_mobj(sec->thinglist)->sp_sprev = mobj_to_shortptr(thing);
+#endif
 
-	sec->thinglist = thing;
+	sec->thinglist = mobj_to_shortptr(thing);
     }
 
     
@@ -420,8 +463,8 @@ P_SetThingPosition (mobj_t* thing)
     if ( ! (thing->flags & MF_NOBLOCKMAP) )
     {
 	// inert things don't need to be in blockmap		
-	blockx = (thing->x - bmaporgx)>>MAPBLOCKSHIFT;
-	blocky = (thing->y - bmaporgy)>>MAPBLOCKSHIFT;
+	blockx = (thing->xy.x - bmaporgx) >> MAPBLOCKSHIFT;
+	blocky = (thing->xy.y - bmaporgy) >> MAPBLOCKSHIFT;
 
 	if (blockx>=0
 	    && blockx < bmapwidth
@@ -429,22 +472,102 @@ P_SetThingPosition (mobj_t* thing)
 	    && blocky < bmapheight)
 	{
 	    link = &blocklinks[blocky*bmapwidth+blockx];
-	    thing->bprev = NULL;
-	    thing->bnext = *link;
-	    if (*link)
-		(*link)->bprev = thing;
-
-	    *link = thing;
+#if !SHRINK_MOBJ
+	    thing->sp_bprev = 0;
+#endif
+	    thing->sp_bnext = *link;
+#if !SHRINK_MOBJ
+            if (*link)
+		shortptr_to_mobj(*link)->sp_bprev = mobj_to_shortptr(thing);
+#endif
+	    *link = mobj_to_shortptr(thing);
 	}
 	else
 	{
 	    // thing is off the map
-	    thing->bnext = thing->bprev = NULL;
+	    thing->sp_bnext = 0;
+#if !SHRINK_MOBJ
+	    thing->sp_bprev = 0;
+#endif
 	}
     }
 }
 
-
+void P_ResetThingPosition (mobj_t* thing, fixed_t x, fixed_t y) {
+    // arghh.. DoomII demo 3 relies on the oreder of the things in the blockmap...
+    // don't think this is probably a huge speed concern, so reverting always to unset/set which moves the item
+    // to the front.
+#if true || !SHRINK_MOBJ
+    P_UnsetThingPosition(thing);
+    thing->xy.x = x;
+    thing->xy.y = y;
+    P_SetThingPosition(thing);
+#else
+    if ( ! (thing->flags & MF_NOSECTOR) ) {
+        sector_t *oldsec = mobj_sector(thing);
+        subsector_t *newsub = R_PointInSubsector(x, y);
+#if !SHRINK_MOBJ
+        thing->subsector = newsub;
+#else
+        thing->sector_num = subsector_sector(newsub) - sectors;
+#endif
+        sector_t *newsec = subsector_sector(newsub);
+        if (oldsec != newsec) {
+            // removed back link, so start from beginning
+            shortptr_t *prev = &oldsec->thinglist;
+            assert(*prev);
+            while (*prev) {
+                mobj_t *mobj = shortptr_to_mobj(*prev);
+                if (mobj == thing) {
+                    *prev = mobj->sp_snext;
+                    break;
+                }
+                prev = &mobj->sp_snext;
+            }
+            thing->sp_snext = newsec->thinglist;
+            newsec->thinglist = mobj_to_shortptr(thing);
+        }
+    }
+    if ( ! (thing->flags & MF_NOBLOCKMAP) )
+    {
+        // inert things don't need to be in blockmap
+        fixed_t oldblockx = (thing->xy.x - bmaporgx) >> MAPBLOCKSHIFT;
+        fixed_t blockx = (x - bmaporgx) >> MAPBLOCKSHIFT;
+        fixed_t oldblocky = (thing->xy.y - bmaporgy) >> MAPBLOCKSHIFT;
+        fixed_t blocky = (y - bmaporgy) >> MAPBLOCKSHIFT;
+        if (oldblockx != blockx || oldblocky != blocky) {
+            if (oldblockx>=0 && oldblockx < bmapwidth
+                && oldblocky>=0 && oldblocky <bmapheight) {
+                shortptr_t *prev = &blocklinks[oldblocky * bmapwidth + oldblockx];
+                assert(*prev);
+                while (*prev) {
+                    mobj_t *mobj = shortptr_to_mobj(*prev);
+                    if (mobj == thing) {
+                        *prev = mobj->sp_bnext;
+                        break;
+                    }
+                    prev = &mobj->sp_bnext;
+                }
+            }
+            if (blockx>=0
+                && blockx < bmapwidth
+                && blocky>=0
+                && blocky < bmapheight)
+            {
+                thing->sp_bnext = blocklinks[blocky*bmapwidth+blockx];
+                blocklinks[blocky*bmapwidth+blockx] = mobj_to_shortptr(thing);
+            }
+            else
+            {
+                // thing is off the map
+                thing->sp_bnext = 0;
+            }
+        }
+    }
+    thing->xy.x = x;
+    thing->xy.y = y;
+#endif
+}
 
 //
 // BLOCK MAP ITERATORS
@@ -455,6 +578,31 @@ P_SetThingPosition (mobj_t* thing)
 //
 
 
+#if USE_WHD
+// todo double in size for speed?
+const uint8_t popcount8_table[128] = {
+        0x10, 0x21, 0x21, 0x32, 0x21, 0x32, 0x32, 0x43, 0x21, 0x32, 0x32, 0x43, 0x32, 0x43, 0x43, 0x54,
+        0x21, 0x32, 0x32, 0x43, 0x32, 0x43, 0x43, 0x54, 0x32, 0x43, 0x43, 0x54, 0x43, 0x54, 0x54, 0x65,
+        0x21, 0x32, 0x32, 0x43, 0x32, 0x43, 0x43, 0x54, 0x32, 0x43, 0x43, 0x54, 0x43, 0x54, 0x54, 0x65,
+        0x32, 0x43, 0x43, 0x54, 0x43, 0x54, 0x54, 0x65, 0x43, 0x54, 0x54, 0x65, 0x54, 0x65, 0x65, 0x76,
+        0x21, 0x32, 0x32, 0x43, 0x32, 0x43, 0x43, 0x54, 0x32, 0x43, 0x43, 0x54, 0x43, 0x54, 0x54, 0x65,
+        0x32, 0x43, 0x43, 0x54, 0x43, 0x54, 0x54, 0x65, 0x43, 0x54, 0x54, 0x65, 0x54, 0x65, 0x65, 0x76,
+        0x32, 0x43, 0x43, 0x54, 0x43, 0x54, 0x54, 0x65, 0x43, 0x54, 0x54, 0x65, 0x54, 0x65, 0x65, 0x76,
+        0x43, 0x54, 0x54, 0x65, 0x54, 0x65, 0x65, 0x76, 0x54, 0x65, 0x65, 0x76, 0x65, 0x76, 0x76, 0x87,
+};
+// todo half size for space?
+// note this savus us about 1.5K in metadata over a 32 entry table
+const uint8_t bitcount8_table[256] = {
+        0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+        6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+        8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+        8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+        8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+        8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+};
+#endif
 //
 // P_BlockLinesIterator
 // The validcount flags are used to avoid checking lines
@@ -470,7 +618,7 @@ P_BlockLinesIterator
   boolean(*func)(line_t*) )
 {
     int			offset;
-    short*		list;
+    rowad_const short*		list;
     line_t*		ld;
 	
     if (x<0
@@ -480,7 +628,8 @@ P_BlockLinesIterator
     {
 	return true;
     }
-    
+
+#if !USE_WHD
     offset = y*bmapwidth+x;
 	
     offset = *(blockmap+offset);
@@ -489,14 +638,45 @@ P_BlockLinesIterator
     {
 	ld = &lines[*list];
 
-	if (ld->validcount == validcount)
+	if (line_validcount_update_check(ld, validcount))
 	    continue; 	// line has already been checked
 
-	ld->validcount = validcount;
-		
 	if ( !func(ld) )
 	    return false;
     }
+#else
+    // handle 0
+    if (!line_validcount_update_check(&lines[0], validcount) && !func(&lines[0])) return false;
+
+    uint row_header_offset = y * (2 + (bmapwidth + 7) / 8);
+    uint bmx = x / 8;
+
+    if (blockmap_whd[row_header_offset + 2 + bmx] & (1u << (x & 7))) {
+        uint data_offset = blockmap_whd[row_header_offset] | (blockmap_whd[row_header_offset + 1] << 8u);
+        uint cell_metadata_index = popcount8(blockmap_whd[row_header_offset + 2 + bmx] & ((1u << (x & 7)) - 1));
+        for(int xx = 0; xx < bmx; xx++) {
+            cell_metadata_index += popcount8(blockmap_whd[row_header_offset + 2 + xx]);
+        }
+        uint cell_metadata = blockmap_whd[data_offset + cell_metadata_index * 2] | (blockmap_whd[data_offset + cell_metadata_index * 2 + 1] << 8u);
+        if ((cell_metadata & 0xf000) == 0xf000) {
+            const line_t *line = &lines[cell_metadata & 0xfffu];
+            if (!line_validcount_update_check(line, validcount) && !func(line)) return false;
+        } else {
+            uint count = (cell_metadata >> 10u) + 1;
+            uint element_offset = data_offset + (cell_metadata & 0x3ff);
+            uint last = 0;
+            while (count--) {
+                uint b = blockmap_whd[element_offset++];
+                if (b & 0x80) {
+                    b = ((b & 0x7f) << 8) + blockmap_whd[element_offset++];
+                }
+                last += b + 1;
+                const line_t *line = &lines[last];
+                if (!line_validcount_update_check(line, validcount) && !func(line)) return false;
+            }
+        }
+    }
+#endif
     return true;	// everything was checked
 }
 
@@ -510,6 +690,7 @@ P_BlockThingsIterator
   int			y,
   boolean(*func)(mobj_t*) )
 {
+    // todo graham we can make do with a smaller hashtable I'm sure
     mobj_t*		mobj;
 	
     if ( x<0
@@ -519,11 +700,11 @@ P_BlockThingsIterator
     {
 	return true;
     }
-    
 
-    for (mobj = blocklinks[y*bmapwidth+x] ;
+
+    for (mobj = shortptr_to_mobj(blocklinks[y*bmapwidth+x]) ;
 	 mobj ;
-	 mobj = mobj->bnext)
+	 mobj = mobj_bnext(mobj))
     {
 	if (!func( mobj ) )
 	    return false;
@@ -569,8 +750,8 @@ PIT_AddLineIntercepts (line_t* ld)
 	 || trace.dx < -FRACUNIT*16
 	 || trace.dy < -FRACUNIT*16)
     {
-	s1 = P_PointOnDivlineSide (ld->v1->x, ld->v1->y, &trace);
-	s2 = P_PointOnDivlineSide (ld->v2->x, ld->v2->y, &trace);
+	s1 = P_PointOnDivlineSide (vertex_x(line_v1(ld)), vertex_y(line_v1(ld)), &trace);
+	s2 = P_PointOnDivlineSide (vertex_x(line_v2(ld)), vertex_y(line_v2(ld)), &trace);
     }
     else
     {
@@ -591,16 +772,21 @@ PIT_AddLineIntercepts (line_t* ld)
     // try to early out the check
     if (earlyout
 	&& frac < FRACUNIT
-	&& !ld->backsector)
+	&& !line_backsector(ld))
     {
 	return false;	// stop checking
     }
     
-	
+#if NO_INTERCEPTS_OVERRUN
+    if (intercept_p - intercepts == MAXINTERCEPTS) return false;
+#endif
+
     intercept_p->frac = frac;
     intercept_p->isaline = true;
     intercept_p->d.line = ld;
+#if !NO_INTERCEPTS_OVERRUN
     InterceptsOverrun(intercept_p - intercepts, intercept_p);
+#endif
     intercept_p++;
 
     return true;	// continue
@@ -632,19 +818,19 @@ boolean PIT_AddThingIntercepts (mobj_t* thing)
     // check a corner to corner crossection for hit
     if (tracepositive)
     {
-	x1 = thing->x - thing->radius;
-	y1 = thing->y + thing->radius;
+	x1 = thing->xy.x - mobj_radius(thing);
+	y1 = thing->xy.y + mobj_radius(thing);
 		
-	x2 = thing->x + thing->radius;
-	y2 = thing->y - thing->radius;			
+	x2 = thing->xy.x + mobj_radius(thing);
+	y2 = thing->xy.y - mobj_radius(thing);
     }
     else
     {
-	x1 = thing->x - thing->radius;
-	y1 = thing->y - thing->radius;
+	x1 = thing->xy.x - mobj_radius(thing);
+	y1 = thing->xy.y - mobj_radius(thing);
 		
-	x2 = thing->x + thing->radius;
-	y2 = thing->y + thing->radius;			
+	x2 = thing->xy.x + mobj_radius(thing);
+	y2 = thing->xy.y + mobj_radius(thing);
     }
     
     s1 = P_PointOnDivlineSide (x1, y1, &trace);
@@ -888,7 +1074,8 @@ P_PathTraverse
     int		count;
 		
     earlyout = (flags & PT_EARLYOUT) != 0;
-		
+
+    line_check_reset();
     validcount++;
     intercept_p = intercepts;
 	

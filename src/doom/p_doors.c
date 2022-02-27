@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -110,7 +111,7 @@ void T_VerticalDoor (vldoor_t* door)
 	// DOWN
 	res = T_MovePlane(door->sector,
 			  door->speed,
-			  door->sector->floorheight,
+			  sector_floorheight(door->sector),
 			  false,1,door->direction);
 	if (res == pastdest)
 	{
@@ -118,14 +119,14 @@ void T_VerticalDoor (vldoor_t* door)
 	    {
 	      case vld_blazeRaise:
 	      case vld_blazeClose:
-		door->sector->specialdata = NULL;
+		door->sector->specialdata = 0;
 		P_RemoveThinker (&door->thinker);  // unlink and free
 		S_StartSound(&door->sector->soundorg, sfx_bdcls);
 		break;
 		
 	      case vld_normal:
 	      case vld_close:
-		door->sector->specialdata = NULL;
+		door->sector->specialdata = 0;
 		P_RemoveThinker (&door->thinker);  // unlink and free
 		break;
 		
@@ -174,7 +175,7 @@ void T_VerticalDoor (vldoor_t* door)
 	      case vld_close30ThenOpen:
 	      case vld_blazeOpen:
 	      case vld_open:
-		door->sector->specialdata = NULL;
+		door->sector->specialdata = 0;
 		P_RemoveThinker (&door->thinker);  // unlink and free
 		break;
 		
@@ -200,12 +201,12 @@ EV_DoLockedDoor
 {
     player_t*	p;
 	
-    p = thing->player;
+    p = mobj_player(thing);
 	
     if (!p)
 	return 0;
 		
-    switch(line->special)
+    switch(line_special(line))
     {
       case 99:	// Blue Lock
       case 133:
@@ -214,7 +215,7 @@ EV_DoLockedDoor
 	if (!p->cards[it_bluecard] && !p->cards[it_blueskull])
 	{
 	    p->message = DEH_String(PD_BLUEO);
-	    S_StartSound(NULL,sfx_oof);
+	    S_StartUnpositionedSound( sfx_oof);
 	    return 0;
 	}
 	break;
@@ -226,7 +227,7 @@ EV_DoLockedDoor
 	if (!p->cards[it_redcard] && !p->cards[it_redskull])
 	{
 	    p->message = DEH_String(PD_REDO);
-	    S_StartSound(NULL,sfx_oof);
+	    S_StartUnpositionedSound( sfx_oof);
 	    return 0;
 	}
 	break;
@@ -239,7 +240,7 @@ EV_DoLockedDoor
 	    !p->cards[it_yellowskull])
 	{
 	    p->message = DEH_String(PD_YELLOWO);
-	    S_StartSound(NULL,sfx_oof);
+	    S_StartUnpositionedSound( sfx_oof);
 	    return 0;
 	}
 	break;	
@@ -272,9 +273,9 @@ EV_DoDoor
 	rtn = 1;
 	door = Z_Malloc (sizeof(*door), PU_LEVSPEC, 0);
 	P_AddThinker (&door->thinker);
-	sec->specialdata = door;
+	sec->specialdata = ptr_to_shortptr(door);
 
-	door->thinker.function.acp1 = (actionf_p1) T_VerticalDoor;
+	door->thinker.function = ThinkF_T_VerticalDoor;
 	door->sector = sec;
 	door->type = type;
 	door->topwait = VDOORWAIT;
@@ -298,7 +299,7 @@ EV_DoDoor
 	    break;
 	    
 	  case vld_close30ThenOpen:
-	    door->topheight = sec->ceilingheight;
+	    door->topheight = sector_ceilingheight(sec);
 	    door->direction = -1;
 	    S_StartSound(&door->sector->soundorg, sfx_dorcls);
 	    break;
@@ -309,7 +310,7 @@ EV_DoDoor
 	    door->topheight = P_FindLowestCeilingSurrounding(sec);
 	    door->topheight -= 4*FRACUNIT;
 	    door->speed = VDOORSPEED * 4;
-	    if (door->topheight != sec->ceilingheight)
+	    if (door->topheight != sector_ceilingheight(sec))
 		S_StartSound(&door->sector->soundorg, sfx_bdopn);
 	    break;
 	    
@@ -318,7 +319,7 @@ EV_DoDoor
 	    door->direction = 1;
 	    door->topheight = P_FindLowestCeilingSurrounding(sec);
 	    door->topheight -= 4*FRACUNIT;
-	    if (door->topheight != sec->ceilingheight)
+	    if (door->topheight != sector_ceilingheight(sec))
 		S_StartSound(&door->sector->soundorg, sfx_doropn);
 	    break;
 	    
@@ -342,14 +343,12 @@ EV_VerticalDoor
     player_t*	player;
     sector_t*	sec;
     vldoor_t*	door;
-    int		side;
-	
-    side = 0;	// only front sides can be used
+    const int		side = 0; // only front sides can be used
 
     //	Check for locks
-    player = thing->player;
+    player = mobj_player(thing);
 		
-    switch(line->special)
+    switch(line_special(line))
     {
       case 26: // Blue Lock
       case 32:
@@ -359,7 +358,7 @@ EV_VerticalDoor
 	if (!player->cards[it_bluecard] && !player->cards[it_blueskull])
 	{
 	    player->message = DEH_String(PD_BLUEK);
-	    S_StartSound(NULL,sfx_oof);
+	    S_StartUnpositionedSound( sfx_oof);
 	    return;
 	}
 	break;
@@ -373,7 +372,7 @@ EV_VerticalDoor
 	    !player->cards[it_yellowskull])
 	{
 	    player->message = DEH_String(PD_YELLOWK);
-	    S_StartSound(NULL,sfx_oof);
+	    S_StartUnpositionedSound( sfx_oof);
 	    return;
 	}
 	break;
@@ -386,7 +385,7 @@ EV_VerticalDoor
 	if (!player->cards[it_redcard] && !player->cards[it_redskull])
 	{
 	    player->message = DEH_String(PD_REDK);
-	    S_StartSound(NULL,sfx_oof);
+	    S_StartUnpositionedSound( sfx_oof);
 	    return;
 	}
 	break;
@@ -394,17 +393,17 @@ EV_VerticalDoor
 	
     // if the sector has an active thinker, use it
 
-    if (line->sidenum[side^1] == -1)
+    if (line_onesided(line))
     {
         I_Error("EV_VerticalDoor: DR special type on 1-sided linedef");
     }
 
-    sec = sides[ line->sidenum[side^1]] .sector;
+    sec = side_sector(sidenum_to_side(line_sidenum(line, side^1)));
 
     if (sec->specialdata)
     {
-	door = sec->specialdata;
-	switch(line->special)
+	door = shortptr_to_ptr(sec->specialdata);
+	switch(line_special(line))
 	{
 	  case	1: // ONLY FOR "RAISE" DOORS, NOT "OPEN"s
 	  case	26:
@@ -415,18 +414,18 @@ EV_VerticalDoor
 		door->direction = 1;	// go back up
 	    else
 	    {
-		if (!thing->player)
+		if (!mobj_full(thing)->sp_player)
 		    return;		// JDC: bad guys never close doors
 
                 // When is a door not a door?
                 // In Vanilla, door->direction is set, even though
                 // "specialdata" might not actually point at a door.
 
-                if (door->thinker.function.acp1 == (actionf_p1) T_VerticalDoor)
+                if (door->thinker.function == ThinkF_T_VerticalDoor)
                 {
                     door->direction = -1;	// start going down immediately
                 }
-                else if (door->thinker.function.acp1 == (actionf_p1) T_PlatRaise)
+                else if (door->thinker.function == ThinkF_T_PlatRaise)
                 {
                     // Erm, this is a plat, not a door.
                     // This notably causes a problem in ep1-0500.lmp where
@@ -444,7 +443,7 @@ EV_VerticalDoor
                 {
                     // This isn't a door OR a plat.  Now we're in trouble.
 
-                    fprintf(stderr, "EV_VerticalDoor: Tried to close "
+                    stderr_print( "EV_VerticalDoor: Tried to close "
                                     "something that wasn't a door.\n");
 
                     // Try closing it anyway. At least it will work on 32-bit
@@ -458,7 +457,7 @@ EV_VerticalDoor
     }
 	
     // for proper sound
-    switch(line->special)
+    switch(line_special(line))
     {
       case 117:	// BLAZING DOOR RAISE
       case 118:	// BLAZING DOOR OPEN
@@ -479,14 +478,14 @@ EV_VerticalDoor
     // new door thinker
     door = Z_Malloc (sizeof(*door), PU_LEVSPEC, 0);
     P_AddThinker (&door->thinker);
-    sec->specialdata = door;
-    door->thinker.function.acp1 = (actionf_p1) T_VerticalDoor;
+    sec->specialdata = ptr_to_shortptr(door);
+    door->thinker.function = ThinkF_T_VerticalDoor;
     door->sector = sec;
     door->direction = 1;
     door->speed = VDOORSPEED;
     door->topwait = VDOORWAIT;
 
-    switch(line->special)
+    switch(line_special(line))
     {
       case 1:
       case 26:
@@ -500,7 +499,7 @@ EV_VerticalDoor
       case 33:
       case 34:
 	door->type = vld_open;
-	line->special = 0;
+            clear_line_special(line);
 	break;
 	
       case 117:	// blazing door raise
@@ -509,7 +508,7 @@ EV_VerticalDoor
 	break;
       case 118:	// blazing door open
 	door->type = vld_blazeOpen;
-	line->special = 0;
+            clear_line_special(line);
 	door->speed = VDOORSPEED*4;
 	break;
     }
@@ -531,10 +530,10 @@ void P_SpawnDoorCloseIn30 (sector_t* sec)
 
     P_AddThinker (&door->thinker);
 
-    sec->specialdata = door;
+    sec->specialdata = ptr_to_shortptr(door);
     sec->special = 0;
 
-    door->thinker.function.acp1 = (actionf_p1)T_VerticalDoor;
+    door->thinker.function = ThinkF_T_VerticalDoor;
     door->sector = sec;
     door->direction = 0;
     door->type = vld_normal;
@@ -556,10 +555,10 @@ P_SpawnDoorRaiseIn5Mins
     
     P_AddThinker (&door->thinker);
 
-    sec->specialdata = door;
+    sec->specialdata = ptr_to_shortptr(door);
     sec->special = 0;
 
-    door->thinker.function.acp1 = (actionf_p1)T_VerticalDoor;
+    door->thinker.function = ThinkF_T_VerticalDoor;
     door->sector = sec;
     door->direction = 2;
     door->type = vld_raiseIn5Mins;

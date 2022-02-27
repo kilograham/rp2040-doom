@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -42,11 +43,11 @@ typedef struct
 struct _wad_file_s
 {
     // Class of this file.
-    wad_file_class_t *file_class;
+    const wad_file_class_t *file_class;
 
     // If this is NULL, the file cannot be mapped into memory.  If this
     // is non-NULL, it is a pointer to the mapped file.
-    byte *mapped;
+    const byte *mapped;
 
     // Length of the file, in bytes.
     unsigned int length;

@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -51,8 +52,24 @@ ticcmd_t* I_BaseTiccmd (void);
 // Called by M_Responder when quit is selected.
 // Clean exit, displays sell blurb.
 void I_Quit (void) NORETURN;
+#if DOOM_TINY
+extern void handle_exit_key_down(int scancode, boolean shift, uint8_t *kb_buffer, int kb_len);
+extern int8_t at_exit_screen;
+extern uint8_t *exit_screen_kb_buffer_80;
+#endif
 
+#if !NO_IERROR || !PICO_ON_DEVICE
 void I_Error (const char *error, ...) NORETURN PRINTF_ATTR(1, 2);
+#else
+#include "pico.h"
+//#define I_Error(args...) ((void)0)
+#define I_Error(args...) __breakpoint();
+#endif
+
+#if DOOM_TINY
+#include "pico/sem.h"
+extern semaphore_t render_frame_ready, display_frame_freed;
+#endif
 
 void I_Tactile (int on, int off, int total);
 
@@ -82,5 +99,8 @@ void I_PrintBanner(const char *text);
 
 void I_PrintDivider(void);
 
+#if USE_ZONE_FOR_MALLOC
+extern boolean disallow_core1_malloc;
+#endif
 #endif
 

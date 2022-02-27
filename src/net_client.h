@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -22,6 +23,7 @@
 #include "sha1.h"
 #include "net_defs.h"
 
+#if !NO_USE_NET
 boolean NET_CL_Connect(net_addr_t *addr, net_connect_data_t *data);
 void NET_CL_Disconnect(void);
 void NET_CL_Run(void);
@@ -39,7 +41,7 @@ extern boolean net_client_received_wait_data;
 extern net_waitdata_t net_client_wait_data;
 extern char *net_client_reject_reason;
 extern boolean net_waiting_for_launch;
-extern char *net_player_name;
+extern const char *net_player_name;
 
 extern sha1_digest_t net_server_wad_sha1sum;
 extern sha1_digest_t net_server_deh_sha1sum;
@@ -48,6 +50,9 @@ extern sha1_digest_t net_local_wad_sha1sum;
 extern sha1_digest_t net_local_deh_sha1sum;
 extern unsigned int net_local_is_freedoom;
 
+#elif !USE_PICO_NET
+#define net_client_connected false
+#endif
 extern boolean drone;
 
 #endif /* #ifndef NET_CLIENT_H */

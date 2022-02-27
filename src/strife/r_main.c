@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -273,6 +274,28 @@ R_PointOnSegSide
 //
 
 
+static int SlopeDiv(unsigned int num, unsigned int den)
+{
+    unsigned ans;
+
+    if (den < 512)
+    {
+        return SLOPERANGE;
+    }
+    else
+    {
+        ans = (num << 3) / (den >> 8);
+
+        if (ans <= SLOPERANGE)
+        {
+            return ans;
+        }
+        else
+        {
+            return SLOPERANGE;
+        }
+    }
+}
 
 
 angle_t
@@ -411,7 +434,7 @@ R_PointToDist
     angle = (tantoangle[frac>>DBITS]+ANG90) >> ANGLETOFINESHIFT;
 
     // use as cosine
-    dist = FixedDiv (dx, finesine[angle] );	
+    dist = FixedDiv (dx, finesine(angle) );
 	
     return dist;
 }
@@ -467,9 +490,9 @@ fixed_t R_ScaleFromGlobalAngle (angle_t visangle)
     fixed_t		sinv;
     fixed_t		cosv;
 	
-    sinv = finesine[(visangle-rw_normalangle)>>ANGLETOFINESHIFT];	
+    sinv = finesine((visangle-rw_normalangle)>>ANGLETOFINESHIFT);
     dist = FixedDiv (rw_distance, sinv);
-    cosv = finecosine[(viewangle-visangle)>>ANGLETOFINESHIFT];
+    cosv = finecosine((viewangle-visangle)>>ANGLETOFINESHIFT);
     z = abs(FixedMul (dist, cosv));
     scale = FixedDiv(projection, z);
     return scale;
@@ -480,8 +503,8 @@ fixed_t R_ScaleFromGlobalAngle (angle_t visangle)
     angleb = ANG90 + (visangle-rw_normalangle);
 
     // both sines are allways positive
-    sinea = finesine[anglea>>ANGLETOFINESHIFT];	
-    sineb = finesine[angleb>>ANGLETOFINESHIFT];
+    sinea = finesine(anglea>>ANGLETOFINESHIFT);
+    sineb = finesine(angleb>>ANGLETOFINESHIFT);
     num = FixedMul(projection,sineb)<<detailshift;
     den = FixedMul(rw_distance,sinea);
 
@@ -529,7 +552,7 @@ void R_InitTables (void)
 	// OPTIMIZE: mirror...
 	a = (i+0.5)*PI*2/FINEANGLES;
 	t = FRACUNIT*sin (a);
-	finesine[i] = t;
+	finesine(i) = t;
     }
 #endif
 
@@ -554,17 +577,17 @@ void R_InitTextureMapping (void)
     // Calc focallength
     //  so FIELDOFVIEW angles covers SCREENWIDTH.
     focallength = FixedDiv (centerxfrac,
-			    finetangent[FINEANGLES/4+FIELDOFVIEW/2] );
+			    finetangent(FINEANGLES/4+FIELDOFVIEW/2) );
 	
     for (i=0 ; i<FINEANGLES/2 ; i++)
     {
-	if (finetangent[i] > FRACUNIT*2)
+	if (finetangent(i) > FRACUNIT*2)
 	    t = -1;
-	else if (finetangent[i] < -FRACUNIT*2)
+	else if (finetangent(i) < -FRACUNIT*2)
 	    t = viewwidth+1;
 	else
 	{
-	    t = FixedMul (finetangent[i], focallength);
+	    t = FixedMul (finetangent(i), focallength);
 	    t = (centerxfrac - t+FRACUNIT-1)>>FRACBITS;
 
 	    if (t < -1)
@@ -589,7 +612,7 @@ void R_InitTextureMapping (void)
     // Take out the fencepost cases from viewangletox.
     for (i=0 ; i<FINEANGLES/2 ; i++)
     {
-	t = FixedMul (finetangent[i], focallength);
+	t = FixedMul (finetangent(i), focallength);
 	t = centerx - t;
 	
 	if (viewangletox[i] == -1)
@@ -740,7 +763,7 @@ void R_ExecuteSetViewSize (void)
 	
     for (i=0 ; i<viewwidth ; i++)
     {
-	cosadj = abs(finecosine[xtoviewangle[i]>>ANGLETOFINESHIFT]);
+	cosadj = abs(finecosine(xtoviewangle[i]>>ANGLETOFINESHIFT));
 	distscale[i] = FixedDiv (FRACUNIT,cosadj);
     }
     
@@ -886,8 +909,8 @@ void R_SetupFrame (player_t* player)
 
     viewz = player->viewz;
     
-    viewsin = finesine[viewangle>>ANGLETOFINESHIFT];
-    viewcos = finecosine[viewangle>>ANGLETOFINESHIFT];
+    viewsin = finesine(viewangle>>ANGLETOFINESHIFT);
+    viewcos = finecosine(viewangle>>ANGLETOFINESHIFT);
 	
     sscount = 0;
 	

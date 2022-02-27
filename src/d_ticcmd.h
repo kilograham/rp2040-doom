@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -39,18 +40,24 @@ typedef struct
     // villsa [STRIFE] according to the asm,
     // consistancy is a short, not a byte
     byte consistancy;           // checks for net game
+#if !DOOM_ONLY
 
     // villsa - Strife specific:
 
     byte buttons2;
     int inventory;
-   
+
     // Heretic/Hexen specific:
 
     byte lookfly;               // look/fly up/down/centering
     byte arti;                  // artitype_t to use
+#endif
+#if DOOM_TINY
+    boolean ingame; // saves space elsewhere by moving from separate array (and the ^ is 7 bytes)
+#endif
 } ticcmd_t;
-
-
-
+#if DOOM_TINY
+#include <assert.h>
+static_assert(sizeof(ticcmd_t) == 8, "");
+#endif
 #endif

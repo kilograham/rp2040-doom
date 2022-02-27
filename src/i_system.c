@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -110,6 +111,12 @@ static byte *AutoAllocMemory(int *size, int default_ram, int min_ram)
 
         *size = default_ram * 1024 * 1024;
 
+#if DOOM_SMALL
+//        *size = (384+64) * 1024;
+#if PICO_ON_DEVICE
+        *size = 16 *1024;
+#endif
+#endif
         zonemem = malloc(*size);
 
         // Failed to allocate?  Reduce zone size until we reach a size
@@ -137,6 +144,7 @@ byte *I_ZoneBase (int *size)
     // Specify the heap size, in MiB (default 16).
     //
 
+#if !NO_USE_ARGS
     p = M_CheckParmWithArgs("-mb", 1);
 
     if (p > 0)
@@ -145,6 +153,7 @@ byte *I_ZoneBase (int *size)
         min_ram = default_ram;
     }
     else
+#endif
     {
         default_ram = DEFAULT_RAM;
         min_ram = MIN_RAM;
@@ -398,6 +407,7 @@ boolean I_GetMemoryValue(unsigned int offset, void *value, int size)
         // The default is to emulate DOS 7.1 (Windows 98).
         //
 
+#if !NO_USE_ARGS
         p = M_CheckParmWithArgs("-setmem", 1);
 
         if (p > 0)
@@ -432,6 +442,7 @@ boolean I_GetMemoryValue(unsigned int offset, void *value, int size)
                 dos_mem_dump = mem_dump_custom;
             }
         }
+#endif
     }
 
     switch (size)

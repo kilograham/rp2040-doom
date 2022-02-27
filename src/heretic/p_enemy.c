@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -967,8 +968,8 @@ void A_ImpMsAttack(mobj_t * actor)
     S_StartSound(actor, actor->info->attacksound);
     A_FaceTarget(actor);
     an = actor->angle >> ANGLETOFINESHIFT;
-    actor->momx = FixedMul(12 * FRACUNIT, finecosine[an]);
-    actor->momy = FixedMul(12 * FRACUNIT, finesine[an]);
+    actor->momx = FixedMul(12 * FRACUNIT, finecosine(an));
+    actor->momy = FixedMul(12 * FRACUNIT, finesine(an));
     dist = P_AproxDistance(dest->x - actor->x, dest->y - actor->y);
     dist = dist / (12 * FRACUNIT);
     if (dist < 1)
@@ -1636,8 +1637,8 @@ void A_MinotaurDecide(mobj_t * actor)
         actor->flags |= MF_SKULLFLY;
         A_FaceTarget(actor);
         angle = actor->angle >> ANGLETOFINESHIFT;
-        actor->momx = FixedMul(MNTR_CHARGE_SPEED, finecosine[angle]);
-        actor->momy = FixedMul(MNTR_CHARGE_SPEED, finesine[angle]);
+        actor->momx = FixedMul(MNTR_CHARGE_SPEED, finecosine(angle));
+        actor->momy = FixedMul(MNTR_CHARGE_SPEED, finesine(angle));
         actor->special1.i = 35 / 2;       // Charge duration
     }
     else if (target->z == target->floorz
@@ -1927,8 +1928,8 @@ void A_HeadIceImpact(mobj_t * ice)
         shard->target = ice->target;
         shard->angle = angle;
         angle >>= ANGLETOFINESHIFT;
-        shard->momx = FixedMul(shard->info->speed, finecosine[angle]);
-        shard->momy = FixedMul(shard->info->speed, finesine[angle]);
+        shard->momx = FixedMul(shard->info->speed, finecosine(angle));
+        shard->momy = FixedMul(shard->info->speed, finesine(angle));
         shard->momz = (fixed_t)(-.6 * FRACUNIT);
         P_CheckMissileSpawn(shard);
     }
@@ -2521,8 +2522,8 @@ void A_VolcanoBlast(mobj_t * volcano)
         angle = P_Random() << 24;
         blast->angle = angle;
         angle >>= ANGLETOFINESHIFT;
-        blast->momx = FixedMul(1 * FRACUNIT, finecosine[angle]);
-        blast->momy = FixedMul(1 * FRACUNIT, finesine[angle]);
+        blast->momx = FixedMul(1 * FRACUNIT, finecosine(angle));
+        blast->momy = FixedMul(1 * FRACUNIT, finesine(angle));
         blast->momz = (fixed_t)(2.5 * FRACUNIT) + (P_Random() << 10);
         S_StartSound(blast, sfx_volsht);
         P_CheckMissileSpawn(blast);
@@ -2556,8 +2557,8 @@ void A_VolcBallImpact(mobj_t * ball)
         angle = i * ANG90;
         tiny->angle = angle;
         angle >>= ANGLETOFINESHIFT;
-        tiny->momx = FixedMul((fixed_t)(FRACUNIT * .7), finecosine[angle]);
-        tiny->momy = FixedMul((fixed_t)(FRACUNIT * .7), finesine[angle]);
+        tiny->momx = FixedMul((fixed_t)(FRACUNIT * .7), finecosine(angle));
+        tiny->momy = FixedMul((fixed_t)(FRACUNIT * .7), finesine(angle));
         tiny->momz = FRACUNIT + (P_Random() << 9);
         P_CheckMissileSpawn(tiny);
     }

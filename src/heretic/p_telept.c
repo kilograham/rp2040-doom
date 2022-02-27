@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -82,8 +83,8 @@ boolean P_Teleport(mobj_t * thing, fixed_t x, fixed_t y, angle_t angle)
     fog = P_SpawnMobj(oldx, oldy, oldz + fogDelta, MT_TFOG);
     S_StartSound(fog, sfx_telept);
     an = angle >> ANGLETOFINESHIFT;
-    fog = P_SpawnMobj(x + 20 * finecosine[an],
-                      y + 20 * finesine[an], thing->z + fogDelta, MT_TFOG);
+    fog = P_SpawnMobj(x + 20 * finecosine(an),
+                      y + 20 * finesine(an), thing->z + fogDelta, MT_TFOG);
     S_StartSound(fog, sfx_telept);
     if (thing->player && !thing->player->powers[pw_weaponlevel2])
     {                           // Freeze player for about .5 sec
@@ -102,8 +103,8 @@ boolean P_Teleport(mobj_t * thing, fixed_t x, fixed_t y, angle_t angle)
     if (thing->flags & MF_MISSILE)
     {
         angle >>= ANGLETOFINESHIFT;
-        thing->momx = FixedMul(thing->info->speed, finecosine[angle]);
-        thing->momy = FixedMul(thing->info->speed, finesine[angle]);
+        thing->momx = FixedMul(thing->info->speed, finecosine(angle));
+        thing->momy = FixedMul(thing->info->speed, finesine(angle));
     }
     else
     {

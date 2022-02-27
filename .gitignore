@@ -7,7 +7,7 @@ aclocal.m4
 autom4te.cache
 autotools
 bin
-config.h
+/config.h
 config.hin
 config.log
 config.status
@@ -52,3 +52,8 @@ GPATH
 GRTAGS
 GTAGS
 /HTML/
+*.midx
+*.midx.z
+*.wad
+*.whd
+/cmake-*/

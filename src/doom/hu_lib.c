@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,6 +25,7 @@
 #include "v_video.h"
 #include "i_swap.h"
 
+#include "w_wad.h"
 #include "hu_lib.h"
 #include "r_local.h"
 #include "r_draw.h"
@@ -49,7 +51,7 @@ HUlib_initTextLine
 ( hu_textline_t*	t,
   int			x,
   int			y,
-  patch_t**		f,
+  vpatch_sequence_t 		f,
   int			sc )
 {
     t->x = x;
@@ -110,10 +112,10 @@ HUlib_drawTextLine
 	    && c >= l->sc
 	    && c <= '_')
 	{
-	    w = SHORT(l->f[c - l->sc]->width);
+	    w = vpatch_width(resolve_vpatch_handle(vpatch_n(l->f,c - l->sc)));
 	    if (x+w > SCREENWIDTH)
 		break;
-	    V_DrawPatchDirect(x, l->y, l->f[c - l->sc]);
+	    V_DrawPatchDirect(x, l->y, vpatch_n(l->f, c - l->sc));
 	    x += w;
 	}
 	else
@@ -126,9 +128,9 @@ HUlib_drawTextLine
 
     // draw the cursor if requested
     if (drawcursor
-	&& x + SHORT(l->f['_' - l->sc]->width) <= SCREENWIDTH)
+	&& x + vpatch_width(resolve_vpatch_handle(vpatch_n(l->f,'_' - l->sc))) <= SCREENWIDTH)
     {
-	V_DrawPatchDirect(x, l->y, l->f['_' - l->sc]);
+	V_DrawPatchDirect(x, l->y, vpatch_n(l->f, '_' - l->sc));
     }
 }
 
@@ -144,10 +146,11 @@ void HUlib_eraseTextLine(hu_textline_t* l)
     // and the text must either need updating or refreshing
     // (because of a recent change back from the automap)
 
+#if !NO_RDRAW
     if (!automapactive &&
 	viewwindowx && l->needsupdate)
     {
-	lh = SHORT(l->f[0]->height) + 1;
+	lh = patch_height(l->f[0]) + 1;
 	for (y=l->y,yoffset=y*SCREENWIDTH ; y<l->y+lh ; y++,yoffset+=SCREENWIDTH)
 	{
 	    if (y < viewwindowy || y >= viewwindowy + viewheight)
@@ -160,6 +163,7 @@ void HUlib_eraseTextLine(hu_textline_t* l)
 	    }
 	}
     }
+#endif
 
     if (l->needsupdate) l->needsupdate--;
 
@@ -171,7 +175,7 @@ HUlib_initSText
   int		x,
   int		y,
   int		h,
-  patch_t**	font,
+  vpatch_sequence_t font,
   int		startchar,
   boolean*	on )
 {
@@ -182,9 +186,10 @@ HUlib_initSText
     s->on = on;
     s->laston = true;
     s->cl = 0;
+    int pheight = vpatch_height(resolve_vpatch_handle(vpatch_n(font, 0)));
     for (i=0;i<h;i++)
 	HUlib_initTextLine(&s->l[i],
-			   x, y - i*(SHORT(font[0]->height)+1),
+			   x, y - i*(pheight+1),
 			   font, startchar);
 
 }
@@ -263,7 +268,7 @@ HUlib_initIText
 ( hu_itext_t*	it,
   int		x,
   int		y,
-  patch_t**	font,
+  vpatch_sequence_t 	font,
   int		startchar,
   boolean*	on )
 {

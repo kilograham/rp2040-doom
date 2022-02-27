@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -312,10 +313,10 @@ void P_CalcSwing (player_t *player)
 	swing = player->bob;
 
 	angle = (FINEANGLES/70*leveltime)&FINEMASK;
-	swingx = FixedMul ( swing, finesine[angle]);
+	swingx = FixedMul ( swing, finesine(angle));
 
 	angle = (FINEANGLES/70*leveltime+FINEANGLES/2)&FINEMASK;
-	swingy = -FixedMul ( swingx, finesine[angle]);
+	swingy = -FixedMul ( swingx, finesine(angle));
 }
 */
 
@@ -527,9 +528,9 @@ void A_WeaponReady(player_t * player, pspdef_t * psp)
     {
         // Bob the weapon based on movement speed.
         angle = (128 * leveltime) & FINEMASK;
-        psp->sx = FRACUNIT + FixedMul(player->bob, finecosine[angle]);
+        psp->sx = FRACUNIT + FixedMul(player->bob, finecosine(angle));
         angle &= FINEANGLES / 2 - 1;
-        psp->sy = WEAPONTOP + FixedMul(player->bob, finesine[angle]);
+        psp->sy = WEAPONTOP + FixedMul(player->bob, finesine(angle));
     }
 }
 
@@ -1233,13 +1234,13 @@ void A_MStaffWeave(mobj_t * actor)
     weaveXY = actor->special2.i >> 16;
     weaveZ = actor->special2.i & 0xFFFF;
     angle = (actor->angle + ANG90) >> ANGLETOFINESHIFT;
-    newX = actor->x - FixedMul(finecosine[angle],
+    newX = actor->x - FixedMul(finecosine(angle),
                                FloatBobOffsets[weaveXY] << 2);
-    newY = actor->y - FixedMul(finesine[angle],
+    newY = actor->y - FixedMul(finesine(angle),
                                FloatBobOffsets[weaveXY] << 2);
     weaveXY = (weaveXY + 6) & 63;
-    newX += FixedMul(finecosine[angle], FloatBobOffsets[weaveXY] << 2);
-    newY += FixedMul(finesine[angle], FloatBobOffsets[weaveXY] << 2);
+    newX += FixedMul(finecosine(angle), FloatBobOffsets[weaveXY] << 2);
+    newY += FixedMul(finesine(angle), FloatBobOffsets[weaveXY] << 2);
     P_TryMove(actor, newX, newY);
     actor->z -= FloatBobOffsets[weaveZ] << 1;
     weaveZ = (weaveZ + 3) & 63;
@@ -1609,11 +1610,11 @@ void A_CStaffMissileSlither(mobj_t * actor)
 
     weaveXY = actor->special2.i;
     angle = (actor->angle + ANG90) >> ANGLETOFINESHIFT;
-    newX = actor->x - FixedMul(finecosine[angle], FloatBobOffsets[weaveXY]);
-    newY = actor->y - FixedMul(finesine[angle], FloatBobOffsets[weaveXY]);
+    newX = actor->x - FixedMul(finecosine(angle), FloatBobOffsets[weaveXY]);
+    newY = actor->y - FixedMul(finesine(angle), FloatBobOffsets[weaveXY]);
     weaveXY = (weaveXY + 3) & 63;
-    newX += FixedMul(finecosine[angle], FloatBobOffsets[weaveXY]);
-    newY += FixedMul(finesine[angle], FloatBobOffsets[weaveXY]);
+    newX += FixedMul(finecosine(angle), FloatBobOffsets[weaveXY]);
+    newY += FixedMul(finesine(angle), FloatBobOffsets[weaveXY]);
     P_TryMove(actor, newX, newY);
     actor->special2.i = weaveXY;
 }
@@ -1704,28 +1705,28 @@ void A_CFlameMissile(mobj_t * actor)
         for (i = 0; i < 4; i++)
         {
             an = (i * ANG45) >> ANGLETOFINESHIFT;
-            mo = P_SpawnMobj(BlockingMobj->x + FixedMul(dist, finecosine[an]),
-                             BlockingMobj->y + FixedMul(dist, finesine[an]),
+            mo = P_SpawnMobj(BlockingMobj->x + FixedMul(dist, finecosine(an)),
+                             BlockingMobj->y + FixedMul(dist, finesine(an)),
                              BlockingMobj->z + 5 * FRACUNIT, MT_CIRCLEFLAME);
             if (mo)
             {
                 mo->angle = an << ANGLETOFINESHIFT;
                 mo->target = actor->target;
                 mo->momx = mo->special1.i =
-                    FixedMul(FLAMESPEED, finecosine[an]);
-                mo->momy = mo->special2.i = FixedMul(FLAMESPEED, finesine[an]);
+                    FixedMul(FLAMESPEED, finecosine(an));
+                mo->momy = mo->special2.i = FixedMul(FLAMESPEED, finesine(an));
                 mo->tics -= P_Random() & 3;
             }
-            mo = P_SpawnMobj(BlockingMobj->x - FixedMul(dist, finecosine[an]),
-                             BlockingMobj->y - FixedMul(dist, finesine[an]),
+            mo = P_SpawnMobj(BlockingMobj->x - FixedMul(dist, finecosine(an)),
+                             BlockingMobj->y - FixedMul(dist, finesine(an)),
                              BlockingMobj->z + 5 * FRACUNIT, MT_CIRCLEFLAME);
             if (mo)
             {
                 mo->angle = ANG180 + (an << ANGLETOFINESHIFT);
                 mo->target = actor->target;
                 mo->momx = mo->special1.i = FixedMul(-FLAMESPEED,
-                                                     finecosine[an]);
-                mo->momy = mo->special2.i = FixedMul(-FLAMESPEED, finesine[an]);
+                                                     finecosine(an));
+                mo->momy = mo->special2.i = FixedMul(-FLAMESPEED, finesine(an));
                 mo->tics -= P_Random() & 3;
             }
         }
@@ -1783,27 +1784,27 @@ void A_CFlameAttack(player_t *player, pspdef_t *psp)
 		{
 			an = (i*ANG45)>>ANGLETOFINESHIFT;
 			an90 = (i*ANG45+ANG90)>>ANGLETOFINESHIFT;
-			mo = P_SpawnMobj(linetarget->x+FixedMul(dist, finecosine[an]),
-				linetarget->y+FixedMul(dist, finesine[an]), 
+			mo = P_SpawnMobj(linetarget->x+FixedMul(dist, finecosine(an)),
+				linetarget->y+FixedMul(dist, finesine(an)),
 				linetarget->z+5*FRACUNIT, MT_CIRCLEFLAME);
 			if(mo)
 			{
 				mo->angle = an<<ANGLETOFINESHIFT;
 				mo->target = pmo;
-				mo->momx = mo->special1.i = FixedMul(FLAMESPEED, finecosine[an]);
-				mo->momy = mo->special2.i = FixedMul(FLAMESPEED, finesine[an]);
+				mo->momx = mo->special1.i = FixedMul(FLAMESPEED, finecosine(an));
+				mo->momy = mo->special2.i = FixedMul(FLAMESPEED, finesine(an));
 				mo->tics -= P_Random()&3;
 			}
-			mo = P_SpawnMobj(linetarget->x-FixedMul(dist, finecosine[an]),
-				linetarget->y-FixedMul(dist, finesine[an]), 
+			mo = P_SpawnMobj(linetarget->x-FixedMul(dist, finecosine(an)),
+				linetarget->y-FixedMul(dist, finesine(an)),
 				linetarget->z+5*FRACUNIT, MT_CIRCLEFLAME);
 			if(mo)
 			{
 				mo->angle = ANG180+(an<<ANGLETOFINESHIFT);
 				mo->target = pmo;
 				mo->momx = mo->special1.i = FixedMul(-FLAMESPEED, 
-					finecosine[an]);
-				mo->momy = mo->special2.i = FixedMul(-FLAMESPEED, finesine[an]);
+					finecosine(an));
+				mo->momy = mo->special2.i = FixedMul(-FLAMESPEED, finesine(an));
 				mo->tics -= P_Random()&3;
 			}
 		}
@@ -1829,8 +1830,8 @@ void A_CFlameRotate(mobj_t * actor)
     int an;
 
     an = (actor->angle + ANG90) >> ANGLETOFINESHIFT;
-    actor->momx = actor->special1.i + FixedMul(FLAMEROTSPEED, finecosine[an]);
-    actor->momy = actor->special2.i + FixedMul(FLAMEROTSPEED, finesine[an]);
+    actor->momx = actor->special1.i + FixedMul(FLAMEROTSPEED, finecosine(an));
+    actor->momy = actor->special2.i + FixedMul(FLAMEROTSPEED, finesine(an));
     actor->angle += ANG90 / 15;
 }
 
@@ -2029,8 +2030,8 @@ static void CHolySeekerMissile(mobj_t * actor, angle_t thresh,
         actor->angle -= delta;
     }
     angle = actor->angle >> ANGLETOFINESHIFT;
-    actor->momx = FixedMul(actor->info->speed, finecosine[angle]);
-    actor->momy = FixedMul(actor->info->speed, finesine[angle]);
+    actor->momx = FixedMul(actor->info->speed, finecosine(angle));
+    actor->momy = FixedMul(actor->info->speed, finesine(angle));
     if (!(leveltime & 15)
         || actor->z > target->z + (target->height)
         || actor->z + actor->height < target->z)
@@ -2074,13 +2075,13 @@ static void CHolyWeave(mobj_t * actor)
     weaveXY = actor->special2.i >> 16;
     weaveZ = actor->special2.i & 0xFFFF;
     angle = (actor->angle + ANG90) >> ANGLETOFINESHIFT;
-    newX = actor->x - FixedMul(finecosine[angle],
+    newX = actor->x - FixedMul(finecosine(angle),
                                FloatBobOffsets[weaveXY] << 2);
-    newY = actor->y - FixedMul(finesine[angle],
+    newY = actor->y - FixedMul(finesine(angle),
                                FloatBobOffsets[weaveXY] << 2);
     weaveXY = (weaveXY + (P_Random() % 5)) & 63;
-    newX += FixedMul(finecosine[angle], FloatBobOffsets[weaveXY] << 2);
-    newY += FixedMul(finesine[angle], FloatBobOffsets[weaveXY] << 2);
+    newX += FixedMul(finecosine(angle), FloatBobOffsets[weaveXY] << 2);
+    newY += FixedMul(finesine(angle), FloatBobOffsets[weaveXY] << 2);
     P_TryMove(actor, newX, newY);
     actor->z -= FloatBobOffsets[weaveZ] << 1;
     weaveZ = (weaveZ + (P_Random() % 5)) & 63;
@@ -2138,8 +2139,8 @@ static void CHolyTailFollow(mobj_t * actor, fixed_t dist)
         oldDistance =
             P_AproxDistance(child->x - actor->x, child->y - actor->y);
         if (P_TryMove
-            (child, actor->x + FixedMul(dist, finecosine[an]),
-             actor->y + FixedMul(dist, finesine[an])))
+            (child, actor->x + FixedMul(dist, finecosine(an)),
+             actor->y + FixedMul(dist, finesine(an))))
         {
             newDistance = P_AproxDistance(child->x - actor->x,
                                           child->y - actor->y) - FRACUNIT;
@@ -2203,13 +2204,13 @@ void A_CHolyTail(mobj_t * actor)
             return;
         }
         else if (P_TryMove(actor, parent->x - FixedMul(14 * FRACUNIT,
-                                                       finecosine[parent->
+                                                       finecosine(parent->
                                                                   angle >>
-                                                                  ANGLETOFINESHIFT]),
+                                                                  ANGLETOFINESHIFT)),
                            parent->y - FixedMul(14 * FRACUNIT,
-                                                finesine[parent->
+                                                finesine(parent->
                                                          angle >>
-                                                         ANGLETOFINESHIFT])))
+                                                         ANGLETOFINESHIFT))))
         {
             actor->z = parent->z - 5 * FRACUNIT;
         }

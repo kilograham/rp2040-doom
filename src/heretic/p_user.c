@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -63,18 +64,18 @@ void P_Thrust(player_t * player, angle_t angle, fixed_t move)
     angle >>= ANGLETOFINESHIFT;
     if (player->powers[pw_flight] && !(player->mo->z <= player->mo->floorz))
     {
-        player->mo->momx += FixedMul(move, finecosine[angle]);
-        player->mo->momy += FixedMul(move, finesine[angle]);
+        player->mo->momx += FixedMul(move, finecosine(angle));
+        player->mo->momy += FixedMul(move, finesine(angle));
     }
     else if (player->mo->subsector->sector->special == 15)      // Friction_Low
     {
-        player->mo->momx += FixedMul(move >> 2, finecosine[angle]);
-        player->mo->momy += FixedMul(move >> 2, finesine[angle]);
+        player->mo->momx += FixedMul(move >> 2, finecosine(angle));
+        player->mo->momy += FixedMul(move >> 2, finesine(angle));
     }
     else
     {
-        player->mo->momx += FixedMul(move, finecosine[angle]);
-        player->mo->momy += FixedMul(move, finesine[angle]);
+        player->mo->momx += FixedMul(move, finecosine(angle));
+        player->mo->momy += FixedMul(move, finesine(angle));
     }
 }
 
@@ -119,7 +120,7 @@ void P_CalcHeight(player_t * player)
     }
 
     angle = (FINEANGLES / 20 * leveltime) & FINEMASK;
-    bob = FixedMul(player->bob / 2, finesine[angle]);
+    bob = FixedMul(player->bob / 2, finesine(angle));
 
 //
 // move viewheight
@@ -517,8 +518,8 @@ boolean P_UndoPlayerChicken(player_t * player)
     player->health = mo->health = MAXHEALTH;
     player->mo = mo;
     angle >>= ANGLETOFINESHIFT;
-    fog = P_SpawnMobj(x + 20 * finecosine[angle],
-                      y + 20 * finesine[angle], z + TELEFOGHEIGHT, MT_TFOG);
+    fog = P_SpawnMobj(x + 20 * finecosine(angle),
+                      y + 20 * finesine(angle), z + TELEFOGHEIGHT, MT_TFOG);
     S_StartSound(fog, sfx_telept);
     P_PostChickenWeapon(player, weapon);
     return (true);
@@ -988,8 +989,8 @@ boolean P_UseArtifact(player_t * player, artitype_t arti)
             //   (player->mo->flags2 & (MF2_FEETARECLIPPED != 0)),
             // Which simplifies to:
             //   (player->mo->flags2 & 1),
-            mo = P_SpawnMobj(player->mo->x + 24 * finecosine[angle],
-                             player->mo->y + 24 * finesine[angle],
+            mo = P_SpawnMobj(player->mo->x + 24 * finecosine(angle),
+                             player->mo->y + 24 * finesine(angle),
                              player->mo->z -
                              15 * FRACUNIT * (player->mo->flags2 & 1),
                              MT_FIREBOMB);

@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,19 +25,18 @@
 
 // Used to do dehacked text substitutions throughout the program
 
+#if !NO_USE_DEH
 const char *DEH_String(const char *s) PRINTF_ARG_ATTR(1);
 void DEH_printf(const char *fmt, ...) PRINTF_ATTR(1, 2);
 void DEH_fprintf(FILE *fstream, const char *fmt, ...) PRINTF_ATTR(2, 3);
 void DEH_snprintf(char *buffer, size_t len, const char *fmt, ...) PRINTF_ATTR(3, 4);
 void DEH_AddStringReplacement(const char *from_text, const char *to_text);
-
-
-#if 0
+#else
 // Static macro versions of the functions above
 
 #define DEH_String(x) (x)
 #define DEH_printf printf
-#define DEH_fprintf fprintf
+#define DEH_fprintf(x,...) stderr_print(__VA_ARGS__)
 #define DEH_snprintf snprintf
 
 #endif

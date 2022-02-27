@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -30,8 +31,8 @@
 // 
 // Displays the text mode ending screen after the game quits
 //
-
-void I_Endoom(byte *endoom_data)
+#if !NO_USE_ENDDOOM
+void I_Endoom(should_be_const byte *endoom_data)
 {
     unsigned char *screendata;
     int y;
@@ -76,4 +77,4 @@ void I_Endoom(byte *endoom_data)
 
     TXT_Shutdown();
 }
-
+#endif

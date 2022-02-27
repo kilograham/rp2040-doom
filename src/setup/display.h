@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -19,7 +20,7 @@ void ConfigDisplay(void *widget, void *user_data);
 void SetDisplayDriver(void);
 void BindDisplayVariables(void);
 
-extern int show_endoom;
+extern isb_int8_t show_endoom;
 extern int graphical_startup;
 extern int png_screenshots;
 

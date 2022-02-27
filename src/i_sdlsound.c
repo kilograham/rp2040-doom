@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
 // Copyright(C) 2008 David Flater
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -49,7 +50,7 @@ typedef struct allocated_sound_s allocated_sound_t;
 
 struct allocated_sound_s
 {
-    sfxinfo_t *sfxinfo;
+    should_be_const sfxinfo_t *sfxinfo;
     Mix_Chunk chunk;
     int use_count;
     int pitch;
@@ -64,14 +65,19 @@ static int mixer_freq;
 static Uint16 mixer_format;
 static int mixer_channels;
 static boolean use_sfx_prefix;
-static boolean (*ExpandSoundData)(sfxinfo_t *sfxinfo,
-                                  byte *data,
+static boolean (*ExpandSoundData)(should_be_const sfxinfo_t *sfxinfo,
+                                  should_be_const byte *data,
                                   int samplerate,
                                   int length) = NULL;
 
 // Doubly-linked list of allocated sounds.
 // When a sound is played, it is moved to the head, so that the oldest
 // sounds not used recently are at the tail.
+
+#define MUNGE_AUDIO 0
+#if MUNGE_AUDIO
+static uint8_t *munge_audio(const uint8_t *data, int length, const char *filename);
+#endif
 
 static allocated_sound_t *allocated_sounds_head = NULL;
 static allocated_sound_t *allocated_sounds_tail = NULL;
@@ -195,7 +201,7 @@ static void ReserveCacheSpace(size_t len)
 
 // Allocate a block for a new sound effect.
 
-static allocated_sound_t *AllocateSound(sfxinfo_t *sfxinfo, size_t len)
+static allocated_sound_t *AllocateSound(should_be_const sfxinfo_t *sfxinfo, size_t len)
 {
     allocated_sound_t *snd;
 
@@ -274,7 +280,7 @@ static void UnlockAllocatedSound(allocated_sound_t *snd)
 // Search through the list of allocated sounds and return the one that matches
 // the supplied sfxinfo entry and pitch level.
 
-static allocated_sound_t * GetAllocatedSoundBySfxInfoAndPitch(sfxinfo_t *sfxinfo, int pitch)
+static allocated_sound_t * GetAllocatedSoundBySfxInfoAndPitch(should_be_const sfxinfo_t *sfxinfo, int pitch)
 {
     allocated_sound_t * p = allocated_sounds_head;
 
@@ -594,8 +600,8 @@ static void WriteWAV(char *filename, byte *data,
 // Generic sound expansion function for any sample rate.
 // Returns number of clipped samples (always 0).
 
-static boolean ExpandSoundData_SDL(sfxinfo_t *sfxinfo,
-                                   byte *data,
+static boolean ExpandSoundData_SDL(should_be_const sfxinfo_t *sfxinfo,
+                                   should_be_const byte *data,
                                    int samplerate,
                                    int length)
 {
@@ -711,17 +717,17 @@ static boolean ExpandSoundData_SDL(sfxinfo_t *sfxinfo,
 // Load and convert a sound effect
 // Returns true if successful
 
-static boolean CacheSFX(sfxinfo_t *sfxinfo)
+static boolean CacheSFX(should_be_const sfxinfo_t *sfxinfo)
 {
     int lumpnum;
     unsigned int lumplen;
     int samplerate;
     unsigned int length;
-    byte *data;
+    should_be_const byte *data;
 
     // need to load the sound
 
-    lumpnum = sfxinfo->lumpnum;
+    lumpnum = sfx_mut(sfxinfo)->lumpnum;
     data = W_CacheLumpNum(lumpnum, PU_STATIC);
     lumplen = W_LumpLength(lumpnum);
 
@@ -762,10 +768,43 @@ static boolean CacheSFX(sfxinfo_t *sfxinfo)
 
     // Sample rate conversion
 
-    if (!ExpandSoundData(sfxinfo, data + 8, samplerate, length))
+#if MUNGE_AUDIO
+    char filename[16];
+    allocated_sound_t * snd;
+
+    M_snprintf(filename, sizeof(filename), "%s.d2",
+               DEH_String(sfxinfo->name));
+
+    uint8_t *d2 = munge_audio(data, (int)length, filename);
+    if (1)
     {
+        char filename[16];
+        allocated_sound_t * snd;
+
+        M_snprintf(filename, sizeof(filename), "%s.dff",
+                   DEH_String(sfxinfo->name));
+        uint8_t *d = malloc(length);
+        d[0] = data[0];
+        for(int s=1;s<length;s++) {
+            d[s] = data[s] - data[s-1];
+        }
+        FILE *out = fopen(filename, "wb");
+        fwrite(d, 1, length, out);
+        fclose(out);
+        free(d);
+    }
+    data = d2;
+#endif
+    if (!ExpandSoundData(sfxinfo, data + 8, samplerate, (int)length))
+    {
+#if MUNGE_AUDIO
+        free(d2);
+#endif
         return false;
     }
+#if MUNGE_AUDIO
+    free(d2);
+#endif
 
 #ifdef DEBUG_DUMP_WAVS
     {
@@ -786,7 +825,7 @@ static boolean CacheSFX(sfxinfo_t *sfxinfo)
     return true;
 }
 
-static void GetSfxLumpName(sfxinfo_t *sfx, char *buf, size_t buf_len)
+static void GetSfxLumpName(const sfxinfo_t *sfx, char *buf, size_t buf_len)
 {
     // Linked sfx lumps? Get the lump number for the sound linked to.
 
@@ -812,10 +851,101 @@ static void GetSfxLumpName(sfxinfo_t *sfx, char *buf, size_t buf_len)
 
 // Preload all the sound effects - stops nasty ingame freezes
 
+#if DOOM_SMALL
+#include "adpcm-lib.h"
+#endif
 static void I_SDL_PrecacheSounds(sfxinfo_t *sounds, int num_sounds)
 {
     char namebuf[9];
     int i;
+
+#if 1 && DOOM_SMALL
+    int total = 0;
+    static int buckets[512];
+    for (i=0; i<num_sounds; ++i)
+    {
+        GetSfxLumpName(&sounds[i], namebuf, sizeof(namebuf));
+        int lumpnum = W_CheckNumForName(namebuf);
+        if (lumpnum != -1)
+        {
+            uint8_t *data = W_CacheLumpNum(lumpnum, PU_STATIC);
+            int lumplen = W_LumpLength(lumpnum);
+
+            // Check the header, and ensure this is a valid sound
+
+            if (lumplen < 8
+                || data[0] != 0x03 || data[1] != 0x00)
+            {
+                printf("Invalid %s\n", DEH_String(sounds[i].name));
+                continue;
+            }
+
+            // 16 bit sample rate field, 32 bit length field
+
+            int samplerate = (data[3] << 8) | data[2];
+            int length = (data[7] << 24) | (data[6] << 16) | (data[5] << 8) | data[4];
+
+            // If the header specifies that the length of the sound is greater than
+            // the length of the lump itself, this is an invalid sound lump
+
+            // We also discard sound lumps that are less than 49 samples long,
+            // as this is how DMX behaves - although the actual cut-off length
+            // seems to vary slightly depending on the sample rate.  This needs
+            // further investigation to better understand the correct
+            // behavior.
+
+            if (length > lumplen - 8 || length <= 48)
+            {
+                printf("Invalid %s\n", DEH_String(sounds[i].name));
+                continue;
+            }
+
+            // The DMX sound library seems to skip the first 16 and last 16
+            // bytes of the lump - reason unknown.
+
+            data += 16;
+            length -= 32;
+            printf("%s %d %d\n", DEH_String(sounds[i].name), samplerate, length);
+#if 0
+#if 0
+            uint8_t predict = data[0];
+            for(int s=1;s<length;s++) {
+                int delta = data[s] - predict;
+                buckets[delta + 256]++;
+                predict = data[s];
+            }
+#else
+            int predict2 = data[0];
+            int predict1 = data[1];
+            for(int s=2;s<length;s++) {
+                int predict = predict1;// 2 * predict1 - predict2;
+                int delta = data[s] - predict;
+                buckets[delta + 256]++;
+                predict2 = predict1;
+                predict1 = data[s];
+            }
+#endif
+#endif
+#if MUNGE_AUDIO
+            free(munge_audio(data, length, NULL));
+#endif
+            total += length;
+        } else {
+            printf("Missing %s\n", DEH_String(sounds[i].name));
+        }
+
+    }
+    printf("TOTAL %d\n", total);
+#if 0
+    long thuf=0;
+    for(int i=0;i<512;i++) {
+        int huffy = (int)ceil(-log2(buckets[i]/(double)total));
+        printf("%d %d %f %f %d\n", i-256, buckets[i], buckets[i]/(double)total, -log2(buckets[i]/(double)total), huffy);
+        thuf += buckets[i] * huffy;
+    }
+    printf("HUFFY %ld\n", thuf/8);
+#endif
+#endif
 
     // Don't need to precache the sounds unless we are using libsamplerate.
 
@@ -836,9 +966,9 @@ static void I_SDL_PrecacheSounds(sfxinfo_t *sounds, int num_sounds)
 
         GetSfxLumpName(&sounds[i], namebuf, sizeof(namebuf));
 
-        sounds[i].lumpnum = W_CheckNumForName(namebuf);
+        sfx_mut(&sounds[i])->lumpnum = W_CheckNumForName(namebuf);
 
-        if (sounds[i].lumpnum != -1)
+        if (sfx_mut(&sounds[i])->lumpnum != -1)
         {
             CacheSFX(&sounds[i]);
         }
@@ -847,9 +977,74 @@ static void I_SDL_PrecacheSounds(sfxinfo_t *sounds, int num_sounds)
     printf("\n");
 }
 
+#if MUNGE_AUDIO
+static uint8_t *munge_audio(const uint8_t *data, int length, const char *filename) {
+    int16_t *raw = calloc(2, length);
+    for (int s = 0; s < length; s++) {
+        raw[s] = (int16_t) ((((int) data[s]) - 128)) << 8;
+    }
+    int32_t average_deltas[2];
+    int i;
+
+    average_deltas[0] = average_deltas[1] = 0;
+
+    for (i = 255; i--;) {
+        average_deltas[0] -= average_deltas[0] >> 3;
+        average_deltas[0] += abs((int32_t) raw[i] - raw[i - 1]);
+    }
+
+    average_deltas[0] >>= 3;
+    average_deltas[1] >>= 3;
+
+    void *ctx = adpcm_create_context(1, 3, NOISE_SHAPING_DYNAMIC, average_deltas);
+#define MUNGE_BLOCK_SIZE 256
+#define MUNGE_ENCODED_BLOCK_SIZE (MUNGE_BLOCK_SIZE / 2)
+
+    int block_size = (MUNGE_BLOCK_SIZE - 1) / (1 ^ 3) + (1 * 4);
+    printf("block size should be %d\n", block_size);
+    // todo not correct
+    uint8_t *enc = malloc(((length + MUNGE_BLOCK_SIZE - 1) / 2) & ~(MUNGE_ENCODED_BLOCK_SIZE-1));
+    uint8_t *encout = enc;
+    for (int off = 0; off < length; off += MUNGE_BLOCK_SIZE) {
+        int local_len = length - off;
+        if (local_len > MUNGE_BLOCK_SIZE) local_len = MUNGE_BLOCK_SIZE;
+        size_t outbufsize = 0;
+        adpcm_encode_block(ctx, encout, &outbufsize, raw + off, local_len);
+//        printf("ENCODE %p + %04x -> %p + %04x\n", raw + off, local_len * 2, encout, (int)outbufsize);
+        encout += outbufsize;
+            printf("OB SIZE %d\n", (int)outbufsize);
+    }
+    if (filename) {
+        FILE *out = fopen(filename, "wb");
+        fwrite(enc, 1, encout-enc, out);
+        fclose(out);
+    }
+
+    const uint8_t *src = enc;
+    int16_t *raw2 = calloc(2, length);
+    for (int off = 0; off < length; off += MUNGE_BLOCK_SIZE) {
+        int local_len = length - off;
+        if (local_len > MUNGE_BLOCK_SIZE) local_len = MUNGE_BLOCK_SIZE;
+        int samps = adpcm_decode_block(raw2 + off, src, local_len / 2, 1);
+        printf("%d\n", samps);
+//        printf("DDECODE %p + %04x <- %p + %04x\n", raw2 + off, local_len * 2, src, local_len/2);
+        src += MUNGE_ENCODED_BLOCK_SIZE;
+    }
+    free(enc);
+    uint8_t *data2 = malloc(length);
+    for (int s = 0; s < length; s++) {
+        data2[s] = (raw2[s] >> 8) ^ 0x80;
+    }
+    free(raw2);
+    adpcm_free_context(ctx);
+    free(raw);
+    return data2;
+}
+#endif
+
 #else
 
-static void I_SDL_PrecacheSounds(sfxinfo_t *sounds, int num_sounds)
+static void I_SDL_PrecacheSounds(should_be_const sfxinfo_t *sounds, int num_sounds)
 {
     // no-op
 }
@@ -858,7 +1053,7 @@ static void I_SDL_PrecacheSounds(sfxinfo_t *sounds, int num_sounds)
 
 // Load a SFX chunk into memory and ensure that it is locked.
 
-static boolean LockSound(sfxinfo_t *sfxinfo)
+static boolean LockSound(should_be_const sfxinfo_t *sfxinfo)
 {
     // If the sound isn't loaded, load it now
     if (GetAllocatedSoundBySfxInfoAndPitch(sfxinfo, NORM_PITCH) == NULL)
@@ -879,7 +1074,7 @@ static boolean LockSound(sfxinfo_t *sfxinfo)
 //  for a given SFX name.
 //
 
-static int I_SDL_GetSfxLumpNum(sfxinfo_t *sfx)
+static int I_SDL_GetSfxLumpNum(should_be_const sfxinfo_t *sfx)
 {
     char namebuf[9];
 
@@ -921,7 +1116,7 @@ static void I_SDL_UpdateSoundParams(int handle, int vol, int sep)
 //  is set, but currently not used by mixing.
 //
 
-static int I_SDL_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch)
+static int I_SDL_StartSound(should_be_const sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch)
 {
     allocated_sound_t *snd;
 

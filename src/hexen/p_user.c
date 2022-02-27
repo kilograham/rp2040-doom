@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -78,18 +79,18 @@ void P_Thrust(player_t * player, angle_t angle, fixed_t move)
     angle >>= ANGLETOFINESHIFT;
     if (player->powers[pw_flight] && !(player->mo->z <= player->mo->floorz))
     {
-        player->mo->momx += FixedMul(move, finecosine[angle]);
-        player->mo->momy += FixedMul(move, finesine[angle]);
+        player->mo->momx += FixedMul(move, finecosine(angle));
+        player->mo->momy += FixedMul(move, finesine(angle));
     }
     else if (P_GetThingFloorType(player->mo) == FLOOR_ICE)      // Friction_Low
     {
-        player->mo->momx += FixedMul(move >> 1, finecosine[angle]);
-        player->mo->momy += FixedMul(move >> 1, finesine[angle]);
+        player->mo->momx += FixedMul(move >> 1, finecosine(angle));
+        player->mo->momy += FixedMul(move >> 1, finesine(angle));
     }
     else
     {
-        player->mo->momx += FixedMul(move, finecosine[angle]);
-        player->mo->momy += FixedMul(move, finesine[angle]);
+        player->mo->momx += FixedMul(move, finecosine(angle));
+        player->mo->momy += FixedMul(move, finesine(angle));
     }
 }
 
@@ -134,7 +135,7 @@ void P_CalcHeight(player_t * player)
     }
 
     angle = (FINEANGLES / 20 * leveltime) & FINEMASK;
-    bob = FixedMul(player->bob / 2, finesine[angle]);
+    bob = FixedMul(player->bob / 2, finesine(angle));
 
 //
 // move viewheight
@@ -582,8 +583,8 @@ boolean P_UndoPlayerMorph(player_t * player)
     player->mo = mo;
     player->class = PlayerClass[playerNum];
     angle >>= ANGLETOFINESHIFT;
-    fog = P_SpawnMobj(x + 20 * finecosine[angle],
-                      y + 20 * finesine[angle], z + TELEFOGHEIGHT, MT_TFOG);
+    fog = P_SpawnMobj(x + 20 * finecosine(angle),
+                      y + 20 * finesine(angle), z + TELEFOGHEIGHT, MT_TFOG);
     S_StartSound(fog, SFX_TELEPORT);
     P_PostMorphWeapon(player, weapon);
     return (true);
@@ -1110,8 +1111,8 @@ void P_BlastMobj(mobj_t * source, mobj_t * victim, fixed_t strength)
     angle >>= ANGLETOFINESHIFT;
     if (strength < BLAST_FULLSTRENGTH)
     {
-        victim->momx = FixedMul(strength, finecosine[angle]);
-        victim->momy = FixedMul(strength, finesine[angle]);
+        victim->momx = FixedMul(strength, finecosine(angle));
+        victim->momy = FixedMul(strength, finesine(angle));
         if (victim->player)
         {
             // Players handled automatically
@@ -1149,14 +1150,14 @@ void P_BlastMobj(mobj_t * source, mobj_t * victim, fixed_t strength)
                 victim->target = source;
             }
         }
-        victim->momx = FixedMul(BLAST_SPEED, finecosine[angle]);
-        victim->momy = FixedMul(BLAST_SPEED, finesine[angle]);
+        victim->momx = FixedMul(BLAST_SPEED, finecosine(angle));
+        victim->momy = FixedMul(BLAST_SPEED, finesine(angle));
 
         // Spawn blast puff
         ang = R_PointToAngle2(victim->x, victim->y, source->x, source->y);
         ang >>= ANGLETOFINESHIFT;
-        x = victim->x + FixedMul(victim->radius + FRACUNIT, finecosine[ang]);
-        y = victim->y + FixedMul(victim->radius + FRACUNIT, finesine[ang]);
+        x = victim->x + FixedMul(victim->radius + FRACUNIT, finecosine(ang));
+        y = victim->y + FixedMul(victim->radius + FRACUNIT, finesine(ang));
         z = victim->z - victim->floorclip + (victim->height >> 1);
         mo = P_SpawnMobj(x, y, z, MT_BLASTEFFECT);
         if (mo)
@@ -1520,8 +1521,8 @@ boolean P_UseArtifact(player_t * player, artitype_t arti)
             angle = player->mo->angle >> ANGLETOFINESHIFT;
             if (player->class == PCLASS_CLERIC)
             {
-                mo = P_SpawnMobj(player->mo->x + 16 * finecosine[angle],
-                                 player->mo->y + 24 * finesine[angle],
+                mo = P_SpawnMobj(player->mo->x + 16 * finecosine(angle),
+                                 player->mo->y + 24 * finesine(angle),
                                  player->mo->z - player->mo->floorclip +
                                  8 * FRACUNIT, MT_POISONBAG);
                 if (mo)
@@ -1531,8 +1532,8 @@ boolean P_UseArtifact(player_t * player, artitype_t arti)
             }
             else if (player->class == PCLASS_MAGE)
             {
-                mo = P_SpawnMobj(player->mo->x + 16 * finecosine[angle],
-                                 player->mo->y + 24 * finesine[angle],
+                mo = P_SpawnMobj(player->mo->x + 16 * finecosine(angle),
+                                 player->mo->y + 24 * finesine(angle),
                                  player->mo->z - player->mo->floorclip +
                                  8 * FRACUNIT, MT_FIREBOMB);
                 if (mo)

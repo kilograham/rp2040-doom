@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -126,7 +127,7 @@ void OPL_SetCallback(uint64_t us, opl_callback_t callback, void *data);
 // Adjust callback times by the specified factor. For example, a value of
 // 0.5 will halve all remaining times.
 
-void OPL_AdjustCallbacks(float factor);
+void OPL_AdjustCallbacks(unsigned int old_tempo, unsigned int new_tempo);
 
 // Clear all OPL callbacks that have been set.
 

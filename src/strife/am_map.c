@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -1213,12 +1214,12 @@ AM_rotate
     fixed_t tmpx;
 
     tmpx =
-	FixedMul(*x,finecosine[a>>ANGLETOFINESHIFT])
-	- FixedMul(*y,finesine[a>>ANGLETOFINESHIFT]);
+	FixedMul(*x,finecosine(a>>ANGLETOFINESHIFT))
+	- FixedMul(*y,finesine(a>>ANGLETOFINESHIFT));
     
     *y   =
-	FixedMul(*x,finesine[a>>ANGLETOFINESHIFT])
-	+ FixedMul(*y,finecosine[a>>ANGLETOFINESHIFT]);
+	FixedMul(*x,finesine(a>>ANGLETOFINESHIFT))
+	+ FixedMul(*y,finecosine(a>>ANGLETOFINESHIFT));
 
     *x = tmpx;
 }

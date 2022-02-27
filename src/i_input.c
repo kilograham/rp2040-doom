@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -262,6 +263,13 @@ void I_HandleKeyboardEvent(SDL_Event *sdlevent)
 
         case SDL_KEYUP:
             event.type = ev_keyup;
+#if DOOM_SMALL && !DOOM_TINY
+            if (sdlevent->key.keysym.scancode == SDL_SCANCODE_F15) {
+                extern int pd_frame;
+                extern int pd_dump_frame;
+                pd_dump_frame = pd_frame + 1;
+            }
+#endif
             event.data1 = TranslateKey(&sdlevent->key.keysym);
 
             // data2/data3 are initialized to zero for ev_keyup.

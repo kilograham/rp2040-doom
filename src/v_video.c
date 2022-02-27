@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -38,39 +39,65 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
+#if USE_WHD
+
+#include "doom/r_data.h"
+
+static_assert(VPATCH_NAME_INVALID == 0, "");
+//static_assert(NUM_VPATCHES < 256, "");
+// ^ note we have relaxed this because we are close... to allowing for sequential patches (just added to the base) to extend beyond our vpatch_small_t size which is one byte
+static_assert(VPATCH_STCFN033 < 256, "");
+#endif
+
 #include "config.h"
+
 #ifdef HAVE_LIBPNG
 #include <png.h>
 #endif
 
+#ifndef NDEBUG
 // TODO: There are separate RANGECHECK defines for different games, but this
 // is common code. Fix this.
 #define RANGECHECK
+#endif
 
 // Blending table used for fuzzpatch, etc.
 // Only used in Heretic/Hexen
+#if !DOOM_ONLY
+should_be_const byte *tinttable = NULL;
+#endif
 
-byte *tinttable = NULL;
-
+#if USE_WHD
+const uint8_t vpatch_for_shared_palette[NUM_SHARED_PALETTES] = {VPATCH_STBAR, VPATCH_STCFN033, VPATCH_WIBP1};
+static const uint8_t *shared_palette8[NUM_SHARED_PALETTES];
+#endif
 // villsa [STRIFE] Blending table used for Strife
 byte *xlatab = NULL;
 
 // The screen buffer that the v_video.c code draws to.
 
 static pixel_t *dest_screen = NULL;
+uint8_t vpatch_clip_top, vpatch_clip_bottom = SCREENHEIGHT;
 
-int dirtybox[4]; 
+#if USE_WHD
+vpatchlist_t *vpatchlist;
+#else
+int dirtybox[4];
+#endif
 
+#if !DOOM_ONLY
 // haleyjd 08/28/10: clipping callback function for patches.
 // This is needed for Chocolate Strife, which clips patches to the screen.
 static vpatchclipfunc_t patchclip_callback = NULL;
+#endif
 
 //
 // V_MarkRect 
 // 
-void V_MarkRect(int x, int y, int width, int height) 
-{ 
-    // If we are temporarily using an alternate screen, do not 
+#if !USE_WHD
+void V_MarkRect(int x, int y, int width, int height)
+{
+    // If we are temporarily using an alternate screen, do not
     // affect the update box.
 
     if (dest_screen == I_VideoBuffer)
@@ -78,46 +105,44 @@ void V_MarkRect(int x, int y, int width, int height)
         M_AddToBox (dirtybox, x, y); 
         M_AddToBox (dirtybox, x + width-1, y + height-1); 
     }
-} 
- 
+}
+#endif
 
 //
 // V_CopyRect 
 // 
 void V_CopyRect(int srcx, int srcy, pixel_t *source,
                 int width, int height,
-                int destx, int desty)
-{ 
+                int destx, int desty) {
     pixel_t *src;
     pixel_t *dest;
- 
-#ifdef RANGECHECK 
+
+#ifdef RANGECHECK
     if (srcx < 0
-     || srcx + width > SCREENWIDTH
-     || srcy < 0
-     || srcy + height > SCREENHEIGHT 
-     || destx < 0
-     || destx + width > SCREENWIDTH
-     || desty < 0
-     || desty + height > SCREENHEIGHT)
-    {
-        I_Error ("Bad V_CopyRect");
+        || srcx + width > SCREENWIDTH
+        || srcy < 0
+        || srcy + height > SCREENHEIGHT
+        || destx < 0
+        || destx + width > SCREENWIDTH
+        || desty < 0
+        || desty + height > SCREENHEIGHT) {
+        I_Error("Bad V_CopyRect");
     }
-#endif 
+#endif
 
-    V_MarkRect(destx, desty, width, height); 
- 
-    src = source + SCREENWIDTH * srcy + srcx; 
-    dest = dest_screen + SCREENWIDTH * desty + destx; 
+    V_MarkRect(destx, desty, width, height);
 
-    for ( ; height>0 ; height--) 
-    { 
+    src = source + SCREENWIDTH * srcy + srcx;
+    dest = dest_screen + SCREENWIDTH * desty + destx;
+
+    for (; height > 0; height--) {
         memcpy(dest, src, width * sizeof(*dest));
-        src += SCREENWIDTH; 
-        dest += SCREENWIDTH; 
-    } 
-} 
- 
+        src += SCREENWIDTH;
+        dest += SCREENWIDTH;
+    }
+}
+
+#if !DOOM_ONLY
 //
 // V_SetPatchClipCallback
 //
@@ -132,14 +157,244 @@ void V_SetPatchClipCallback(vpatchclipfunc_t func)
 {
     patchclip_callback = func;
 }
-
+#endif
 //
 // V_DrawPatch
 // Masks a column based masked pic to the screen. 
 //
 
-void V_DrawPatch(int x, int y, patch_t *patch)
-{ 
+#if USE_WHD
+
+void V_BeginPatchList(vpatchlist_t *patchlist) {
+    vpatchlist = patchlist;
+    vpatchlist->header.size = 1;
+}
+
+void V_EndPatchList(void) {
+    vpatchlist = 0;
+}
+
+#pragma GCC push_options
+#if PICO_ON_DEVICE
+#pragma GCC optimize("O3")
+#endif
+
+void V_DrawPatchList(const vpatchlist_t *patchlist) {
+    if (!shared_palette8[0]) {
+        for (int i = 0; i < NUM_SHARED_PALETTES; i++) {
+            patch_t *patch = resolve_vpatch_handle(vpatch_for_shared_palette[i]);
+            assert(patch);
+            assert(vpatch_has_shared_palette(patch));
+            assert(vpatch_colorcount(patch));
+            shared_palette8[i] = vpatch_palette(patch);
+        }
+    }
+    for (int l = 1; l < patchlist[0].header.size; l++) {
+        uint8_t *orig = dest_screen + (patchlist[l].entry.y) * SCREENWIDTH + patchlist[l].entry.x;
+        const patch_t *patch = resolve_vpatch_handle(patchlist[l].entry.patch_handle);
+        const uint8_t *pal;
+        if (!vpatch_has_shared_palette(patch)) {
+            pal = vpatch_palette(patch);
+        } else {
+            assert(vpatch_shared_palette(patch) < NUM_SHARED_PALETTES);
+            pal = shared_palette8[vpatch_shared_palette(patch)];
+        }
+        int repeat = patchlist[l].entry.repeat;
+        int w = vpatch_width(patch);
+        int h0 = vpatch_height(patch);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+        int skip_top;
+#pragma GCC diagnostic pop
+        int type = vpatch_type(patch);
+        if (patchlist[l].entry.y + h0 > vpatch_clip_bottom) {
+            // clipping bottom which is trivial
+            h0 = vpatch_clip_bottom - patchlist[l].entry.y;
+            if (h0 <= 0) continue;
+        }
+        if (patchlist[l].entry.y < vpatch_clip_top) {
+            skip_top = vpatch_clip_top - patchlist[l].entry.y;
+            if (skip_top >= h0) continue;
+            h0 -= skip_top;
+            type += vp4_runs_clipped - vp4_runs;
+        }
+        const uint8_t *data = vpatch_data(patch);
+        uint8_t *desttop = orig;
+        int h = h0;
+        switch (type) {
+            case vp4_runs_clipped:
+                for(;skip_top--; desttop += SCREENWIDTH) {
+                    uint8_t gap;
+                    int p = 0;
+                    while (0xff != (gap = *data++)) {
+                        p += gap;
+                        int len = *data++;
+                        for (int i = 1; i < len; i += 2) {
+                            p += 2;
+                            data++;
+                        }
+                        if (len & 1) {
+                            p++;
+                            data++;
+                        }
+                        assert(p <= w);
+                        if (p == w) break;
+                    }
+                }
+                // fall thru
+            case vp4_runs:
+                for (; h > 0; h--, desttop += SCREENWIDTH) {
+                    uint8_t *p = desttop;
+                    uint8_t *pend = desttop + w;
+                    uint8_t gap;
+                    while (0xff != (gap = *data++)) {
+                        p += gap;
+                        int len = *data++;
+                        for (int i = 1; i < len; i += 2) {
+                            uint v = *data++;
+                            *p++ = pal[v & 0xf];
+                            *p++ = pal[v >> 4];
+                        }
+                        if (len & 1) {
+                            *p++ = pal[(*data++) & 0xf];
+                        }
+                        assert(p <= pend);
+                        if (p == pend) break;
+                    }
+                }
+                break;
+            case vp4_alpha_clipped:
+                data += ((w + 1) / 2) * skip_top;
+                desttop += SCREENWIDTH * skip_top;
+                // fallthru
+            case vp4_alpha:
+                for (; h > 0; h--, desttop += SCREENWIDTH) {
+                    uint8_t *p = desttop;
+                    for (int i = 0; i < w / 2; i++) {
+                        uint v = *data++;
+                        if (v & 0xf) p[0] = pal[v & 0xf];
+                        if (v >> 4) p[1] = pal[v >> 4];
+                        p += 2;
+                    }
+                    if (w & 1) {
+                        uint v = *data++;
+                        if (v & 0xf) p[0] = pal[v & 0xf];
+                    }
+                }
+                break;
+            case vp4_solid:
+                for (; h > 0; h--, desttop += SCREENWIDTH) {
+                    uint8_t *p = desttop;
+                    for (int i = 0; i < w / 2; i++) {
+                        uint v = *data++;
+                        p[0] = pal[v & 0xf];
+                        p[1] = pal[v >> 4];
+                        p += 2;
+                    }
+                    if (w & 1) {
+                        uint v = *data++;
+                        p[0] = pal[v & 0xf];
+                    }
+                }
+                break;
+            case vp6_runs_clipped:
+                // todo implement this (perhaps needed for multi player?)
+                continue;
+            case vp6_runs:
+                for (; h > 0; h--, desttop += SCREENWIDTH) {
+                    uint8_t *p = desttop;
+                    uint8_t *pend = desttop + w;
+                    uint8_t gap;
+                    while (0xff != (gap = *data++)) {
+                        p += gap;
+                        int len = *data++;
+                        for (int i = 3; i < len; i += 4) {
+                            uint v = *data++;
+                            v |= (*data++) << 8;
+                            v |= (*data++) << 16;
+                            *p++ = pal[v & 0x3f];
+                            *p++ = pal[(v >> 6) & 0x3f];
+                            *p++ = pal[(v >> 12) & 0x3f];
+                            *p++ = pal[(v >> 18) & 0x3f];
+                        }
+                        len &= 3;
+                        if (len--) {
+                            uint v = *data++;
+                            *p++ = pal[v & 0x3f];
+                            if (len--) {
+                                v >>= 6;
+                                v |= (*data++) << 2;
+                                *p++ = pal[v & 0x3f];
+                                if (len--) {
+                                    v >>= 6;
+                                    v |= (*data++) << 4;
+                                    *p++ = pal[v & 0x3f];
+                                    assert(!len);
+                                }
+                            }
+                        }
+                        assert(p <= pend);
+                        if (p == pend) break;
+                    }
+                }
+                break;
+            case vp8_runs:
+                for (; h > 0; h--, desttop += SCREENWIDTH) {
+                    uint8_t *p = desttop;
+                    uint8_t *pend = desttop + w;
+                    uint8_t gap;
+                    while (0xff != (gap = *data++)) {
+                        p += gap;
+                        int len = *data++;
+                        for (int i = 0; i < len; i++) {
+                            *p++ = pal[*data++];
+                        }
+                        assert(p <= pend);
+                        if (p == pend) break;
+                    }
+                }
+                break;
+            case vp_border_clipped:
+                data += 3 * skip_top;
+                // fall thru
+            case vp_border: {
+                for (; h > 0; h--, desttop += SCREENWIDTH) {
+                    desttop[0] = data[0];
+                    for (int i = 1; i < w - 1; i++) desttop[i] = data[1];
+                    desttop[w - 1] = data[2];
+                    data += 3;
+                }
+                break;
+            }
+            default:
+                // these two we ignore for now
+                assert(type == vp8_runs_clipped || type == vp4_solid_clipped);
+                continue;
+        }
+        if (repeat) {
+            // we need them to be solid... which they are, but if not you'll just get some visual funk
+            //assert(vpatch_type(patch) == vp4_solid);
+            h = h0;
+            if (patchlist[l].entry.patch_handle == VPATCH_M_THERMM) w--; // hackity hack
+            uint8_t *desttop = orig;
+            for(;h>0;h--) {
+                for (int i = 0; i < repeat * w; i++) {
+                    desttop[w + i] = desttop[i];
+                }
+                desttop += SCREENWIDTH;
+            }
+        }
+    }
+}
+
+#pragma GCC pop_options
+#endif
+
+void V_DrawPatch(int x, int y, vpatch_handle_large_t patch) {
+    V_DrawPatchN(x, y, patch, 0);
+}
+
+void V_DrawPatchN(int x, int y, vpatch_handle_large_t patch_handle, int repeat) {
     int count;
     int col;
     column_t *column;
@@ -148,52 +403,68 @@ void V_DrawPatch(int x, int y, patch_t *patch)
     byte *source;
     int w;
 
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
+#if !USE_WHD
+    const patch_t *patch = patch_handle;
+#else
+    const patch_t *patch = resolve_vpatch_handle(patch_handle);
+#endif
+    y -= vpatch_topoffset(patch);
+    x -= vpatch_leftoffset(patch);
 
+#if !DOOM_ONLY
     // haleyjd 08/28/10: Strife needs silent error checking here.
     if(patchclip_callback)
     {
         if(!patchclip_callback(patch, x, y))
             return;
     }
+#endif
 
 #ifdef RANGECHECK
     if (x < 0
-     || x + SHORT(patch->width) > SCREENWIDTH
-     || y < 0
-     || y + SHORT(patch->height) > SCREENHEIGHT)
-    {
+        || x + vpatch_width(patch) > SCREENWIDTH
+        || y < 0
+        || y + vpatch_height(patch) > SCREENHEIGHT) {
         I_Error("Bad V_DrawPatch");
     }
 #endif
 
-    V_MarkRect(x, y, SHORT(patch->width), SHORT(patch->height));
+#if !PICO_DOOM
+        V_MarkRect(x, y, vpatch_width(patch), vpatch_height(patch));
+#endif
 
-    col = 0;
-    desttop = dest_screen + y * SCREENWIDTH + x;
+#if !USE_WHD
+        desttop = dest_screen + y * SCREENWIDTH + x;
+        w = vpatch_width(patch);
+        do {
+            col = 0;
+            for (; col < w; x++, col++, desttop++) {
+                column = (column_t *) ((byte *) patch + patch_columnofs(patch, col));
 
-    w = SHORT(patch->width);
+                // step through the posts in a column
+                while (column->topdelta != 0xff) {
+                    source = (byte *) column + 3;
+                    dest = desttop + column->topdelta * SCREENWIDTH;
+                    count = column->length;
 
-    for ( ; col<w ; x++, col++, desttop++)
-    {
-        column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
-
-        // step through the posts in a column
-        while (column->topdelta != 0xff)
-        {
-            source = (byte *)column + 3;
-            dest = desttop + column->topdelta*SCREENWIDTH;
-            count = column->length;
-
-            while (count--)
-            {
-                *dest = *source++;
-                dest += SCREENWIDTH;
+                    while (count--) {
+                        *dest = *source++;
+                        dest += SCREENWIDTH;
+                    }
+                    column = (column_t *) ((byte *) column + column->length + 4);
+                }
             }
-            column = (column_t *)((byte *)column + column->length + 4);
-        }
+        } while (repeat--);
+#else
+    assert(vpatchlist);
+    if (vpatchlist[0].header.size <= vpatchlist[0].header.max) {
+        vpatchlist[vpatchlist[0].header.size].entry.patch_handle = patch_handle;
+        vpatchlist[vpatchlist[0].header.size].entry.x = x;
+        vpatchlist[vpatchlist[0].header.size].entry.y = y;
+        vpatchlist[vpatchlist[0].header.size].entry.repeat = repeat;
+        vpatchlist[0].header.size++;
     }
+#endif
 }
 
 //
@@ -202,60 +473,65 @@ void V_DrawPatch(int x, int y, patch_t *patch)
 // Flips horizontally, e.g. to mirror face.
 //
 
-void V_DrawPatchFlipped(int x, int y, patch_t *patch)
-{
+void V_DrawPatchFlipped(int x, int y, vpatch_handle_large_t patch_handle) {
+#if !USE_WHD
+    const patch_t *patch = patch_handle;
+#else
+    const patch_t *patch = resolve_vpatch_handle(patch_handle);
+#endif
+#if USE_WHD
+    panic_unsupported();
+#endif
     int count;
-    int col; 
-    column_t *column; 
+    int col;
+    column_t *column;
     pixel_t *desttop;
     pixel_t *dest;
-    byte *source; 
-    int w; 
- 
-    y -= SHORT(patch->topoffset); 
-    x -= SHORT(patch->leftoffset); 
+    byte *source;
+    int w;
 
+    y -= vpatch_topoffset(patch);
+    x -= vpatch_leftoffset(patch);
+
+#if !DOOM_ONLY
     // haleyjd 08/28/10: Strife needs silent error checking here.
     if(patchclip_callback)
     {
         if(!patchclip_callback(patch, x, y))
             return;
     }
+#endif
 
-#ifdef RANGECHECK 
+#ifdef RANGECHECK
     if (x < 0
-     || x + SHORT(patch->width) > SCREENWIDTH
-     || y < 0
-     || y + SHORT(patch->height) > SCREENHEIGHT)
-    {
+        || x + vpatch_width(patch) > SCREENWIDTH
+        || y < 0
+        || y + vpatch_height(patch) > SCREENHEIGHT) {
         I_Error("Bad V_DrawPatchFlipped");
     }
 #endif
 
-    V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height));
+    V_MarkRect (x, y, vpatch_width(patch), vpatch_height(patch));
 
     col = 0;
     desttop = dest_screen + y * SCREENWIDTH + x;
 
-    w = SHORT(patch->width);
+    w = vpatch_width(patch);
 
-    for ( ; col<w ; x++, col++, desttop++)
-    {
-        column = (column_t *)((byte *)patch + LONG(patch->columnofs[w-1-col]));
+    for (; col < w; x++, col++, desttop++) {
+        column = (column_t *) ((byte *) patch + patch_columnofs(patch, w - 1 - col));
 
         // step through the posts in a column
-        while (column->topdelta != 0xff )
-        {
-            source = (byte *)column + 3;
-            dest = desttop + column->topdelta*SCREENWIDTH;
+        while (column->topdelta != 0xff) {
+            source = (byte *) column + 3;
+            dest = desttop + column->topdelta * SCREENWIDTH;
             count = column->length;
 
-            while (count--)
-            {
+            while (count--) {
                 *dest = *source++;
                 dest += SCREENWIDTH;
             }
-            column = (column_t *)((byte *)column + column->length + 4);
+            column = (column_t *) ((byte *) column + column->length + 4);
         }
     }
 }
@@ -267,17 +543,20 @@ void V_DrawPatchFlipped(int x, int y, patch_t *patch)
 // Draws directly to the screen on the pc. 
 //
 
-void V_DrawPatchDirect(int x, int y, patch_t *patch)
-{
-    V_DrawPatch(x, y, patch); 
-} 
+void V_DrawPatchDirect(int x, int y, vpatch_handle_large_t patch) {
+    V_DrawPatch(x, y, patch);
+}
+
+void V_DrawPatchDirectN(int x, int y, vpatch_handle_large_t patch, int repeat) {
+    V_DrawPatchN(x, y, patch, repeat);
+}
 
 //
 // V_DrawTLPatch
 //
 // Masks a column based translucent masked pic to the screen.
 //
-
+#if !DOOM_ONLY
 void V_DrawTLPatch(int x, int y, patch_t * patch)
 {
     int count, col;
@@ -286,13 +565,13 @@ void V_DrawTLPatch(int x, int y, patch_t * patch)
     byte *source;
     int w;
 
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
+    y -= patch_topoffset(patch);
+    x -= patch_leftoffset(patch);
 
     if (x < 0
-     || x + SHORT(patch->width) > SCREENWIDTH 
+     || x + patch_width(patch) > SCREENWIDTH
      || y < 0
-     || y + SHORT(patch->height) > SCREENHEIGHT)
+     || y + patch_height(patch) > SCREENHEIGHT)
     {
         I_Error("Bad V_DrawTLPatch");
     }
@@ -300,7 +579,7 @@ void V_DrawTLPatch(int x, int y, patch_t * patch)
     col = 0;
     desttop = dest_screen + y * SCREENWIDTH + x;
 
-    w = SHORT(patch->width);
+    w = patch_width(patch);
     for (; col < w; x++, col++, desttop++)
     {
         column = (column_t *) ((byte *) patch + LONG(patch->columnofs[col]));
@@ -337,8 +616,8 @@ void V_DrawXlaPatch(int x, int y, patch_t * patch)
     byte *source;
     int w;
 
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
+    y -= patch_topoffset(patch);
+    x -= patch_leftoffset(patch);
 
     if(patchclip_callback)
     {
@@ -349,7 +628,7 @@ void V_DrawXlaPatch(int x, int y, patch_t * patch)
     col = 0;
     desttop = dest_screen + y * SCREENWIDTH + x;
 
-    w = SHORT(patch->width);
+    w = patch_width(patch);
     for(; col < w; x++, col++, desttop++)
     {
         column = (column_t *) ((byte *) patch + LONG(patch->columnofs[col]));
@@ -387,13 +666,13 @@ void V_DrawAltTLPatch(int x, int y, patch_t * patch)
     byte *source;
     int w;
 
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
+    y -= patch_topoffset(patch);
+    x -= patch_leftoffset(patch);
 
     if (x < 0
-     || x + SHORT(patch->width) > SCREENWIDTH
+     || x + patch_width(patch) > SCREENWIDTH
      || y < 0
-     || y + SHORT(patch->height) > SCREENHEIGHT)
+     || y + patch_height(patch) > SCREENHEIGHT)
     {
         I_Error("Bad V_DrawAltTLPatch");
     }
@@ -401,7 +680,7 @@ void V_DrawAltTLPatch(int x, int y, patch_t * patch)
     col = 0;
     desttop = dest_screen + y * SCREENWIDTH + x;
 
-    w = SHORT(patch->width);
+    w = patch_width(patch);
     for (; col < w; x++, col++, desttop++)
     {
         column = (column_t *) ((byte *) patch + LONG(patch->columnofs[col]));
@@ -439,13 +718,13 @@ void V_DrawShadowedPatch(int x, int y, patch_t *patch)
     pixel_t *desttop2, *dest2;
     int w;
 
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
+    y -= patch_topoffset(patch);
+    x -= patch_leftoffset(patch);
 
     if (x < 0
-     || x + SHORT(patch->width) > SCREENWIDTH
+     || x + patch_width(patch) > SCREENWIDTH
      || y < 0
-     || y + SHORT(patch->height) > SCREENHEIGHT)
+     || y + patch_height(patch) > SCREENHEIGHT)
     {
         I_Error("Bad V_DrawShadowedPatch");
     }
@@ -454,7 +733,7 @@ void V_DrawShadowedPatch(int x, int y, patch_t *patch)
     desttop = dest_screen + y * SCREENWIDTH + x;
     desttop2 = dest_screen + (y + 2) * SCREENWIDTH + x + 2;
 
-    w = SHORT(patch->width);
+    w = patch_width(patch);
     for (; col < w; x++, col++, desttop++, desttop2++)
     {
         column = (column_t *) ((byte *) patch + LONG(patch->columnofs[col]));
@@ -500,51 +779,46 @@ void V_LoadXlaTable(void)
 {
     xlatab = W_CacheLumpName("XLATAB", PU_STATIC);
 }
+#endif
 
 //
 // V_DrawBlock
 // Draw a linear block of pixels into the view buffer.
 //
 
-void V_DrawBlock(int x, int y, int width, int height, pixel_t *src)
-{ 
+void V_DrawBlock(int x, int y, int width, int height, pixel_t *src) {
     pixel_t *dest;
- 
-#ifdef RANGECHECK 
+
+#ifdef RANGECHECK
     if (x < 0
-     || x + width >SCREENWIDTH
-     || y < 0
-     || y + height > SCREENHEIGHT)
-    {
-	I_Error ("Bad V_DrawBlock");
+        || x + width > SCREENWIDTH
+        || y < 0
+        || y + height > SCREENHEIGHT) {
+        I_Error("Bad V_DrawBlock");
     }
-#endif 
- 
-    V_MarkRect (x, y, width, height); 
- 
-    dest = dest_screen + y * SCREENWIDTH + x; 
+#endif
 
-    while (height--) 
-    { 
-	memcpy (dest, src, width * sizeof(*dest));
-	src += width; 
-	dest += SCREENWIDTH; 
-    } 
-} 
+    V_MarkRect (x, y, width, height);
 
-void V_DrawFilledBox(int x, int y, int w, int h, int c)
-{
+    dest = dest_screen + y * SCREENWIDTH + x;
+
+    while (height--) {
+        memcpy(dest, src, width * sizeof(*dest));
+        src += width;
+        dest += SCREENWIDTH;
+    }
+}
+
+void V_DrawFilledBox(int x, int y, int w, int h, int c) {
     pixel_t *buf, *buf1;
     int x1, y1;
 
     buf = I_VideoBuffer + SCREENWIDTH * y + x;
 
-    for (y1 = 0; y1 < h; ++y1)
-    {
+    for (y1 = 0; y1 < h; ++y1) {
         buf1 = buf;
 
-        for (x1 = 0; x1 < w; ++x1)
-        {
+        for (x1 = 0; x1 < w; ++x1) {
             *buf1++ = c;
         }
 
@@ -552,56 +826,49 @@ void V_DrawFilledBox(int x, int y, int w, int h, int c)
     }
 }
 
-void V_DrawHorizLine(int x, int y, int w, int c)
-{
+void V_DrawHorizLine(int x, int y, int w, int c) {
     pixel_t *buf;
     int x1;
 
     buf = I_VideoBuffer + SCREENWIDTH * y + x;
 
-    for (x1 = 0; x1 < w; ++x1)
-    {
+    for (x1 = 0; x1 < w; ++x1) {
         *buf++ = c;
     }
 }
 
-void V_DrawVertLine(int x, int y, int h, int c)
-{
+void V_DrawVertLine(int x, int y, int h, int c) {
     pixel_t *buf;
     int y1;
 
     buf = I_VideoBuffer + SCREENWIDTH * y + x;
 
-    for (y1 = 0; y1 < h; ++y1)
-    {
+    for (y1 = 0; y1 < h; ++y1) {
         *buf = c;
         buf += SCREENWIDTH;
     }
 }
 
-void V_DrawBox(int x, int y, int w, int h, int c)
-{
+void V_DrawBox(int x, int y, int w, int h, int c) {
     V_DrawHorizLine(x, y, w, c);
-    V_DrawHorizLine(x, y+h-1, w, c);
+    V_DrawHorizLine(x, y + h - 1, w, c);
     V_DrawVertLine(x, y, h, c);
-    V_DrawVertLine(x+w-1, y, h, c);
+    V_DrawVertLine(x + w - 1, y, h, c);
 }
 
 //
 // Draw a "raw" screen (lump containing raw data to blit directly
 // to the screen)
 //
- 
-void V_DrawRawScreen(pixel_t *raw)
-{
+
+void V_DrawRawScreen(pixel_t *raw) {
     memcpy(dest_screen, raw, SCREENWIDTH * SCREENHEIGHT * sizeof(*dest_screen));
 }
 
 //
 // V_Init
 // 
-void V_Init (void) 
-{ 
+void V_Init(void) {
     // no-op!
     // There used to be separate screens that could be drawn to; these are
     // now handled in the upper layers.
@@ -609,15 +876,13 @@ void V_Init (void)
 
 // Set the buffer that the code draws to.
 
-void V_UseBuffer(pixel_t *buffer)
-{
+void V_UseBuffer(pixel_t *buffer) {
     dest_screen = buffer;
 }
 
 // Restore screen buffer to the i_video screen buffer.
 
-void V_RestoreBuffer(void)
-{
+void V_RestoreBuffer(void) {
     dest_screen = I_VideoBuffer;
 }
 
@@ -626,36 +891,37 @@ void V_RestoreBuffer(void)
 //
 
 typedef PACKED_STRUCT (
-{
-    char		manufacturer;
-    char		version;
-    char		encoding;
-    char		bits_per_pixel;
+        {
+            char manufacturer;
+            char version;
+            char encoding;
+            char bits_per_pixel;
 
-    unsigned short	xmin;
-    unsigned short	ymin;
-    unsigned short	xmax;
-    unsigned short	ymax;
-    
-    unsigned short	hres;
-    unsigned short	vres;
+            unsigned short xmin;
+            unsigned short ymin;
+            unsigned short xmax;
+            unsigned short ymax;
 
-    unsigned char	palette[48];
-    
-    char		reserved;
-    char		color_planes;
-    unsigned short	bytes_per_line;
-    unsigned short	palette_type;
-    
-    char		filler[58];
-    unsigned char	data;		// unbounded
-}) pcx_t;
+            unsigned short hres;
+            unsigned short vres;
+
+            unsigned char palette[48];
+
+            char reserved;
+            char color_planes;
+            unsigned short bytes_per_line;
+            unsigned short palette_type;
+
+            char filler[58];
+            unsigned char data;                // unbounded
+        }) pcx_t;
 
 
 //
 // WritePCXfile
 //
 
+#if !NO_FILE_ACCESS
 void WritePCXfile(char *filename, pixel_t *data,
                   int width, int height,
                   byte *palette)
@@ -664,8 +930,8 @@ void WritePCXfile(char *filename, pixel_t *data,
     int		length;
     pcx_t*	pcx;
     byte*	pack;
-	
-    pcx = Z_Malloc (width*height*2+1000, PU_STATIC, NULL);
+
+    pcx = Z_Malloc (width*height*2+1000, PU_STATIC, 0);
 
     pcx->manufacturer = 0x0a;		// PCX id
     pcx->version = 5;			// 256 color
@@ -686,22 +952,22 @@ void WritePCXfile(char *filename, pixel_t *data,
 
     // pack the image
     pack = &pcx->data;
-	
+
     for (i=0 ; i<width*height ; i++)
     {
-	if ( (*data & 0xc0) != 0xc0)
-	    *pack++ = *data++;
-	else
-	{
-	    *pack++ = 0xc1;
-	    *pack++ = *data++;
-	}
+        if ( (*data & 0xc0) != 0xc0)
+            *pack++ = *data++;
+        else
+        {
+            *pack++ = 0xc1;
+            *pack++ = *data++;
+        }
     }
-    
+
     // write the palette
     *pack++ = 0x0c;	// palette ID byte
     for (i=0 ; i<768 ; i++)
-	*pack++ = *palette++;
+        *pack++ = *palette++;
     
     // write output file
     length = pack - (byte *)pcx;
@@ -709,6 +975,7 @@ void WritePCXfile(char *filename, pixel_t *data,
 
     Z_Free (pcx);
 }
+#endif
 
 #ifdef HAVE_LIBPNG
 //
@@ -832,6 +1099,7 @@ void WritePNGfile(char *filename, pixel_t *data,
 // V_ScreenShot
 //
 
+#if !NO_SCREENSHOT
 void V_ScreenShot(const char *format)
 {
     int i;
@@ -881,7 +1149,7 @@ void V_ScreenShot(const char *format)
     {
     WritePNGfile(lbmname, I_VideoBuffer,
                  SCREENWIDTH, SCREENHEIGHT,
-                 W_CacheLumpName (DEH_String("PLAYPAL"), PU_CACHE));
+                 (byte *)W_CacheLumpName (DEH_String("PLAYPAL"), PU_CACHE));
     }
     else
 #endif
@@ -889,10 +1157,12 @@ void V_ScreenShot(const char *format)
     // save the pcx file
     WritePCXfile(lbmname, I_VideoBuffer,
                  SCREENWIDTH, SCREENHEIGHT,
-                 W_CacheLumpName (DEH_String("PLAYPAL"), PU_CACHE));
+                 (byte *)W_CacheLumpName (DEH_String("PLAYPAL"), PU_CACHE));
     }
 }
+#endif
 
+#if !NO_USE_MOUSE
 #define MOUSE_SPEED_BOX_WIDTH  120
 #define MOUSE_SPEED_BOX_HEIGHT 9
 
@@ -1016,4 +1286,4 @@ void V_DrawMouseSpeedBox(int speed)
         }
     }
 }
-
+#endif

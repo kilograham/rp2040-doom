@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -51,7 +52,13 @@ enum
         
 
 void	Z_Init (void);
+#if !NO_Z_MALLOC_USER_PTR
 void*	Z_Malloc (int size, int tag, void *ptr);
+#else
+#include <assert.h>
+void*	Z_MallocNoUser (int size, int tag);
+#define Z_Malloc(s, t, p) ({ static_assert(!(p), ""); Z_MallocNoUser(s,t); })
+#endif
 void    Z_Free (void *ptr);
 void    Z_FreeTags (int lowtag, int hightag);
 void    Z_DumpHeap (int lowtag, int hightag);
@@ -62,6 +69,9 @@ void    Z_ChangeUser(void *ptr, void **user);
 int     Z_FreeMemory (void);
 unsigned int Z_ZoneSize(void);
 
+#if Z_MALOOC_EXTRA_DATA
+unsigned char *Z_ObjectExtra(void *ptr);
+#endif
 //
 // This is used to get the local FILE:LINE info from CPP
 // prior to really call the function in question.

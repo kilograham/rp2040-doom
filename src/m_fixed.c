@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,7 +36,11 @@ FixedMul
 ( fixed_t	a,
   fixed_t	b )
 {
+#if !PICO_BUILD
     return ((int64_t) a * (int64_t) b) >> FRACBITS;
+#else
+    return FixedMulInline(a,b);
+#endif
 }
 
 

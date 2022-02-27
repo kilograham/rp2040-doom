@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -64,19 +65,21 @@ EV_Teleport
     if (side == 1)		
 	return 0;	
 
-    
-    tag = line->tag;
+
+    mobjfull_t *thingf = mobj_full(thing);
+
+    tag = line_tag(line);
     for (i = 0; i < numsectors; i++)
     {
 	if (sectors[ i ].tag == tag )
 	{
-	    thinker = thinkercap.next;
-	    for (thinker = thinkercap.next;
+
+	    for (thinker = thinker_next(&thinkercap);
 		 thinker != &thinkercap;
-		 thinker = thinker->next)
+		 thinker = thinker_next(thinker))
 	    {
 		// not a mobj
-		if (thinker->function.acp1 != (actionf_p1)P_MobjThinker)
+		if (thinker->function != ThinkF_P_MobjThinker)
 		    continue;	
 
 		m = (mobj_t *)thinker;
@@ -85,16 +88,16 @@ EV_Teleport
 		if (m->type != MT_TELEPORTMAN )
 		    continue;		
 
-		sector = m->subsector->sector;
+		sector = mobj_sector(m);
 		// wrong sector
 		if (sector-sectors != i )
 		    continue;	
 
-		oldx = thing->x;
-		oldy = thing->y;
+		oldx = thing->xy.x;
+		oldy = thing->xy.y;
 		oldz = thing->z;
 				
-		if (!P_TeleportMove (thing, m->x, m->y))
+		if (!P_TeleportMove (thing, m->xy.x, m->xy.y))
 		    return 0;
 
                 // The first Final Doom executable does not set thing->z
@@ -103,27 +106,27 @@ EV_Teleport
                 // some versions of the Id Anthology fixed this.
 
                 if (gameversion != exe_final)
-		    thing->z = thing->floorz;
+		    thing->z = thingf->floorz;
 
-		if (thing->player)
-		    thing->player->viewz = thing->z+thing->player->viewheight;
+		if (thingf->sp_player)
+		    mobj_player(thing)->viewz = thing->z+mobj_player(thing)->viewheight;
 
 		// spawn teleport fog at source and destination
 		fog = P_SpawnMobj (oldx, oldy, oldz, MT_TFOG);
-		S_StartSound (fog, sfx_telept);
-		an = m->angle >> ANGLETOFINESHIFT;
-		fog = P_SpawnMobj (m->x+20*finecosine[an], m->y+20*finesine[an]
+		S_StartObjSound (fog, sfx_telept);
+		an = mobj_full(m)->angle >> ANGLETOFINESHIFT;
+		fog = P_SpawnMobj (m->xy.x+20*finecosine(an), m->xy.y + 20 * finesine(an)
 				   , thing->z, MT_TFOG);
 
 		// emit sound, where?
-		S_StartSound (fog, sfx_telept);
+		S_StartObjSound (fog, sfx_telept);
 		
 		// don't move for a bit
-		if (thing->player)
-		    thing->reactiontime = 18;	
+		if (thingf->sp_player)
+		    thingf->reactiontime = 18;
 
-		thing->angle = m->angle;
-		thing->momx = thing->momy = thing->momz = 0;
+		thingf->angle = mobj_full(m)->angle;
+		thingf->momx = thingf->momy = thingf->momz = 0;
 		return 1;
 	    }	
 	}

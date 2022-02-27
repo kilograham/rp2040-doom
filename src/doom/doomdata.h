@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -131,9 +132,14 @@ typedef PACKED_STRUCT (
 // Set if already seen, thus drawn in automap.
 #define ML_MAPPED		256
 
-
-
-
+#if USE_WHD && WHD_SUPER_TINY
+#define ML_NO_PREDICT_SIDE      256 // can share with ML_MAPPED
+#define ML_NO_PREDICT_V1        512
+#define ML_NO_PREDICT_V2        1024
+#define ML_HAS_SPECIAL          2048
+#define ML_HAS_TAG              4096
+#define ML_SIDE_MASK            0xe000u
+#endif
 // Sector definition, from editing.
 typedef	PACKED_STRUCT (
 {
@@ -206,8 +212,14 @@ typedef PACKED_STRUCT (
     short		options;
 }) mapthing_t;
 
-
-
+#if !WHD_SUPER_TINY
+#define TAG_666 666
+#define TAG_667 667
+#else
+// we only have one byte tags
+#define TAG_666 254
+#define TAG_667 255
+#endif
 
 
 #endif			// __DOOMDATA__

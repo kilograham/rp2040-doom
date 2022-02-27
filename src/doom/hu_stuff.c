@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -41,6 +42,7 @@
 // Data.
 #include "dstrings.h"
 #include "sounds.h"
+#include "r_data.h"
 
 //
 // Locally used constants, shortcuts.
@@ -52,17 +54,19 @@
 #define HU_TITLE_CHEX   (mapnames_chex[(gameepisode-1)*9+gamemap-1])
 #define HU_TITLEHEIGHT	1
 #define HU_TITLEX	0
-#define HU_TITLEY	(167 - SHORT(hu_font[0]->height))
+#define HU_TITLEY	(167 - vpatch_height(resolve_vpatch_handle(vpatch_n(hu_font,0))))
 
 #define HU_INPUTTOGGLE	't'
 #define HU_INPUTX	HU_MSGX
-#define HU_INPUTY	(HU_MSGY + HU_MSGHEIGHT*(SHORT(hu_font[0]->height) +1))
+#define HU_INPUTY	(HU_MSGY + HU_MSGHEIGHT*(vpatch_height(resolve_vpatch_handle(vpatch_n(hu_font,0))) +1))
 #define HU_INPUTWIDTH	64
 #define HU_INPUTHEIGHT	1
 
-
-
-char *chat_macros[10] =
+#if !DOOM_TINY
+const char *chat_macros[10] =
+#else
+const constcharstar chat_macros[10] =
+#endif
 {
     HUSTR_CHATMACRO0,
     HUSTR_CHATMACRO1,
@@ -76,7 +80,7 @@ char *chat_macros[10] =
     HUSTR_CHATMACRO9
 };
 
-const char *player_names[] =
+const constcharstar player_names[] =
 {
     HUSTR_PLRGREEN,
     HUSTR_PLRINDIGO,
@@ -86,7 +90,12 @@ const char *player_names[] =
 
 char			chat_char; // remove later.
 static player_t*	plr;
-patch_t*		hu_font[HU_FONTSIZE];
+#if !USE_WHD
+vpatch_handle_large_t 	hu_fontx[HU_FONTSIZE];
+vpatch_sequence_t hu_font = hu_fontx;
+#else
+vpatch_sequence_t hu_font;
+#endif
 static hu_textline_t	w_title;
 boolean			chat_on;
 static hu_itext_t	w_chat;
@@ -101,7 +110,7 @@ static boolean		message_nottobefuckedwith;
 static hu_stext_t	w_message;
 static int		message_counter;
 
-extern int		showMessages;
+extern isb_int8_t	showMessages;
 
 static boolean		headsupactive = false;
 
@@ -110,7 +119,7 @@ static boolean		headsupactive = false;
 // The actual names can be found in DStrings.h.
 //
 
-const char *mapnames[] =	// DOOM shareware/registered/retail (Ultimate) names.
+const constcharstar mapnames[] =	// DOOM shareware/registered/retail (Ultimate) names.
 {
 
     HUSTR_E1M1,
@@ -123,6 +132,7 @@ const char *mapnames[] =	// DOOM shareware/registered/retail (Ultimate) names.
     HUSTR_E1M8,
     HUSTR_E1M9,
 
+#if !DEMO1_ONLY
     HUSTR_E2M1,
     HUSTR_E2M2,
     HUSTR_E2M3,
@@ -162,6 +172,7 @@ const char *mapnames[] =	// DOOM shareware/registered/retail (Ultimate) names.
     "NEWLEVEL",
     "NEWLEVEL",
     "NEWLEVEL"
+#endif
 };
 
 const char *mapnames_chex[] =   // Chex Quest names.
@@ -224,7 +235,7 @@ const char *mapnames_chex[] =   // Chex Quest names.
 // the layout in the Vanilla executable, where it is possible to
 // overflow the end of one array into the next.
 
-const char *mapnames_commercial[] =
+const char * const mapnames_commercial[] =
 {
     // DOOM 2 map names.
 
@@ -352,12 +363,19 @@ void HU_Init(void)
     char	buffer[9];
 
     // load the heads-up font
+#if !USE_WHD
     j = HU_FONTSTART;
     for (i=0;i<HU_FONTSIZE;i++)
     {
 	DEH_snprintf(buffer, 9, "STCFN%.3d", j++);
 	hu_font[i] = (patch_t *) W_CacheLumpName(buffer, PU_STATIC);
     }
+#else
+    static_assert(HU_FONTSTART == 33, "");
+    static_assert(HU_FONTSIZE == 95 - 33 + 1, "");
+    hu_font = VPATCH_STCFN033;
+    // todo what about STCFN121 !!?
+#endif
 
 }
 
@@ -398,6 +416,7 @@ void HU_Start(void)
       case doom:
 	s = HU_TITLE;
 	break;
+#if !DEMO1_ONLY
       case doom2:
 	 s = HU_TITLE2;
          // Pre-Final Doom compatibility: map33-map35 names don't spill over
@@ -411,16 +430,19 @@ void HU_Start(void)
 	break;
       case pack_tnt:
 	s = HU_TITLET;
+#endif
 	break;
       default:
          s = "Unknown level";
          break;
     }
 
+#if !DOOM_ONLY
     if (logical_gamemission == doom && gameversion == exe_chex)
     {
         s = HU_TITLE_CHEX;
     }
+#endif
 
     // dehacked substitution to get modified level name
 
@@ -445,12 +467,12 @@ void HU_Start(void)
 
 void HU_Drawer(void)
 {
-
+#if !NO_HU_DRAWER
     HUlib_drawSText(&w_message);
     HUlib_drawIText(&w_chat);
     if (automapactive)
-	HUlib_drawTextLine(&w_title, false);
-
+	    HUlib_drawTextLine(&w_title, false);
+#endif
 }
 
 void HU_Erase(void)
@@ -521,9 +543,9 @@ void HU_Ticker(void)
 			    message_on = true;
 			    message_counter = HU_MSGTIMEOUT;
 			    if ( gamemode == commercial )
-			      S_StartSound(0, sfx_radio);
+			      S_StartUnpositionedSound( sfx_radio);
 			    else
-			      S_StartSound(0, sfx_tink);
+			      S_StartUnpositionedSound( sfx_tink);
 			}
 			HUlib_resetIText(&w_inputbuffer[i]);
 		    }
@@ -534,6 +556,8 @@ void HU_Ticker(void)
     }
 
 }
+
+#if !NO_USE_NET
 
 #define QUEUESIZE		128
 
@@ -716,3 +740,4 @@ boolean HU_Responder(event_t *ev)
 
     return eatkey;
 }
+#endif

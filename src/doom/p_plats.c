@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,7 +36,7 @@
 #include "sounds.h"
 
 
-plat_t*		activeplats[MAXPLATS];
+shortptr_t /*plat_t* */		activeplats[MAXPLATS];
 
 
 
@@ -109,7 +110,7 @@ void T_PlatRaise(plat_t* plat)
       case	waiting:
 	if (!--plat->count)
 	{
-	    if (plat->sector->floorheight == plat->low)
+	    if (sector_floorheight(plat->sector) == plat->low)
 		plat->status = up;
 	    else
 		plat->status = down;
@@ -144,7 +145,7 @@ EV_DoPlat
     switch(type)
     {
       case perpetualRaise:
-	P_ActivateInStasis(line->tag);
+	P_ActivateInStasis(line_tag(line));
 	break;
 	
       default:
@@ -165,17 +166,17 @@ EV_DoPlat
 		
 	plat->type = type;
 	plat->sector = sec;
-	plat->sector->specialdata = plat;
-	plat->thinker.function.acp1 = (actionf_p1) T_PlatRaise;
+	plat->sector->specialdata = ptr_to_shortptr(plat);
+	plat->thinker.function = ThinkF_T_PlatRaise;
 	plat->crush = false;
-	plat->tag = line->tag;
+	plat->tag = line_tag(line);
 	
 	switch(type)
 	{
 	  case raiseToNearestAndChange:
 	    plat->speed = PLATSPEED/2;
-	    sec->floorpic = sides[line->sidenum[0]].sector->floorpic;
-	    plat->high = P_FindNextHighestFloor(sec,sec->floorheight);
+	    sec->floorpic = side_sector(sidenum_to_side(line_sidenum(line, 0)))->floorpic;
+	    plat->high = P_FindNextHighestFloor(sec,sector_floorheight(sec));
 	    plat->wait = 0;
 	    plat->status = up;
 	    // NO MORE DAMAGE, IF APPLICABLE
@@ -186,8 +187,8 @@ EV_DoPlat
 	    
 	  case raiseAndChange:
 	    plat->speed = PLATSPEED/2;
-	    sec->floorpic = sides[line->sidenum[0]].sector->floorpic;
-	    plat->high = sec->floorheight + amount*FRACUNIT;
+	    sec->floorpic = side_sector(sidenum_to_side(line_sidenum(line, 0)))->floorpic;
+	    plat->high = sector_floorheight(sec) + amount*FRACUNIT;
 	    plat->wait = 0;
 	    plat->status = up;
 
@@ -198,10 +199,10 @@ EV_DoPlat
 	    plat->speed = PLATSPEED * 4;
 	    plat->low = P_FindLowestFloorSurrounding(sec);
 
-	    if (plat->low > sec->floorheight)
-		plat->low = sec->floorheight;
+	    if (plat->low > sector_floorheight(sec))
+		plat->low = sector_floorheight(sec);
 
-	    plat->high = sec->floorheight;
+	    plat->high = sector_floorheight(sec);
 	    plat->wait = TICRATE*PLATWAIT;
 	    plat->status = down;
 	    S_StartSound(&sec->soundorg,sfx_pstart);
@@ -211,10 +212,10 @@ EV_DoPlat
 	    plat->speed = PLATSPEED * 8;
 	    plat->low = P_FindLowestFloorSurrounding(sec);
 
-	    if (plat->low > sec->floorheight)
-		plat->low = sec->floorheight;
+	    if (plat->low > sector_floorheight(sec))
+		plat->low = sector_floorheight(sec);
 
-	    plat->high = sec->floorheight;
+	    plat->high = sector_floorheight(sec);
 	    plat->wait = TICRATE*PLATWAIT;
 	    plat->status = down;
 	    S_StartSound(&sec->soundorg,sfx_pstart);
@@ -224,13 +225,13 @@ EV_DoPlat
 	    plat->speed = PLATSPEED;
 	    plat->low = P_FindLowestFloorSurrounding(sec);
 
-	    if (plat->low > sec->floorheight)
-		plat->low = sec->floorheight;
+	    if (plat->low > sector_floorheight(sec))
+		plat->low = sector_floorheight(sec);
 
 	    plat->high = P_FindHighestFloorSurrounding(sec);
 
-	    if (plat->high < sec->floorheight)
-		plat->high = sec->floorheight;
+	    if (plat->high < sector_floorheight(sec))
+		plat->high = sector_floorheight(sec);
 
 	    plat->wait = TICRATE*PLATWAIT;
 	    plat->status = P_Random()&1;
@@ -249,30 +250,32 @@ void P_ActivateInStasis(int tag)
 {
     int		i;
 	
-    for (i = 0;i < MAXPLATS;i++)
-	if (activeplats[i]
-	    && (activeplats[i])->tag == tag
-	    && (activeplats[i])->status == in_stasis)
-	{
-	    (activeplats[i])->status = (activeplats[i])->oldstatus;
-	    (activeplats[i])->thinker.function.acp1
-	      = (actionf_p1) T_PlatRaise;
+    for (i = 0;i < MAXPLATS;i++) {
+	if (activeplats[i]) {
+	    plat_t *p = shortptr_to_plat(activeplats[i]);
+	    if (p->tag == tag && p->status == in_stasis)
+	    {
+                p->status = p->oldstatus;
+                p->thinker.function = ThinkF_T_PlatRaise;
+	    }
 	}
+    }
 }
 
 void EV_StopPlat(line_t* line)
 {
     int		j;
 	
-    for (j = 0;j < MAXPLATS;j++)
-	if (activeplats[j]
-	    && ((activeplats[j])->status != in_stasis)
-	    && ((activeplats[j])->tag == line->tag))
-	{
-	    (activeplats[j])->oldstatus = (activeplats[j])->status;
-	    (activeplats[j])->status = in_stasis;
-	    (activeplats[j])->thinker.function.acv = (actionf_v)NULL;
+    for (j = 0;j < MAXPLATS;j++) {
+	if (activeplats[j]) {
+	    plat_t *p = shortptr_to_plat(activeplats[j]);
+	    if (p->status != in_stasis && (p->tag == line_tag(line))) {
+                p->oldstatus = p->status;
+                p->status = in_stasis;
+                p->thinker.function = ThinkF_NULL;
+            }
 	}
+    }
 }
 
 void P_AddActivePlat(plat_t* plat)
@@ -280,9 +283,9 @@ void P_AddActivePlat(plat_t* plat)
     int		i;
     
     for (i = 0;i < MAXPLATS;i++)
-	if (activeplats[i] == NULL)
+	if (!activeplats[i])
 	{
-	    activeplats[i] = plat;
+	    activeplats[i] = plat_to_shortptr(plat);
 	    return;
 	}
     I_Error ("P_AddActivePlat: no more plats!");
@@ -291,14 +294,15 @@ void P_AddActivePlat(plat_t* plat)
 void P_RemoveActivePlat(plat_t* plat)
 {
     int		i;
-    for (i = 0;i < MAXPLATS;i++)
-	if (plat == activeplats[i])
-	{
-	    (activeplats[i])->sector->specialdata = NULL;
-	    P_RemoveThinker(&(activeplats[i])->thinker);
-	    activeplats[i] = NULL;
+    for (i = 0;i < MAXPLATS;i++) {
+        if (plat == shortptr_to_plat(activeplats[i]))
+        {
+            plat->sector->specialdata = 0;
+            P_RemoveThinker(&plat->thinker);
+            activeplats[i] = 0;
 	    
-	    return;
-	}
+            return;
+        }
+    }
     I_Error ("P_RemoveActivePlat: can't find plat!");
 }

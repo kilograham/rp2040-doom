@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -75,7 +76,8 @@ void D_StartNetGame(net_gamesettings_t *settings,
                     netgame_startup_callback_t callback);
 
 extern boolean singletics;
-extern int gametic, ticdup;
+extern int gametic;
+extern isb_int8_t ticdup;
 
 // Check if it is permitted to record a demo with a non-vanilla feature.
 boolean D_NonVanillaRecord(boolean conditional, const char *feature);
@@ -84,5 +86,18 @@ boolean D_NonVanillaRecord(boolean conditional, const char *feature);
 boolean D_NonVanillaPlayback(boolean conditional, int lumpnum,
                              const char *feature);
 
+// The complete set of data for a particular tic.
+typedef struct {
+    ticcmd_t cmds[NET_MAXPLAYERS];
+#if !DOOM_TINY
+    boolean ingame[NET_MAXPLAYERS];
+#endif
+} ticcmd_set_t;
+
+#if USE_PICO_NET
+// setup game loop for piconet play
+void D_StartPicoNetGame();
+extern ticcmd_set_t ticdata[BACKUPTICS]; // we share the ticdata with piconet
+#endif
 #endif
 

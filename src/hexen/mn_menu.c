@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -131,7 +132,7 @@ boolean MenuActive;
 int InfoType;
 int messageson = true;
 boolean mn_SuicideConsole;
-boolean demoextend; // from h2def.h
+//boolean demoextend; // from h2def.h
 
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 
@@ -1413,7 +1414,7 @@ boolean MN_Responder(event_t * event)
                     slottextloaded = false; //reload the slot text
                     quicksave = -1;
                     P_SetMessage(&players[consoleplayer],
-                                 "CHOOSE A QUICKSAVE SLOT", true);
+                                 "CHOOSE A QUICKSAVE SLOT_RENDER", true);
                 }
                 else
                 {
@@ -1464,7 +1465,7 @@ boolean MN_Responder(event_t * event)
                     slottextloaded = false; // reload the slot text
                     quickload = -1;
                     P_SetMessage(&players[consoleplayer],
-                                 "CHOOSE A QUICKLOAD SLOT", true);
+                                 "CHOOSE A QUICKLOAD SLOT_RENDER", true);
                 }
                 else
                 {

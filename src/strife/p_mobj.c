@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -1190,8 +1191,8 @@ P_SpawnMissile
 
     th->angle = an;
     an >>= ANGLETOFINESHIFT;
-    th->momx = FixedMul (th->info->speed, finecosine[an]);
-    th->momy = FixedMul (th->info->speed, finesine[an]);
+    th->momx = FixedMul (th->info->speed, finecosine(an));
+    th->momy = FixedMul (th->info->speed, finesine(an));
 
     dist = P_AproxDistance (dest->x - source->x, dest->y - source->y);
     dist = dist / th->info->speed;
@@ -1240,8 +1241,8 @@ mobj_t* P_SpawnFacingMissile(mobj_t* source, mobj_t* target, mobjtype_t type)
     }
 
     an >>= ANGLETOFINESHIFT;
-    th->momx = FixedMul (th->info->speed, finecosine[an]);
-    th->momy = FixedMul (th->info->speed, finesine[an]);
+    th->momx = FixedMul (th->info->speed, finecosine(an));
+    th->momy = FixedMul (th->info->speed, finesine(an));
 
     dist = P_AproxDistance (target->x - source->x, target->y - source->y);
     dist = dist / th->info->speed;
@@ -1318,9 +1319,9 @@ mobj_t* P_SpawnPlayerMissile(mobj_t* source, mobjtype_t type)
     th->target = source;
     th->angle = an;
     th->momx = FixedMul( th->info->speed,
-                         finecosine[an>>ANGLETOFINESHIFT]);
+                         finecosine(an>>ANGLETOFINESHIFT));
     th->momy = FixedMul( th->info->speed,
-                         finesine[an>>ANGLETOFINESHIFT]);
+                         finesine(an>>ANGLETOFINESHIFT));
     th->momz = FixedMul( th->info->speed, slope);
 
     P_CheckMissileSpawn (th);
@@ -1348,8 +1349,8 @@ mobj_t* P_SpawnMortar(mobj_t *source, mobjtype_t type)
     an >>= ANGLETOFINESHIFT;
 
     // haleyjd 20110203: corrected order of function calls
-    th->momx = FixedMul(th->info->speed, finecosine[an]);
-    th->momy = FixedMul(th->info->speed, finesine[an]);
+    th->momx = FixedMul(th->info->speed, finecosine(an));
+    th->momy = FixedMul(th->info->speed, finesine(an));
 
     P_CheckMissileSpawn(th);
     

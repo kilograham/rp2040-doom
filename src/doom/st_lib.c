@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -15,7 +16,6 @@
 // DESCRIPTION:
 //	The status bar widget code.
 //
-
 
 #include <stdio.h>
 #include <ctype.h>
@@ -46,11 +46,11 @@ extern boolean		automapactive;
 // Hack display negative frags.
 //  Loads and store the stminus lump.
 //
-patch_t*		sttminus;
+vpatch_handle_small_t sttminus;
 
 void STlib_init(void)
 {
-    sttminus = (patch_t *) W_CacheLumpName(DEH_String("STTMINUS"), PU_STATIC);
+    sttminus = VPATCH_HANDLE(VPATCH_NAME(STTMINUS));
 }
 
 
@@ -60,18 +60,22 @@ STlib_initNum
 ( st_number_t*		n,
   int			x,
   int			y,
-  patch_t**		pl,
+  vpatch_sequence_t		pl,
   int*			num,
   boolean*		on,
   int			width )
 {
     n->x	= x;
     n->y	= y;
+#if !DOOM_TINY
     n->oldnum	= 0;
+#else
+    n->cached = 9999;
+#endif
     n->width	= width;
     n->num	= num;
     n->on	= on;
-    n->p	= pl;
+    n->p = pl;
 }
 
 
@@ -88,14 +92,20 @@ STlib_drawNum
 
     int		numdigits = n->width;
     int		num = *n->num;
-    
-    int		w = SHORT(n->p[0]->width);
-    int		h = SHORT(n->p[0]->height);
+
+    int		w = vpatch_width(resolve_vpatch_handle(vpatch_n(n->p, 0)));
+    int		h = vpatch_height(resolve_vpatch_handle(vpatch_n(n->p, 0)));
     int		x = n->x;
     
     int		neg;
 
+#if !DOOM_TINY
     n->oldnum = *n->num;
+#else
+    // stbar wipe support - we need to be able to redraw and old status bar value
+    if (refresh || n->cached == 9999) n->cached = (int16_t)num;
+    else num = n->cached;
+#endif
 
     neg = num < 0;
 
@@ -112,10 +122,12 @@ STlib_drawNum
     // clear the area
     x = n->x - numdigits*w;
 
+#if !DOOM_TINY
     if (n->y - ST_Y < 0)
 	I_Error("drawNum: n->y - ST_Y < 0");
 
     V_CopyRect(x, n->y - ST_Y, st_backing_screen, w*numdigits, h, x, n->y);
+#endif
 
     // if non-number, do not draw it
     if (num == 1994)
@@ -125,14 +137,14 @@ STlib_drawNum
 
     // in the special case of 0, you draw 0
     if (!num)
-	V_DrawPatch(x - w, n->y, n->p[ 0 ]);
+        V_DrawPatch(x - w, n->y, vpatch_n(n->p, 00));
 
     // draw the new number
     while (num && numdigits--)
     {
-	x -= w;
-	V_DrawPatch(x, n->y, n->p[ num % 10 ]);
-	num /= 10;
+	    x -= w;
+    	V_DrawPatch(x, n->y, vpatch_n(n->p, num % 10));
+    	num /= 10;
     }
 
     // draw a minus sign if necessary
@@ -157,10 +169,10 @@ STlib_initPercent
 ( st_percent_t*		p,
   int			x,
   int			y,
-  patch_t**		pl,
+  vpatch_sequence_t  pl,
   int*			num,
   boolean*		on,
-  patch_t*		percent )
+  vpatch_handle_small_t		percent )
 {
     STlib_initNum(&p->n, x, y, pl, num, on, 3);
     p->p = percent;
@@ -174,8 +186,13 @@ STlib_updatePercent
 ( st_percent_t*		per,
   int			refresh )
 {
+#if !DOOM_TINY
     if (refresh && *per->n.on)
-	V_DrawPatch(per->n.x, per->n.y, per->p);
+	    V_DrawPatch(per->n.x, per->n.y, per->p);
+#else
+    if (*per->n.on)
+        V_DrawPatch(per->n.x, per->n.y, per->p);
+#endif
     
     STlib_updateNum(&per->n, refresh);
 }
@@ -187,13 +204,17 @@ STlib_initMultIcon
 ( st_multicon_t*	i,
   int			x,
   int			y,
-  patch_t**		il,
-  int*			inum,
+  vpatch_handle_small_t*		il,
+  isb_int8_t *	inum,
   boolean*		on )
 {
     i->x	= x;
     i->y	= y;
+#if !DOOM_TINY
     i->oldinum 	= -1;
+#else
+    i->cached = -1;
+#endif
     i->inum	= inum;
     i->on	= on;
     i->p	= il;
@@ -211,16 +232,17 @@ STlib_updateMultIcon
     int			x;
     int			y;
 
+#if !DOOM_TINY
     if (*mi->on
 	&& (mi->oldinum != *mi->inum || refresh)
 	&& (*mi->inum!=-1))
     {
 	if (mi->oldinum != -1)
 	{
-	    x = mi->x - SHORT(mi->p[mi->oldinum]->leftoffset);
-	    y = mi->y - SHORT(mi->p[mi->oldinum]->topoffset);
-	    w = SHORT(mi->p[mi->oldinum]->width);
-	    h = SHORT(mi->p[mi->oldinum]->height);
+	    x = mi->x - patch_leftoffset(mi->p[mi->oldinum]);
+	    y = mi->y - patch_topoffset(mi->p[mi->oldinum]);
+	    w = vpatch_width(resolve_vpatch_handle(mi->p[mi->oldinum]));
+	    h = vpatch_height(resolve_vpatch_handle(mi->p[mi->oldinum]));
 
 	    if (y - ST_Y < 0)
 		I_Error("updateMultIcon: y - ST_Y < 0");
@@ -230,6 +252,14 @@ STlib_updateMultIcon
 	V_DrawPatch(mi->x, mi->y, mi->p[*mi->inum]);
 	mi->oldinum = *mi->inum;
     }
+#else
+    int8_t inum = *mi->inum;
+    // stbar wipe support - we need to be able to redraw and old status bar value
+    if (refresh || mi->cached==-1) mi->cached = (int8_t)*mi->inum;
+    else inum = mi->cached;
+    if (*mi->on && inum!=-1)
+        V_DrawPatch(mi->x, mi->y, mi->p[inum]);
+#endif
 }
 
 
@@ -239,13 +269,17 @@ STlib_initBinIcon
 ( st_binicon_t*		b,
   int			x,
   int			y,
-  patch_t*		i,
+  vpatch_handle_small_t		i,
   boolean*		val,
   boolean*		on )
 {
     b->x	= x;
     b->y	= y;
+#if !DOOM_TINY
     b->oldval	= false;
+#else
+    b->cached = -1;
+#endif
     b->val	= val;
     b->on	= on;
     b->p	= i;
@@ -263,13 +297,14 @@ STlib_updateBinIcon
     int			w;
     int			h;
 
+#if !DOOM_TINY
     if (*bi->on
      && (bi->oldval != *bi->val || refresh))
     {
-	x = bi->x - SHORT(bi->p->leftoffset);
-	y = bi->y - SHORT(bi->p->topoffset);
-	w = SHORT(bi->p->width);
-	h = SHORT(bi->p->height);
+	x = bi->x - patch_leftoffset(bi->p);
+	y = bi->y - patch_topoffset(bi->p);
+	w = patch_width(bi->p);
+	h = patch_height(bi->p);
 
 	if (y - ST_Y < 0)
 	    I_Error("updateBinIcon: y - ST_Y < 0");
@@ -281,6 +316,14 @@ STlib_updateBinIcon
 
 	bi->oldval = *bi->val;
     }
+#else
+    boolean val = *bi->val;
+    // stbar wipe support - we need to be able to redraw and old status bar value
+    if (refresh || bi->cached==-1) bi->cached = (int8_t)*bi->val;
+    else val = bi->cached;
+    if (*bi->on && val) {
+        V_DrawPatch(bi->x, bi->y, bi->p);
+    }
+#endif
 
 }
-

@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -229,8 +230,8 @@ void T_MovePoly(polyevent_t * pe)
         if (pe->dist < absSpeed)
         {
             pe->speed = pe->dist * (pe->speed < 0 ? -1 : 1);
-            pe->xSpeed = FixedMul(pe->speed, finecosine[pe->angle]);
-            pe->ySpeed = FixedMul(pe->speed, finesine[pe->angle]);
+            pe->xSpeed = FixedMul(pe->speed, finecosine(pe->angle));
+            pe->ySpeed = FixedMul(pe->speed, finesine(pe->angle));
         }
     }
 }
@@ -281,8 +282,8 @@ boolean EV_MovePoly(line_t * line, byte * args, boolean timesEight, boolean
     an = args[2] * (ANG90 / 64);
 
     pe->angle = an >> ANGLETOFINESHIFT;
-    pe->xSpeed = FixedMul(pe->speed, finecosine[pe->angle]);
-    pe->ySpeed = FixedMul(pe->speed, finesine[pe->angle]);
+    pe->xSpeed = FixedMul(pe->speed, finecosine(pe->angle));
+    pe->ySpeed = FixedMul(pe->speed, finesine(pe->angle));
     SN_StartSequence((mobj_t *) & poly->startSpot, SEQ_DOOR_STONE +
                      poly->seqType);
 
@@ -309,8 +310,8 @@ boolean EV_MovePoly(line_t * line, byte * args, boolean timesEight, boolean
         pe->speed = args[1] * (FRACUNIT / 8);
         an = an + ANG180;    // reverse the angle
         pe->angle = an >> ANGLETOFINESHIFT;
-        pe->xSpeed = FixedMul(pe->speed, finecosine[pe->angle]);
-        pe->ySpeed = FixedMul(pe->speed, finesine[pe->angle]);
+        pe->xSpeed = FixedMul(pe->speed, finecosine(pe->angle));
+        pe->ySpeed = FixedMul(pe->speed, finesine(pe->angle));
         polyNum = mirror;
         SN_StartSequence((mobj_t *) & poly->startSpot, SEQ_DOOR_STONE +
                          poly->seqType);
@@ -485,8 +486,8 @@ boolean EV_OpenPolyDoor(line_t * line, byte * args, podoortype_t type)
         pd->dist = pd->totalDist;
         an = args[2] * (ANG90 / 64);
         pd->direction = an >> ANGLETOFINESHIFT;
-        pd->xSpeed = FixedMul(pd->speed, finecosine[pd->direction]);
-        pd->ySpeed = FixedMul(pd->speed, finesine[pd->direction]);
+        pd->xSpeed = FixedMul(pd->speed, finecosine(pd->direction));
+        pd->ySpeed = FixedMul(pd->speed, finesine(pd->direction));
         SN_StartSequence((mobj_t *) & poly->startSpot, SEQ_DOOR_STONE +
                          poly->seqType);
     }
@@ -525,8 +526,8 @@ boolean EV_OpenPolyDoor(line_t * line, byte * args, podoortype_t type)
             pd->dist = pd->totalDist;
             an = an + ANG180;        // reverse the angle
             pd->direction = an >> ANGLETOFINESHIFT;
-            pd->xSpeed = FixedMul(pd->speed, finecosine[pd->direction]);
-            pd->ySpeed = FixedMul(pd->speed, finesine[pd->direction]);
+            pd->xSpeed = FixedMul(pd->speed, finecosine(pd->direction));
+            pd->ySpeed = FixedMul(pd->speed, finesine(pd->direction));
             SN_StartSequence((mobj_t *) & poly->startSpot, SEQ_DOOR_STONE +
                              poly->seqType);
         }
@@ -633,8 +634,8 @@ static void ThrustMobj(mobj_t * mobj, seg_t * seg, polyobj_t * po)
         force = FRACUNIT;
     }
 
-    thrustX = FixedMul(force, finecosine[thrustAngle]);
-    thrustY = FixedMul(force, finesine[thrustAngle]);
+    thrustX = FixedMul(force, finecosine(thrustAngle));
+    thrustY = FixedMul(force, finesine(thrustAngle));
     mobj->momx += thrustX;
     mobj->momy += thrustY;
     if (po->crush)
@@ -821,12 +822,12 @@ static void RotatePt(int an, fixed_t * x, fixed_t * y, fixed_t startSpotX,
     trx = *x;
     try = *y;
 
-    gxt = FixedMul(trx, finecosine[an]);
-    gyt = FixedMul(try, finesine[an]);
+    gxt = FixedMul(trx, finecosine(an));
+    gyt = FixedMul(try, finesine(an));
     *x = (gxt - gyt) + startSpotX;
 
-    gxt = FixedMul(trx, finesine[an]);
-    gyt = FixedMul(try, finecosine[an]);
+    gxt = FixedMul(trx, finesine(an));
+    gyt = FixedMul(try, finecosine(an));
     *y = (gyt + gxt) + startSpotY;
 }
 

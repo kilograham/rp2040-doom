@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -260,16 +261,60 @@
 #define ST_MAPHEIGHT		1
 
 // graphics are drawn to a backing screen and blitted to the real screen
+#if !DOOM_TINY
 pixel_t			*st_backing_screen;
+#endif
 	    
 // main player in game
 static player_t*	plyr; 
 
+#if !DOOM_TINY
 // ST_Start() has just been called
 static boolean		st_firsttime;
+#endif
 
+#if !USE_WHD
 // lump number for PLAYPAL
 static int		lu_palette;
+#endif
+
+static int st_palette = 0;
+static boolean	st_stopped = true;
+
+// whether in automap or first-person
+static st_stateenum_t	st_gamestate;
+
+cheatseq_t cheat_mus = CHEAT("idmus", 2);
+cheatseq_t cheat_god = CHEAT("iddqd", 0);
+cheatseq_t cheat_ammo = CHEAT("idkfa", 0);
+cheatseq_t cheat_ammonokey = CHEAT("idfa", 0);
+cheatseq_t cheat_noclip = CHEAT("idspispopd", 0);
+cheatseq_t cheat_commercial_noclip = CHEAT("idclip", 0);
+#if USE_FPS
+boolean show_fps;//=1;
+#endif
+
+cheatseq_t	cheat_powerup[7] =
+        {
+        CHEAT("idbeholdv", 0),
+        CHEAT("idbeholds", 0),
+        CHEAT("idbeholdi", 0),
+        CHEAT("idbeholdr", 0),
+        CHEAT("idbeholda", 0),
+        CHEAT("idbeholdl", 0),
+        CHEAT("idbehold", 0),
+        };
+
+cheatseq_t cheat_choppers = CHEAT("idchoppers", 0);
+cheatseq_t cheat_clev = CHEAT("idclev", 2);
+cheatseq_t cheat_mypos = CHEAT("idmypos", 0);
+
+//
+// STATUS BAR CODE
+//
+void ST_Stop(void);
+
+
 
 // used for timing
 static unsigned int	st_clock;
@@ -279,9 +324,6 @@ static int		st_msgcounter=0;
 
 // used when in chat 
 static st_chatstateenum_t	st_chatstate;
-
-// whether in automap or first-person
-static st_stateenum_t	st_gamestate;
 
 // whether left-side main status bar is active
 static boolean		st_statusbaron;
@@ -305,31 +347,42 @@ static boolean		st_armson;
 static boolean		st_fragson; 
 
 // main bar left
-static patch_t*		sbar;
+static vpatch_handle_small_t		sbar;
 
 // 0-9, tall numbers
-static patch_t*		tallnum[10];
+#if !USE_WHD
+static vpatch_handle_large_t		tallnum[10];
+#else
+#define tallnum ((vpatch_sequence_t)VPATCH_STTNUM0)
+#endif
 
 // tall % sign
-static patch_t*		tallpercent;
+static vpatch_handle_small_t		tallpercent;
 
 // 0-9, short, yellow (,different!) numbers
-static patch_t*		shortnum[10];
+#if !USE_WHD
+static vpatch_handle_large_t		shortnum[10];
+#else
+static vpatch_sequence_t shortnum;
+#define shortnum ((vpatch_sequence_t)VPATCH_STYSNUM0)
+#endif
 
 // 3 key-cards, 3 skulls
-static patch_t*		keys[NUMCARDS]; 
+static vpatch_handle_small_t		keys[NUMCARDS];
 
 // face status patches
-static patch_t*		faces[ST_NUMFACES];
+static vpatch_handle_small_t		faces[ST_NUMFACES];
 
 // face background
-static patch_t*		faceback;
+#if !DOOM_TINY
+static vpatch_handle_small_t		faceback;
+#endif
 
  // main bar right
-static patch_t*		armsbg;
+static vpatch_handle_small_t		armsbg;
 
 // weapon ownership patches
-static patch_t*		arms[6][2]; 
+static vpatch_handle_small_t		arms[6][2];
 
 // ready-weapon widget
 static st_number_t	w_ready;
@@ -337,6 +390,11 @@ static st_number_t	w_ready;
  // in deathmatch only, summary of frags stats
 static st_number_t	w_frags;
 
+#if USE_FPS
+static st_number_t	w_fps;
+int st_fps;
+boolean st_fpson = true;
+#endif
 // health widget
 static st_percent_t	w_health;
 
@@ -377,45 +435,19 @@ static boolean	oldweaponsowned[NUMWEAPONS];
 static int	st_facecount = 0;
 
 // current face index, used by w_faces
-static int	st_faceindex = 0;
+static isb_int8_t 	st_faceindex = 0;
 
 // holds key-type for each key box on bar
-static int	keyboxes[3]; 
+static isb_int8_t 	keyboxes[3];
 
 // a random number per tick
 static int	st_randomnumber;  
 
-cheatseq_t cheat_mus = CHEAT("idmus", 2);
-cheatseq_t cheat_god = CHEAT("iddqd", 0);
-cheatseq_t cheat_ammo = CHEAT("idkfa", 0);
-cheatseq_t cheat_ammonokey = CHEAT("idfa", 0);
-cheatseq_t cheat_noclip = CHEAT("idspispopd", 0);
-cheatseq_t cheat_commercial_noclip = CHEAT("idclip", 0);
-
-cheatseq_t	cheat_powerup[7] =
-{
-    CHEAT("idbeholdv", 0),
-    CHEAT("idbeholds", 0),
-    CHEAT("idbeholdi", 0),
-    CHEAT("idbeholdr", 0),
-    CHEAT("idbeholda", 0),
-    CHEAT("idbeholdl", 0),
-    CHEAT("idbehold", 0),
-};
-
-cheatseq_t cheat_choppers = CHEAT("idchoppers", 0);
-cheatseq_t cheat_clev = CHEAT("idclev", 2);
-cheatseq_t cheat_mypos = CHEAT("idmypos", 0);
-
-
-//
-// STATUS BAR CODE
-//
-void ST_Stop(void);
+#if !NO_USE_ST
 
 void ST_refreshBackground(void)
 {
-
+#if !DOOM_TINY
     if (st_statusbaron)
     {
         V_UseBuffer(st_backing_screen);
@@ -429,256 +461,8 @@ void ST_refreshBackground(void)
 
 	V_CopyRect(ST_X, 0, st_backing_screen, ST_WIDTH, ST_HEIGHT, ST_X, ST_Y);
     }
-
+#endif
 }
-
-
-// Respond to keyboard input events,
-//  intercept cheats.
-boolean
-ST_Responder (event_t* ev)
-{
-  int		i;
-    
-  // Filter automap on/off.
-  if (ev->type == ev_keyup
-      && ((ev->data1 & 0xffff0000) == AM_MSGHEADER))
-  {
-    switch(ev->data1)
-    {
-      case AM_MSGENTERED:
-	st_gamestate = AutomapState;
-	st_firsttime = true;
-	break;
-	
-      case AM_MSGEXITED:
-	//	fprintf(stderr, "AM exited\n");
-	st_gamestate = FirstPersonState;
-	break;
-    }
-  }
-
-  // if a user keypress...
-  else if (ev->type == ev_keydown)
-  {
-    if (!netgame && gameskill != sk_nightmare)
-    {
-      // 'dqd' cheat for toggleable god mode
-      if (cht_CheckCheat(&cheat_god, ev->data2))
-      {
-	plyr->cheats ^= CF_GODMODE;
-	if (plyr->cheats & CF_GODMODE)
-	{
-	  if (plyr->mo)
-	    plyr->mo->health = 100;
-	  
-	  plyr->health = deh_god_mode_health;
-	  plyr->message = DEH_String(STSTR_DQDON);
-	}
-	else 
-	  plyr->message = DEH_String(STSTR_DQDOFF);
-      }
-      // 'fa' cheat for killer fucking arsenal
-      else if (cht_CheckCheat(&cheat_ammonokey, ev->data2))
-      {
-	plyr->armorpoints = deh_idfa_armor;
-	plyr->armortype = deh_idfa_armor_class;
-	
-	for (i=0;i<NUMWEAPONS;i++)
-	  plyr->weaponowned[i] = true;
-	
-	for (i=0;i<NUMAMMO;i++)
-	  plyr->ammo[i] = plyr->maxammo[i];
-	
-	plyr->message = DEH_String(STSTR_FAADDED);
-      }
-      // 'kfa' cheat for key full ammo
-      else if (cht_CheckCheat(&cheat_ammo, ev->data2))
-      {
-	plyr->armorpoints = deh_idkfa_armor;
-	plyr->armortype = deh_idkfa_armor_class;
-	
-	for (i=0;i<NUMWEAPONS;i++)
-	  plyr->weaponowned[i] = true;
-	
-	for (i=0;i<NUMAMMO;i++)
-	  plyr->ammo[i] = plyr->maxammo[i];
-	
-	for (i=0;i<NUMCARDS;i++)
-	  plyr->cards[i] = true;
-	
-	plyr->message = DEH_String(STSTR_KFAADDED);
-      }
-      // 'mus' cheat for changing music
-      else if (cht_CheckCheat(&cheat_mus, ev->data2))
-      {
-	
-	char	buf[3];
-	int		musnum;
-	
-	plyr->message = DEH_String(STSTR_MUS);
-	cht_GetParam(&cheat_mus, buf);
-
-        // Note: The original v1.9 had a bug that tried to play back
-        // the Doom II music regardless of gamemode.  This was fixed
-        // in the Ultimate Doom executable so that it would work for
-        // the Doom 1 music as well.
-
-	if (gamemode == commercial || gameversion < exe_ultimate)
-	{
-	  musnum = mus_runnin + (buf[0]-'0')*10 + buf[1]-'0' - 1;
-	  
-	  if (((buf[0]-'0')*10 + buf[1]-'0') > 35
-       && gameversion >= exe_doom_1_8)
-	    plyr->message = DEH_String(STSTR_NOMUS);
-	  else
-	    S_ChangeMusic(musnum, 1);
-	}
-	else
-	{
-	  musnum = mus_e1m1 + (buf[0]-'1')*9 + (buf[1]-'1');
-	  
-	  if (((buf[0]-'1')*9 + buf[1]-'1') > 31)
-	    plyr->message = DEH_String(STSTR_NOMUS);
-	  else
-	    S_ChangeMusic(musnum, 1);
-	}
-      }
-      else if ( (logical_gamemission == doom 
-                 && cht_CheckCheat(&cheat_noclip, ev->data2))
-             || (logical_gamemission != doom 
-                 && cht_CheckCheat(&cheat_commercial_noclip,ev->data2)))
-      {	
-        // Noclip cheat.
-        // For Doom 1, use the idspipsopd cheat; for all others, use
-        // idclip
-
-	plyr->cheats ^= CF_NOCLIP;
-	
-	if (plyr->cheats & CF_NOCLIP)
-	  plyr->message = DEH_String(STSTR_NCON);
-	else
-	  plyr->message = DEH_String(STSTR_NCOFF);
-      }
-      // 'behold?' power-up cheats
-      for (i=0;i<6;i++)
-      {
-	if (cht_CheckCheat(&cheat_powerup[i], ev->data2))
-	{
-	  if (!plyr->powers[i])
-	    P_GivePower( plyr, i);
-	  else if (i!=pw_strength)
-	    plyr->powers[i] = 1;
-	  else
-	    plyr->powers[i] = 0;
-	  
-	  plyr->message = DEH_String(STSTR_BEHOLDX);
-	}
-      }
-      
-      // 'behold' power-up menu
-      if (cht_CheckCheat(&cheat_powerup[6], ev->data2))
-      {
-	plyr->message = DEH_String(STSTR_BEHOLD);
-      }
-      // 'choppers' invulnerability & chainsaw
-      else if (cht_CheckCheat(&cheat_choppers, ev->data2))
-      {
-	plyr->weaponowned[wp_chainsaw] = true;
-	plyr->powers[pw_invulnerability] = true;
-	plyr->message = DEH_String(STSTR_CHOPPERS);
-      }
-      // 'mypos' for player position
-      else if (cht_CheckCheat(&cheat_mypos, ev->data2))
-      {
-        static char buf[ST_MSGWIDTH];
-        M_snprintf(buf, sizeof(buf), "ang=0x%x;x,y=(0x%x,0x%x)",
-                   players[consoleplayer].mo->angle,
-                   players[consoleplayer].mo->x,
-                   players[consoleplayer].mo->y);
-        plyr->message = buf;
-      }
-    }
-    
-    // 'clev' change-level cheat
-    if (!netgame && cht_CheckCheat(&cheat_clev, ev->data2))
-    {
-      char		buf[3];
-      int		epsd;
-      int		map;
-      
-      cht_GetParam(&cheat_clev, buf);
-      
-      if (gamemode == commercial)
-      {
-	epsd = 0;
-	map = (buf[0] - '0')*10 + buf[1] - '0';
-      }
-      else
-      {
-	epsd = buf[0] - '0';
-	map = buf[1] - '0';
-
-        // Chex.exe always warps to episode 1.
-
-        if (gameversion == exe_chex)
-        {
-            if (epsd > 1)
-            {
-                epsd = 1;
-            }
-            if (map > 5)
-            {
-                map = 5;
-            }
-        }
-      }
-
-      // Catch invalid maps.
-      if (gamemode != commercial)
-      {
-          if (epsd < 1)
-          {
-              return false;
-          }
-          if (epsd > 4)
-          {
-              return false;
-          }
-          if (epsd == 4 && gameversion < exe_ultimate)
-          {
-              return false;
-          }
-          if (map < 1)
-          {
-              return false;
-          }
-          if (map > 9)
-          {
-              return false;
-          }
-      }
-      else
-      {
-          if (map < 1)
-          {
-              return false;
-          }
-          if (map > 40)
-          {
-              return false;
-          }
-      }
-
-      // So be it.
-      plyr->message = DEH_String(STSTR_CLEV);
-      G_DeferedInitNew(gameskill, epsd, map);
-    }
-  }
-  return false;
-}
-
-
 
 int ST_calcPainOffset(void)
 {
@@ -765,21 +549,21 @@ void ST_updateFaceWidget(void)
 	    }
 	    else
 	    {
-		badguyangle = R_PointToAngle2(plyr->mo->x,
-					      plyr->mo->y,
-					      plyr->attacker->x,
-					      plyr->attacker->y);
+		badguyangle = R_PointToAngle2(plyr->mo->xy.x,
+					      plyr->mo->xy.y,
+					      plyr->attacker->xy.x,
+					      plyr->attacker->xy.y);
 		
-		if (badguyangle > plyr->mo->angle)
+		if (badguyangle > mobj_full(plyr->mo)->angle)
 		{
 		    // whether right or left
-		    diffang = badguyangle - plyr->mo->angle;
+		    diffang = badguyangle - mobj_full(plyr->mo)->angle;
 		    i = diffang > ANG180; 
 		}
 		else
 		{
 		    // whether left or right
-		    diffang = plyr->mo->angle - badguyangle;
+		    diffang = mobj_full(plyr->mo)->angle - badguyangle;
 		    i = diffang <= ANG180; 
 		} // confusing, aint it?
 
@@ -896,7 +680,9 @@ void ST_updateWidgets(void)
     //   dir = 1;
     // tic++;
     // }
+#if !DOOM_TINY // not sure what this is for, doesn't seem to be accessed
     w_ready.data = plyr->readyweapon;
+#endif
 
     // if (*w_ready.on)
     //  STlib_updateNum(&w_ready, true);
@@ -949,73 +735,32 @@ void ST_Ticker (void)
 
 }
 
-static int st_palette = 0;
-
-void ST_doPaletteStuff(void)
-{
-
-    int		palette;
-    byte*	pal;
-    int		cnt;
-    int		bzc;
-
-    cnt = plyr->damagecount;
-
-    if (plyr->powers[pw_strength])
-    {
-	// slowly fade the berzerk out
-  	bzc = 12 - (plyr->powers[pw_strength]>>6);
-
-	if (bzc > cnt)
-	    cnt = bzc;
+void ST_FpsDrawer(int fps) {
+#if USE_FPS
+    if (show_fps) {
+        static uint8_t ms[16];
+        static uint8_t ms_index;
+        static int total;
+        static int last_time_ms;
+        int time_ms = I_GetTimeMS();
+        int delta_time_ms = time_ms - last_time_ms;
+        last_time_ms = time_ms;
+        if (delta_time_ms >=0 && delta_time_ms < 100) {
+            total -= ms[ms_index];
+            ms[ms_index] = delta_time_ms;
+            total += ms[ms_index];
+            ms_index = (ms_index + 1) & 0xf;
+        }
+        if (fps != -1) {
+            st_fps = fps;
+            STlib_updateNum(&w_fps, true);
+        } else if (total > 160 && total < 8000) {
+            st_fps = 16000 / total;
+            STlib_updateNum(&w_fps, true);
+        }
     }
-	
-    if (cnt)
-    {
-	palette = (cnt+7)>>3;
-	
-	if (palette >= NUMREDPALS)
-	    palette = NUMREDPALS-1;
-
-	palette += STARTREDPALS;
-    }
-
-    else if (plyr->bonuscount)
-    {
-	palette = (plyr->bonuscount+7)>>3;
-
-	if (palette >= NUMBONUSPALS)
-	    palette = NUMBONUSPALS-1;
-
-	palette += STARTBONUSPALS;
-    }
-
-    else if ( plyr->powers[pw_ironfeet] > 4*32
-	      || plyr->powers[pw_ironfeet]&8)
-	palette = RADIATIONPAL;
-    else
-	palette = 0;
-
-    // In Chex Quest, the player never sees red.  Instead, the
-    // radiation suit palette is used to tint the screen green,
-    // as though the player is being covered in goo by an
-    // attacking flemoid.
-
-    if (gameversion == exe_chex
-     && palette >= STARTREDPALS && palette < STARTREDPALS + NUMREDPALS)
-    {
-        palette = RADIATIONPAL;
-    }
-
-    if (palette != st_palette)
-    {
-	st_palette = palette;
-	pal = (byte *) W_CacheLumpNum (lu_palette, PU_CACHE)+palette*768;
-	I_SetPalette (pal);
-    }
-
+#endif
 }
-
 void ST_drawWidgets(boolean refresh)
 {
     int		i;
@@ -1024,8 +769,16 @@ void ST_drawWidgets(boolean refresh)
     st_armson = st_statusbaron && !deathmatch;
 
     // used by w_frags widget
-    st_fragson = deathmatch && st_statusbaron; 
+    st_fragson = deathmatch && st_statusbaron;
 
+#if DOOM_TINY
+    V_DrawPatch(0, ST_FACESY, sbar);
+#if USE_PICO_NET
+    static vpatch_handle_small_t fb;
+    if (refresh) fb = netgame ? VPATCH_NAME(STFB0) + consoleplayer : 0;
+    if (fb) V_DrawPatch(ST_FX, ST_FACESY, fb);
+#endif
+#endif
     STlib_updateNum(&w_ready, refresh);
 
     for (i=0;i<4;i++)
@@ -1051,42 +804,51 @@ void ST_drawWidgets(boolean refresh)
 
 }
 
-void ST_doRefresh(void)
+void ST_doRefresh(boolean refresh)
 {
 
+#if !DOOM_TINY
     st_firsttime = false;
 
     // draw status bar background to off-screen buff
     ST_refreshBackground();
+#endif
 
     // and refresh all widgets
-    ST_drawWidgets(true);
+    ST_drawWidgets(refresh);
 
 }
 
+#if !DOOM_TINY
 void ST_diffDraw(void)
 {
     // update all widgets
     ST_drawWidgets(false);
 }
+#endif
 
 void ST_Drawer (boolean fullscreen, boolean refresh)
 {
   
     st_statusbaron = (!fullscreen) || automapactive;
+#if !DOOM_TINY
     st_firsttime = st_firsttime || refresh;
+#endif
 
     // Do red-/gold-shifts from damage/items
     ST_doPaletteStuff();
 
+#if DOOM_TINY
+    ST_doRefresh(refresh);
+#else
     // If just after ST_Start(), refresh all
-    if (st_firsttime) ST_doRefresh();
+    if (st_firsttime) ST_doRefresh(true);
     // Otherwise, update as little as possible
     else ST_diffDraw();
-
+#endif
 }
 
-typedef void (*load_callback_t)(const char *lumpname, patch_t **variable);
+typedef void (*load_callback_t)(vpatchname_t name, vpatch_handle_small_t *variable);
 
 // Iterates through all graphics to be loaded or unloaded, along with
 // the variable they use, invoking the specified callback function.
@@ -1101,6 +863,7 @@ static void ST_loadUnloadGraphics(load_callback_t callback)
     char	namebuf[9];
 
     // Load the numbers, tall and short
+#if !USE_WHD
     for (i=0;i<10;i++)
     {
 	DEH_snprintf(namebuf, 9, "STTNUM%d", i);
@@ -1110,42 +873,57 @@ static void ST_loadUnloadGraphics(load_callback_t callback)
         callback(namebuf, &shortnum[i]);
     }
 
+#endif
+
     // Load percent key.
     //Note: why not load STMINUS here, too?
-
-    callback(DEH_String("STTPRCNT"), &tallpercent);
+    callback(DEH_VPATCH_NAME(STTPRCNT), &tallpercent);
 
     // key cards
     for (i=0;i<NUMCARDS;i++)
     {
+#if !DOOM_TINY
 	DEH_snprintf(namebuf, 9, "STKEYS%d", i);
         callback(namebuf, &keys[i]);
+#else
+        keys[i] = VPATCH_STKEYS0 + i;
+#endif
     }
 
     // arms background
-    callback(DEH_String("STARMS"), &armsbg);
+    callback(DEH_VPATCH_NAME(STARMS), &armsbg);
 
     // arms ownership widgets
     for (i=0; i<6; i++)
     {
-	DEH_snprintf(namebuf, 9, "STGNUM%d", i+2);
+#if !DOOM_TINY
+    	DEH_snprintf(namebuf, 9, "STGNUM%d", i+2);
 
-	// gray #
+    	// gray #
         callback(namebuf, &arms[i][0]);
+        // yellow #
+        arms[i][1] = shortnum[i+2];
+#else
+        // gray #
+        arms[i][0] = VPATCH_NAME(STGNUM0) + i + 2;
+        // yellow #
+        arms[i][1] = vpatch_n(shortnum,0) + i + 2;
+#endif
 
-	// yellow #
-	arms[i][1] = shortnum[i+2]; 
     }
 
+#if !DOOM_TINY
     // face backgrounds for different color players
     DEH_snprintf(namebuf, 9, "STFB%d", consoleplayer);
     callback(namebuf, &faceback);
+#endif
 
     // status bar background bits
-    callback(DEH_String("STBAR"), &sbar);
+    callback(DEH_VPATCH_NAME(STBAR), &sbar);
 
     // face states
     facenum = 0;
+#if !DOOM_TINY
     for (i=0; i<ST_NUMPAINFACES; i++)
     {
 	for (j=0; j<ST_NUMSTRAIGHTFACES; j++)
@@ -1175,11 +953,22 @@ static void ST_loadUnloadGraphics(load_callback_t callback)
     ++facenum;
     callback(DEH_String("STFDEAD0"), &faces[facenum]);
     ++facenum;
+#else
+    static_assert(VPATCH_NAME(STFST00) + ST_NUMPAINFACES*(ST_NUMSTRAIGHTFACES+5) +2 - 1 == VPATCH_NAME(STFDEAD0), "");
+    for (i=0; i<ST_NUMPAINFACES*(ST_NUMSTRAIGHTFACES+5)+2; i++)
+    {
+        faces[i] = VPATCH_NAME(STFST00) + i;
+    }
+#endif
 }
 
-static void ST_loadCallback(const char *lumpname, patch_t **variable)
+static void ST_loadCallback(vpatchname_t name, vpatch_handle_small_t *variable)
 {
-    *variable = W_CacheLumpName(lumpname, PU_STATIC);
+#if !DOOM_TINY
+    *variable = W_CacheLumpName(name, PU_STATIC);
+#else
+    *variable = name;
+#endif
 }
 
 void ST_loadGraphics(void)
@@ -1189,14 +978,18 @@ void ST_loadGraphics(void)
 
 void ST_loadData(void)
 {
+#if !USE_WHD
     lu_palette = W_GetNumForName (DEH_String("PLAYPAL"));
+#endif
     ST_loadGraphics();
 }
 
-static void ST_unloadCallback(const char *lumpname, patch_t **variable)
+static void ST_unloadCallback(vpatchname_t lumpname, vpatch_handle_small_t *variable)
 {
+#if !DOOM_TINY
     W_ReleaseLumpName(lumpname);
-    *variable = NULL;
+    *variable = 0;
+#endif
 }
 
 void ST_unloadGraphics(void)
@@ -1209,41 +1002,18 @@ void ST_unloadData(void)
     ST_unloadGraphics();
 }
 
-void ST_initData(void)
-{
-
-    int		i;
-
-    st_firsttime = true;
-    plyr = &players[consoleplayer];
-
-    st_clock = 0;
-    st_chatstate = StartChatState;
-    st_gamestate = FirstPersonState;
-
-    st_statusbaron = true;
-    st_oldchat = st_chat = false;
-    st_cursoron = false;
-
-    st_faceindex = 0;
-    st_palette = -1;
-
-    st_oldhealth = -1;
-
-    for (i=0;i<NUMWEAPONS;i++)
-	oldweaponsowned[i] = plyr->weaponowned[i];
-
-    for (i=0;i<3;i++)
-	keyboxes[i] = -1;
-
-    STlib_init();
-
-}
-
-
 
 void ST_createWidgets(void)
 {
+#if DOOM_TINY
+    // this is todo with making wipe work (not doing so woud reset our caches), but there is no reason to recreate the widges anyway
+    static boolean initted;
+    if (!initted) {
+        initted = true;
+    } else {
+        return;
+    }
+#endif
 
     int i;
 
@@ -1256,8 +1026,10 @@ void ST_createWidgets(void)
 		  &st_statusbaron,
 		  ST_AMMOWIDTH );
 
+#if !DOOM_TINY // not sure what this is for, doesn't seem to be accessed
     // the last weapon type
-    w_ready.data = plyr->readyweapon; 
+    w_ready.data = plyr->readyweapon;
+#endif
 
     // health percentage
     STlib_initPercent(&w_health,
@@ -1402,14 +1174,80 @@ void ST_createWidgets(void)
 
 }
 
-static boolean	st_stopped = true;
 
+
+void ST_Init (void)
+{
+    ST_loadData();
+#if !DOOM_TINY
+    st_backing_screen = (pixel_t *) Z_Malloc(ST_WIDTH * ST_HEIGHT * sizeof(*st_backing_screen), PU_STATIC, 0);
+#endif
+#if USE_FPS
+    // frags sum
+    STlib_initNum(&w_fps,
+                  318,
+                  2,
+                  shortnum,
+                  &st_fps,
+                  &st_fpson,
+                  ST_FRAGSWIDTH*2);
+#endif
+#if DOOM_TINY
+    // do this early as we draw before ST_Start() is called to avoid a flicker in wipe (and this is one time init anyway)
+    plyr = &players[0];
+    ST_createWidgets();
+#endif
+}
+
+#else
+void ST_Init (void) {
+    plyr = &players[consoleplayer];
+}
+void ST_Ticker(void) {}
+void ST_Drawer (boolean fullscreen, boolean refresh) {
+    ST_doPaletteStuff();
+}
+void ST_createWidgets(void) {}
+#endif
+
+void ST_initData(void)
+{
+
+    int		i;
+
+#if !DOOM_TINY
+    st_firsttime = true;
+#endif
+    plyr = &players[consoleplayer];
+
+    st_clock = 0;
+    st_chatstate = StartChatState;
+    st_gamestate = FirstPersonState;
+
+    st_statusbaron = true;
+    st_oldchat = st_chat = false;
+    st_cursoron = false;
+
+    st_faceindex = 0;
+    st_palette = -1;
+
+    st_oldhealth = -1;
+
+    for (i=0;i<NUMWEAPONS;i++)
+        oldweaponsowned[i] = plyr->weaponowned[i];
+
+    for (i=0;i<3;i++)
+        keyboxes[i] = -1;
+
+    STlib_init();
+
+}
 
 void ST_Start (void)
 {
 
     if (!st_stopped)
-	ST_Stop();
+        ST_Stop();
 
     ST_initData();
     ST_createWidgets();
@@ -1420,16 +1258,320 @@ void ST_Start (void)
 void ST_Stop (void)
 {
     if (st_stopped)
-	return;
+        return;
 
+#if !USE_WHD
     I_SetPalette (W_CacheLumpNum (lu_palette, PU_CACHE));
+#else
+    I_SetPaletteNum(0);
+#endif
 
     st_stopped = true;
 }
 
-void ST_Init (void)
+// Respond to keyboard input events,
+//  intercept cheats.
+boolean
+ST_Responder (event_t* ev)
 {
-    ST_loadData();
-    st_backing_screen = (pixel_t *) Z_Malloc(ST_WIDTH * ST_HEIGHT * sizeof(*st_backing_screen), PU_STATIC, 0);
+    int		i;
+
+    // Filter automap on/off.
+    if (ev->type == ev_keyup
+    && ((ev->data1 & 0xffff0000) == AM_MSGHEADER))
+    {
+        switch(ev->data1)
+        {
+            case AM_MSGENTERED:
+                st_gamestate = AutomapState;
+#if !DOOM_TINY
+                st_firsttime = true;
+#endif
+                break;
+
+            case AM_MSGEXITED:
+                //	fprintf(stderr, "AM exited\n");
+                st_gamestate = FirstPersonState;
+                break;
+        }
+    }
+
+    // if a user keypress...
+    else if (ev->type == ev_keydown)
+    {
+        if (!netgame && gameskill != sk_nightmare) {
+            // 'dqd' cheat for toggleable god mode
+            if (cht_CheckCheat(&cheat_god, ev->data2)) {
+                plyr->cheats ^= CF_GODMODE;
+                if (plyr->cheats & CF_GODMODE) {
+                    if (plyr->mo)
+                        mobj_full(plyr->mo)->health = 100;
+
+                    plyr->health = deh_god_mode_health;
+                    plyr->message = DEH_String(STSTR_DQDON);
+                } else
+                    plyr->message = DEH_String(STSTR_DQDOFF);
+            }
+                // 'fa' cheat for killer fucking arsenal
+            else if (cht_CheckCheat(&cheat_ammonokey, ev->data2)) {
+                plyr->armorpoints = deh_idfa_armor;
+                plyr->armortype = deh_idfa_armor_class;
+
+                for (i = 0; i < NUMWEAPONS; i++)
+                    plyr->weaponowned[i] = true;
+
+                for (i = 0; i < NUMAMMO; i++)
+                    plyr->ammo[i] = plyr->maxammo[i];
+
+                plyr->message = DEH_String(STSTR_FAADDED);
+            }
+                // 'kfa' cheat for key full ammo
+            else if (cht_CheckCheat(&cheat_ammo, ev->data2)) {
+                plyr->armorpoints = deh_idkfa_armor;
+                plyr->armortype = deh_idkfa_armor_class;
+
+                for (i = 0; i < NUMWEAPONS; i++)
+                    plyr->weaponowned[i] = true;
+
+                for (i = 0; i < NUMAMMO; i++)
+                    plyr->ammo[i] = plyr->maxammo[i];
+
+                for (i = 0; i < NUMCARDS; i++)
+                    plyr->cards[i] = true;
+
+                plyr->message = DEH_String(STSTR_KFAADDED);
+            }
+                // 'mus' cheat for changing music
+            else if (cht_CheckCheat(&cheat_mus, ev->data2)) {
+
+                char buf[3];
+                int musnum;
+
+                plyr->message = DEH_String(STSTR_MUS);
+                cht_GetParam(&cheat_mus, buf);
+
+                // Note: The original v1.9 had a bug that tried to play back
+                // the Doom II music regardless of gamemode.  This was fixed
+                // in the Ultimate Doom executable so that it would work for
+                // the Doom 1 music as well.
+
+                if (gamemode == commercial || gameversion < exe_ultimate) {
+                    musnum = mus_runnin + (buf[0] - '0') * 10 + buf[1] - '0' - 1;
+
+                    if (((buf[0] - '0') * 10 + buf[1] - '0') > 35
+                        && gameversion >= exe_doom_1_8)
+                        plyr->message = DEH_String(STSTR_NOMUS);
+                    else
+                        S_ChangeMusic(musnum, 1);
+                } else {
+                    musnum = mus_e1m1 + (buf[0] - '1') * 9 + (buf[1] - '1');
+
+                    if (((buf[0] - '1') * 9 + buf[1] - '1') > 31)
+                        plyr->message = DEH_String(STSTR_NOMUS);
+                    else
+                        S_ChangeMusic(musnum, 1);
+                }
+            } else if ((logical_gamemission == doom
+                        && cht_CheckCheat(&cheat_noclip, ev->data2))
+                       || (logical_gamemission != doom
+                           && cht_CheckCheat(&cheat_commercial_noclip, ev->data2))) {
+                // Noclip cheat.
+                // For Doom 1, use the idspipsopd cheat; for all others, use
+                // idclip
+
+                plyr->cheats ^= CF_NOCLIP;
+
+                if (plyr->cheats & CF_NOCLIP)
+                    plyr->message = DEH_String(STSTR_NCON);
+                else
+                    plyr->message = DEH_String(STSTR_NCOFF);
+            }
+            // 'behold?' power-up cheats
+            for (i = 0; i < 6; i++) {
+                if (cht_CheckCheat(&cheat_powerup[i], ev->data2)) {
+                    if (!plyr->powers[i])
+                        P_GivePower(plyr, i);
+                    else if (i != pw_strength)
+                        plyr->powers[i] = 1;
+                    else
+                        plyr->powers[i] = 0;
+
+                    plyr->message = DEH_String(STSTR_BEHOLDX);
+                }
+            }
+
+            // 'behold' power-up menu
+            if (cht_CheckCheat(&cheat_powerup[6], ev->data2))
+            {
+                plyr->message = DEH_String(STSTR_BEHOLD);
+            }
+            // 'choppers' invulnerability & chainsaw
+            else if (cht_CheckCheat(&cheat_choppers, ev->data2))
+            {
+                plyr->weaponowned[wp_chainsaw] = true;
+                plyr->powers[pw_invulnerability] = true;
+                plyr->message = DEH_String(STSTR_CHOPPERS);
+            }
+            // 'mypos' for player position
+            else if (cht_CheckCheat(&cheat_mypos, ev->data2))
+            {
+                static char buf[ST_MSGWIDTH];
+                M_snprintf(buf, sizeof(buf), "ang=0x%x;x,y=(0x%x,0x%x)",
+                           mobj_full(players[consoleplayer].mo)->angle,
+                           players[consoleplayer].mo->xy.x,
+                           players[consoleplayer].mo->xy.y);
+                plyr->message = buf;
+            }
+        }
+
+        // 'clev' change-level cheat
+        if (!netgame && cht_CheckCheat(&cheat_clev, ev->data2))
+        {
+            char		buf[3];
+            int		epsd;
+            int		map;
+
+            cht_GetParam(&cheat_clev, buf);
+
+            if (gamemode == commercial)
+            {
+                epsd = 0;
+                map = (buf[0] - '0')*10 + buf[1] - '0';
+            }
+            else
+            {
+                epsd = buf[0] - '0';
+                map = buf[1] - '0';
+
+                // Chex.exe always warps to episode 1.
+
+                if (gameversion_is_chex(gameversion))
+                {
+                    if (epsd > 1)
+                    {
+                        epsd = 1;
+                    }
+                    if (map > 5)
+                    {
+                        map = 5;
+                    }
+                }
+            }
+
+            // Catch invalid maps.
+            if (gamemode != commercial)
+            {
+                if (epsd < 1)
+                {
+                    return false;
+                }
+                if (epsd > 4)
+                {
+                    return false;
+                }
+                if (epsd == 4 && gameversion < exe_ultimate)
+                {
+                    return false;
+                }
+                if (map < 1)
+                {
+                    return false;
+                }
+                if (map > 9)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (map < 1)
+                {
+                    return false;
+                }
+                if (map > 40)
+                {
+                    return false;
+                }
+            }
+
+            // So be it.
+            plyr->message = DEH_String(STSTR_CLEV);
+            G_DeferedInitNew(gameskill, epsd, map, false);
+        }
+    }
+    return false;
 }
 
+void ST_doPaletteStuff() {
+{
+
+        int		palette;
+        byte*	pal;
+        int		cnt;
+        int		bzc;
+
+        cnt = plyr->damagecount;
+
+        if (plyr->powers[pw_strength])
+        {
+            // slowly fade the berzerk out
+            bzc = 12 - (plyr->powers[pw_strength]>>6);
+
+            if (bzc > cnt)
+                cnt = bzc;
+        }
+
+        if (cnt)
+        {
+            palette = (cnt+7)>>3;
+
+            if (palette >= NUMREDPALS)
+                palette = NUMREDPALS-1;
+
+            palette += STARTREDPALS;
+        }
+
+        else if (plyr->bonuscount)
+        {
+            palette = (plyr->bonuscount+7)>>3;
+
+            if (palette >= NUMBONUSPALS)
+                palette = NUMBONUSPALS-1;
+
+            palette += STARTBONUSPALS;
+        }
+
+        else if ( plyr->powers[pw_ironfeet] > 4*32
+                  || plyr->powers[pw_ironfeet]&8)
+            palette = RADIATIONPAL;
+        else
+            palette = 0;
+
+        // In Chex Quest, the player never sees red.  Instead, the
+        // radiation suit palette is used to tint the screen green,
+        // as though the player is being covered in goo by an
+        // attacking flemoid.
+
+        if (gameversion_is_chex(gameversion)
+            && palette >= STARTREDPALS && palette < STARTREDPALS + NUMREDPALS)
+        {
+            palette = RADIATIONPAL;
+        }
+
+        if (palette != st_palette)
+        {
+            st_palette = palette;
+#if !USE_WHD
+            pal = (byte *) W_CacheLumpNum (lu_palette, PU_CACHE)+palette*768;
+            I_SetPalette (pal);
+#else
+            I_SetPaletteNum(palette);
+#endif
+        }
+
+        static int last_health;
+        if (plyr->health != last_health) {
+            last_health = plyr->health;
+        }
+    }
+}

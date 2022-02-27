@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -48,6 +49,7 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
+#if !NO_FILE_ACCESS
 //
 // Create a directory
 //
@@ -56,6 +58,7 @@ void M_MakeDirectory(const char *path)
 {
 #ifdef _WIN32
     mkdir(path);
+#elif PICO_ON_DEVICE
 #else
     mkdir(path, 0755);
 #endif
@@ -217,7 +220,7 @@ int M_ReadFile(const char *name, byte **buffer)
 
     length = M_FileLength(handle);
     
-    buf = Z_Malloc (length + 1, PU_STATIC, NULL);
+    buf = Z_Malloc (length + 1, PU_STATIC, 0);
     count = fread(buf, 1, length, handle);
     fclose (handle);
 	
@@ -255,14 +258,6 @@ char *M_TempFile(const char *s)
 #endif
 
     return M_StringJoin(tempdir, DIR_SEPARATOR_S, s, NULL);
-}
-
-boolean M_StrToInt(const char *str, int *result)
-{
-    return sscanf(str, " 0x%x", result) == 1
-        || sscanf(str, " 0X%x", result) == 1
-        || sscanf(str, " 0%o", result) == 1
-        || sscanf(str, " %d", result) == 1;
 }
 
 // Returns the directory portion of the given path, without the trailing
@@ -315,7 +310,7 @@ void M_ExtractFileBase(const char *path, char *dest)
     // back up until a \ or the start
     while (src != path && *(src - 1) != DIR_SEPARATOR)
     {
-	src--;
+        src--;
     }
 
     filename = src;
@@ -337,9 +332,19 @@ void M_ExtractFileBase(const char *path, char *dest)
             break;
         }
 
-	dest[length++] = toupper((int)*src++);
+        dest[length++] = toupper((int)*src++);
     }
 }
+#endif
+
+boolean M_StrToInt(const char *str, int *result)
+{
+    return sscanf(str, " 0x%x", result) == 1
+        || sscanf(str, " 0X%x", result) == 1
+        || sscanf(str, " 0%o", result) == 1
+        || sscanf(str, " %d", result) == 1;
+}
+
 
 //---------------------------------------------------------------------------
 //

@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "doomtype.h"
 #include "opl_queue.h"
 
 #define MAX_OPL_QUEUE 64
@@ -71,7 +73,7 @@ void OPL_Queue_Push(opl_callback_queue_t *queue,
 
     if (queue->num_entries >= MAX_OPL_QUEUE)
     {
-        fprintf(stderr, "OPL_Queue_Push: Exceeded maximum callbacks\n");
+        stderr_print( "OPL_Queue_Push: Exceeded maximum callbacks\n");
         return;
     }
 
@@ -202,11 +204,12 @@ uint64_t OPL_Queue_Peek(opl_callback_queue_t *queue)
 }
 
 void OPL_Queue_AdjustCallbacks(opl_callback_queue_t *queue,
-                               uint64_t time, float factor)
+                               uint64_t time, unsigned int old_tempo, unsigned int new_tempo)
 {
     int64_t offset;
     int i;
 
+    float factor = old_tempo / new_tempo;
     for (i = 0; i < queue->num_entries; ++i)
     {
         offset = queue->entries[i].time - time;

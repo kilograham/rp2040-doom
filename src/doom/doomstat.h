@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -53,7 +54,11 @@ extern  boolean	devparm;	// DEBUG: launched with -devparm
 // -----------------------------------------------------
 // Game Mode - identify IWAD as shareware, retail etc.
 //
+#if !DEMO1_ONLY
 extern GameMode_t	gamemode;
+#else
+#define gamemode shareware
+#endif
 extern GameMission_t	gamemission;
 extern GameVersion_t    gameversion;
 extern GameVariant_t    gamevariant;
@@ -65,11 +70,15 @@ extern const char       *gamedescription;
 // as the same most of the time.
 
 #define logical_gamemission                             \
-    (gamemission == pack_chex ? doom :                  \
-     gamemission == pack_hacx ? doom2 : gamemission)
+    (gamemission_is_chex(gamemission) ? doom :                  \
+     gamemission_is_hacx(gamemission) ? doom2 : gamemission)
 
 // Set if homebrew PWAD stuff has been added.
+#if !DOOM_TINY
 extern  boolean	modifiedgame;
+#else
+#define modifiedgame 0
+#endif
 
 
 // -------------------------------------------
@@ -78,20 +87,20 @@ extern  boolean	modifiedgame;
 
 // Defaults for menu, methinks.
 extern  skill_t		startskill;
-extern  int             startepisode;
-extern	int		startmap;
+extern  isb_int8_t            startepisode;
+extern	isb_int8_t	startmap;
 
 // Savegame slot to load on startup.  This is the value provided to
 // the -loadgame option.  If this has not been provided, this is -1.
 
-extern  int             startloadgame;
+extern  isb_int8_t      startloadgame;
 
 extern  boolean		autostart;
 
 // Selected by user. 
 extern  skill_t         gameskill;
-extern  int		gameepisode;
-extern  int		gamemap;
+extern  isb_int8_t 	gameepisode;
+extern  isb_int8_t 	gamemap;
 
 // If non-zero, exit the level after this number of minutes
 extern  int             timelimit;
@@ -100,10 +109,14 @@ extern  int             timelimit;
 extern  boolean         respawnmonsters;
 
 // Netgame? Only true if >1 player.
+#if !NO_USE_NET || USE_PICO_NET
 extern  boolean	netgame;
+#else
+#define netgame false
+#endif
 
 // 0=Cooperative; 1=Deathmatch; 2=Altdeath
-extern int deathmatch;
+extern isb_int8_t deathmatch;
 
 // -------------------------
 // Internal parameters for sound rendering.
@@ -145,11 +158,20 @@ extern  boolean	paused;		// Game Pause?
 
 extern  boolean		viewactive;
 
+#if !FORCE_NODRAW
 extern  boolean		nodrawers;
+#else
+#define nodrawers true
+#endif
 
 
+#if !DOOM_TINY
 extern  boolean         testcontrols;
 extern  int             testcontrols_mousespeed;
+#else
+#define testcontrols false
+#define testcontrols_mousespeed false
+#endif
 
 
 
@@ -159,8 +181,8 @@ extern  int             testcontrols_mousespeed;
 extern  int	viewangleoffset;
 
 // Player taking events, and displaying.
-extern  int	consoleplayer;	
-extern  int	displayplayer;
+extern  isb_int8_t consoleplayer;
+extern  isb_int8_t displayplayer;
 
 
 // -------------------------------------
@@ -185,7 +207,11 @@ extern  boolean	usergame;
 
 //?
 extern  boolean	demoplayback;
+#if !NO_DEMO_RECORDING
 extern  boolean	demorecording;
+#else
+#define demorecording 0
+#endif
 
 // Round angleturn in ticcmds to the nearest 256.  This is used when
 // recording Vanilla demos in netgames.
@@ -243,8 +269,10 @@ extern  wbstartstruct_t		wminfo;
 // Internal parameters, used for engine.
 //
 
+#if !NO_FILE_ACCESS
 // File handling stuff.
 extern  char        *savegamedir;
+#endif
 
 // if true, load all graphics at level load
 extern  boolean         precache;
@@ -254,16 +282,16 @@ extern  boolean         precache;
 //  to force a wipe on the next draw
 extern  gamestate_t     wipegamestate;
 
-extern  int             mouseSensitivity;
+extern  isb_int8_t      mouseSensitivity;
 
-extern  int             bodyqueslot;
+extern  isb_uint8_t     bodyqueslot;
 
 
 
 // Needed to store the number of the dummy sky flat.
 // Used for rendering,
 //  as well as tracking projectiles etc.
-extern int		skyflatnum;
+extern flatnum_t 		skyflatnum;
 
 
 

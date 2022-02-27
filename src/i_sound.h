@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,12 +29,18 @@
 //
 // SoundFX struct.
 //
+#if USE_CONST_SFX
+typedef const struct sfxinfo_struct	sfxinfo_t;
+#else
 typedef struct sfxinfo_struct	sfxinfo_t;
+#endif
 
 struct sfxinfo_struct
 {
+#if !DOOM_ONLY
     // tag name, used for hexen.
     const char *tagname;
+#endif
 
     // lump name.  If we are running with use_sfx_prefix=true, a
     // 'DS' (or 'DP' for PC speaker sounds) is prepended to this.
@@ -41,7 +48,11 @@ struct sfxinfo_struct
     char name[9];
 
     // Sfx priority
+#if DOOM_ONLY
+    uint8_t priority;
+#else
     int priority;
+#endif
 
     // referenced sound if a link
     sfxinfo_t *link;
@@ -52,35 +63,56 @@ struct sfxinfo_struct
     // volume if a link
     int volume;
 
+#if !USE_CONST_SFX
     // this is checked every second to see if sound
     // can be thrown out (if 0, then decrement, if -1,
     // then throw out, if > 0, then it is in use)
     int usefulness;
 
     // lump number of sfx
-    int lumpnum;
-
-    // Maximum number of channels that the sound can be played on 
+    lumpindex_t lumpnum;
+#endif
+#if !DOOM_ONLY
+    // Maximum number of channels that the sound can be played on
     // (Heretic)
     int numchannels;
 
     // data used by the low level code
     void *driver_data;
+#endif
 };
 
+#if USE_CONST_SFX
+struct sfxinfo_mut_struct {
+    // lump number of sfx
+    lumpindex_t lumpnum;
+
+    // todo graham size probably dosn't need to be a 32 bit value
+    // this is checked every second to see if sound
+    // can be thrown out (if 0, then decrement, if -1,
+    // then throw out, if > 0, then it is in use)
+    int usefulness;
+};
+#endif
 //
 // MusicInfo struct.
 //
 typedef struct
 {
     // up to 6-character name
+#if !USE_CONST_MUSIC
     const char *name;
+#else
+    const char name[7];
+#endif
 
     // lump number of music
-    int lumpnum;
+    lumpindex_t lumpnum;
 
+#if !USE_CONST_MUSIC
     // music data
     void *data;
+#endif
 
     // music handle once registered
     void *handle;
@@ -122,7 +154,7 @@ typedef struct
 
     // Returns the lump index of the given sound.
 
-    int (*GetSfxLumpNum)(sfxinfo_t *sfxinfo);
+    int (*GetSfxLumpNum)(should_be_const sfxinfo_t *sfxinfo);
 
     // Called periodically to update the subsystem.
 
@@ -135,7 +167,7 @@ typedef struct
     // Start a sound on a given channel.  Returns the channel id
     // or -1 on failure.
 
-    int (*StartSound)(sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch);
+    int (*StartSound)(should_be_const sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch);
 
     // Stop the sound playing on the given channel.
 
@@ -147,19 +179,19 @@ typedef struct
 
     // Called on startup to precache sound effects (if necessary)
 
-    void (*CacheSounds)(sfxinfo_t *sounds, int num_sounds);
+    void (*CacheSounds)(should_be_const sfxinfo_t *sounds, int num_sounds);
 
 } sound_module_t;
 
 void I_InitSound(boolean use_sfx_prefix);
 void I_ShutdownSound(void);
-int I_GetSfxLumpNum(sfxinfo_t *sfxinfo);
+int I_GetSfxLumpNum(should_be_const sfxinfo_t *sfxinfo);
 void I_UpdateSound(void);
 void I_UpdateSoundParams(int channel, int vol, int sep);
-int I_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch);
+int I_StartSound(should_be_const sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch);
 void I_StopSound(int channel);
 boolean I_SoundIsPlaying(int channel);
-void I_PrecacheSounds(sfxinfo_t *sounds, int num_sounds);
+void I_PrecacheSounds(should_be_const sfxinfo_t *sounds, int num_sounds);
 
 // Interface for music modules
 
@@ -167,7 +199,7 @@ typedef struct
 {
     // List of sound devices that this music module is used for.
 
-    snddevice_t *sound_devices;
+    const snddevice_t *sound_devices;
     int num_sound_devices;
 
     // Initialise the music subsystem
@@ -193,7 +225,7 @@ typedef struct
     // Register a song handle from data
     // Returns a handle that can be used to play the song
 
-    void *(*RegisterSong)(void *data, int len);
+    void *(*RegisterSong)(should_be_const void *data, int len);
 
     // Un-register (free) song data
 
@@ -221,19 +253,24 @@ void I_ShutdownMusic(void);
 void I_SetMusicVolume(int volume);
 void I_PauseSong(void);
 void I_ResumeSong(void);
-void *I_RegisterSong(void *data, int len);
+void *I_RegisterSong(should_be_const void *data, int len);
 void I_UnRegisterSong(void *handle);
 void I_PlaySong(void *handle, boolean looping);
 void I_StopSong(void);
 boolean I_MusicIsPlaying(void);
 
-extern int snd_sfxdevice;
+#if !DOOM_TINY
 extern int snd_musicdevice;
+extern int snd_sfxdevice;
+#else
+#define snd_sfxdevice SNDDEVICE_SB
+#define snd_musicdevice SNDDEVICE_SB
+#endif
 extern int snd_samplerate;
 extern int snd_cachesize;
 extern int snd_maxslicetime_ms;
-extern char *snd_musiccmd;
-extern int snd_pitchshift;
+extern should_be_const constcharstar snd_musiccmd;
+extern isb_int8_t snd_pitchshift;
 
 void I_BindSoundVariables(void);
 
@@ -245,6 +282,16 @@ typedef enum {
 } opl_driver_ver_t;
 
 void I_SetOPLDriverVer(opl_driver_ver_t ver);
+
+#if USE_CONST_SFX
+typedef struct sfxinfo_mut_struct	sfxinfo_mut_t;
+sfxinfo_mut_t *get_mut_sfxinfo_t(const sfxinfo_t *sfxinfo);
+extern sfxinfo_mut_t	S_sfx_mut[];
+#define sfx_mut(s) (get_mut_sfxinfo_t(s))
+#else
+#define sfx_mut(s) (s)
+#endif
+
 
 #endif
 

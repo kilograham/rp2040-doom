@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -946,7 +947,7 @@ void P_FakeZMovement(mobj_t * mo)
     if (mo->player && mo->flags2 & MF2_FLY && !(mo->z <= mo->floorz)
         && leveltime & 2)
     {
-        mo->z += finesine[(FINEANGLES / 20 * leveltime >> 2) & FINEMASK];
+        mo->z += finesine((FINEANGLES / 20 * leveltime >> 2) & FINEMASK);
     }
 
 //
@@ -1291,9 +1292,9 @@ void P_HitSlideLine(line_t * ld)
     deltaangle >>= ANGLETOFINESHIFT;
 
     movelen = P_AproxDistance(tmxmove, tmymove);
-    newlen = FixedMul(movelen, finecosine[deltaangle]);
-    tmxmove = FixedMul(newlen, finecosine[lineangle]);
-    tmymove = FixedMul(newlen, finesine[lineangle]);
+    newlen = FixedMul(movelen, finecosine(deltaangle));
+    tmxmove = FixedMul(newlen, finecosine(lineangle));
+    tmymove = FixedMul(newlen, finesine(lineangle));
 }
 
 /*
@@ -1546,8 +1547,8 @@ void P_BounceWall(mobj_t * mo)
     movelen = FixedMul(movelen, 0.75 * FRACUNIT);       // friction
     if (movelen < FRACUNIT)
         movelen = 2 * FRACUNIT;
-    mo->momx = FixedMul(movelen, finecosine[deltaangle]);
-    mo->momy = FixedMul(movelen, finesine[deltaangle]);
+    mo->momx = FixedMul(movelen, finecosine(deltaangle));
+    mo->momy = FixedMul(movelen, finesine(deltaangle));
 }
 
 
@@ -1815,8 +1816,8 @@ fixed_t P_AimLineAttack(mobj_t * t1, angle_t angle, fixed_t distance)
 
     angle >>= ANGLETOFINESHIFT;
     shootthing = t1;
-    x2 = t1->x + (distance >> FRACBITS) * finecosine[angle];
-    y2 = t1->y + (distance >> FRACBITS) * finesine[angle];
+    x2 = t1->x + (distance >> FRACBITS) * finecosine(angle);
+    y2 = t1->y + (distance >> FRACBITS) * finesine(angle);
     shootz = t1->z + (t1->height >> 1) + 8 * FRACUNIT;
     topslope = 100 * FRACUNIT / 160;    // can't shoot outside view angles
     bottomslope = -100 * FRACUNIT / 160;
@@ -1851,8 +1852,8 @@ void P_LineAttack(mobj_t * t1, angle_t angle, fixed_t distance, fixed_t slope,
     angle >>= ANGLETOFINESHIFT;
     shootthing = t1;
     la_damage = damage;
-    x2 = t1->x + (distance >> FRACBITS) * finecosine[angle];
-    y2 = t1->y + (distance >> FRACBITS) * finesine[angle];
+    x2 = t1->x + (distance >> FRACBITS) * finecosine(angle);
+    y2 = t1->y + (distance >> FRACBITS) * finesine(angle);
     shootz = t1->z + (t1->height >> 1) + 8 * FRACUNIT;
     shootz -= t1->floorclip;
     attackrange = distance;
@@ -1982,8 +1983,8 @@ void P_UseLines(player_t * player)
     angle = player->mo->angle >> ANGLETOFINESHIFT;
     x1 = player->mo->x;
     y1 = player->mo->y;
-    x2 = x1 + (USERANGE >> FRACBITS) * finecosine[angle];
-    y2 = y1 + (USERANGE >> FRACBITS) * finesine[angle];
+    x2 = x1 + (USERANGE >> FRACBITS) * finecosine(angle);
+    y2 = y1 + (USERANGE >> FRACBITS) * finesine(angle);
 
     P_PathTraverse(x1, y1, x2, y2, PT_ADDLINES, PTR_UseTraverse);
 }
@@ -2094,8 +2095,8 @@ boolean P_UsePuzzleItem(player_t * player, int itemType)
     angle = player->mo->angle >> ANGLETOFINESHIFT;
     x1 = player->mo->x;
     y1 = player->mo->y;
-    x2 = x1 + (USERANGE >> FRACBITS) * finecosine[angle];
-    y2 = y1 + (USERANGE >> FRACBITS) * finesine[angle];
+    x2 = x1 + (USERANGE >> FRACBITS) * finecosine(angle);
+    y2 = y1 + (USERANGE >> FRACBITS) * finesine(angle);
     P_PathTraverse(x1, y1, x2, y2, PT_ADDLINES | PT_ADDTHINGS,
                    PTR_PuzzleItemTraverse);
     return PuzzleActivated;

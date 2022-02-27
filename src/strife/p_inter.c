@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -1146,8 +1147,8 @@ void P_DamageMobj(mobj_t* target, mobj_t* inflictor, mobj_t* source, int damage)
                         source->x,
                         source->y) >> ANGLETOFINESHIFT;
 
-                target->momx += FixedMul(finecosine[ang], (12750*FRACUNIT) / target->info->mass);
-                target->momy += FixedMul(finesine[ang],   (12750*FRACUNIT) / target->info->mass);
+                target->momx += FixedMul(finecosine(ang), (12750*FRACUNIT) / target->info->mass);
+                target->momy += FixedMul(finesine(ang),   (12750*FRACUNIT) / target->info->mass);
                 target->reactiontime += 10;
 
                 temp = P_AproxDistance(target->x - source->x, target->y - source->y);
@@ -1234,8 +1235,8 @@ void P_DamageMobj(mobj_t* target, mobj_t* inflictor, mobj_t* source, int damage)
         }
 
         ang >>= ANGLETOFINESHIFT;
-        target->momx += FixedMul (thrust, finecosine[ang]);
-        target->momy += FixedMul (thrust, finesine[ang]);
+        target->momx += FixedMul (thrust, finecosine(ang));
+        target->momy += FixedMul (thrust, finesine(ang));
     }
 
     // player specific

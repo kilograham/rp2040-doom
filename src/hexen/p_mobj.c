@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -244,8 +245,8 @@ void P_FloorBounceMissile(mobj_t * mo)
 void P_ThrustMobj(mobj_t * mo, angle_t angle, fixed_t move)
 {
     angle >>= ANGLETOFINESHIFT;
-    mo->momx += FixedMul(move, finecosine[angle]);
-    mo->momy += FixedMul(move, finesine[angle]);
+    mo->momx += FixedMul(move, finecosine(angle));
+    mo->momy += FixedMul(move, finesine(angle));
 }
 
 //----------------------------------------------------------------------------
@@ -340,8 +341,8 @@ boolean P_SeekerMissile(mobj_t * actor, angle_t thresh, angle_t turnMax)
         actor->angle -= delta;
     }
     angle = actor->angle >> ANGLETOFINESHIFT;
-    actor->momx = FixedMul(actor->info->speed, finecosine[angle]);
-    actor->momy = FixedMul(actor->info->speed, finesine[angle]);
+    actor->momx = FixedMul(actor->info->speed, finecosine(angle));
+    actor->momy = FixedMul(actor->info->speed, finesine(angle));
     if (actor->z + actor->height < target->z
         || target->z + target->height < actor->z)
     {                           // Need to seek vertically
@@ -494,8 +495,8 @@ void P_XYMovement(mobj_t * mo)
                             speed = FixedMul(speed, 0.75 * FRACUNIT);
                             mo->angle = angle;
                             angle >>= ANGLETOFINESHIFT;
-                            mo->momx = FixedMul(speed, finecosine[angle]);
-                            mo->momy = FixedMul(speed, finesine[angle]);
+                            mo->momx = FixedMul(speed, finecosine(angle));
+                            mo->momy = FixedMul(speed, finesine(angle));
                             if (mo->info->seesound)
                             {
                                 S_StartSound(mo, mo->info->seesound);
@@ -559,9 +560,9 @@ void P_XYMovement(mobj_t * mo)
                     mo->angle = angle;
                     angle >>= ANGLETOFINESHIFT;
                     mo->momx =
-                        FixedMul(mo->info->speed >> 1, finecosine[angle]);
+                        FixedMul(mo->info->speed >> 1, finecosine(angle));
                     mo->momy =
-                        FixedMul(mo->info->speed >> 1, finesine[angle]);
+                        FixedMul(mo->info->speed >> 1, finesine(angle));
 //                                      mo->momz = -mo->momz;
                     if (mo->flags2 & MF2_SEEKERMISSILE)
                     {
@@ -734,7 +735,7 @@ void P_ZMovement(mobj_t * mo)
     if (mo->player && mo->flags2 & MF2_FLY && !(mo->z <= mo->floorz)
         && leveltime & 2)
     {
-        mo->z += finesine[(FINEANGLES / 20 * leveltime >> 2) & FINEMASK];
+        mo->z += finesine((FINEANGLES / 20 * leveltime >> 2) & FINEMASK);
     }
 
 //
@@ -2073,8 +2074,8 @@ mobj_t *P_SpawnMissile(mobj_t * source, mobj_t * dest, mobjtype_t type)
     }
     th->angle = an;
     an >>= ANGLETOFINESHIFT;
-    th->momx = FixedMul(th->info->speed, finecosine[an]);
-    th->momy = FixedMul(th->info->speed, finesine[an]);
+    th->momx = FixedMul(th->info->speed, finecosine(an));
+    th->momy = FixedMul(th->info->speed, finesine(an));
     dist = P_AproxDistance(dest->x - source->x, dest->y - source->y);
     dist = dist / th->info->speed;
     if (dist < 1)
@@ -2115,8 +2116,8 @@ mobj_t *P_SpawnMissileXYZ(fixed_t x, fixed_t y, fixed_t z,
     }
     th->angle = an;
     an >>= ANGLETOFINESHIFT;
-    th->momx = FixedMul(th->info->speed, finecosine[an]);
-    th->momy = FixedMul(th->info->speed, finesine[an]);
+    th->momx = FixedMul(th->info->speed, finecosine(an));
+    th->momy = FixedMul(th->info->speed, finesine(an));
     dist = P_AproxDistance(dest->x - source->x, dest->y - source->y);
     dist = dist / th->info->speed;
     if (dist < 1)
@@ -2169,8 +2170,8 @@ mobj_t *P_SpawnMissileAngle(mobj_t * source, mobjtype_t type,
     mo->target = source;        // Originator
     mo->angle = angle;
     angle >>= ANGLETOFINESHIFT;
-    mo->momx = FixedMul(mo->info->speed, finecosine[angle]);
-    mo->momy = FixedMul(mo->info->speed, finesine[angle]);
+    mo->momx = FixedMul(mo->info->speed, finecosine(angle));
+    mo->momy = FixedMul(mo->info->speed, finesine(angle));
     mo->momz = momz;
     return (P_CheckMissileSpawn(mo) ? mo : NULL);
 }
@@ -2200,8 +2201,8 @@ mobj_t *P_SpawnMissileAngleSpeed(mobj_t * source, mobjtype_t type,
     mo->target = source;        // Originator
     mo->angle = angle;
     angle >>= ANGLETOFINESHIFT;
-    mo->momx = FixedMul(speed, finecosine[angle]);
-    mo->momy = FixedMul(speed, finesine[angle]);
+    mo->momx = FixedMul(speed, finecosine(angle));
+    mo->momy = FixedMul(speed, finesine(angle));
     mo->momz = momz;
     return (P_CheckMissileSpawn(mo) ? mo : NULL);
 }
@@ -2266,9 +2267,9 @@ mobj_t *P_SpawnPlayerMissile(mobj_t * source, mobjtype_t type)
     MissileMobj->target = source;
     MissileMobj->angle = an;
     MissileMobj->momx = FixedMul(MissileMobj->info->speed,
-                                 finecosine[an >> ANGLETOFINESHIFT]);
+                                 finecosine(an >> ANGLETOFINESHIFT));
     MissileMobj->momy = FixedMul(MissileMobj->info->speed,
-                                 finesine[an >> ANGLETOFINESHIFT]);
+                                 finesine(an >> ANGLETOFINESHIFT));
     MissileMobj->momz = FixedMul(MissileMobj->info->speed, slope);
     if (MissileMobj->type == MT_MWAND_MISSILE
         || MissileMobj->type == MT_CFLAME_MISSILE)
@@ -2307,8 +2308,8 @@ mobj_t *P_SpawnPlayerMinotaur(mobj_t *source, mobjtype_t type)
 	fixed_t dist=0 *FRACUNIT;
 
 	an = source->angle;
-	x = source->x + FixedMul(dist, finecosine[an>>ANGLETOFINESHIFT]);
-	y = source->y + FixedMul(dist, finesine[an>>ANGLETOFINESHIFT]);
+	x = source->x + FixedMul(dist, finecosine(an>>ANGLETOFINESHIFT));
+	y = source->y + FixedMul(dist, finesine(an>>ANGLETOFINESHIFT));
 	z = source->z + 4*8*FRACUNIT+((source->player->lookdir)<<FRACBITS)/173;
 	z -= source->floorclip;
 	MissileMobj = P_SpawnMobj(x, y, z, type);
@@ -2319,9 +2320,9 @@ mobj_t *P_SpawnPlayerMinotaur(mobj_t *source, mobjtype_t type)
 	MissileMobj->target = source;
 	MissileMobj->angle = an;
 	MissileMobj->momx = FixedMul(MissileMobj->info->speed,
-		finecosine[an>>ANGLETOFINESHIFT]);
+		finecosine(an>>ANGLETOFINESHIFT));
 	MissileMobj->momy = FixedMul(MissileMobj->info->speed,
-		finesine[an>>ANGLETOFINESHIFT]);
+		finesine(an>>ANGLETOFINESHIFT));
 	MissileMobj->momz = 0;
 
 //	MissileMobj->x += (MissileMobj->momx>>3);
@@ -2381,8 +2382,8 @@ mobj_t *P_SPMAngle(mobj_t * source, mobjtype_t type, angle_t angle)
 //      }
     th->target = source;
     th->angle = an;
-    th->momx = FixedMul(th->info->speed, finecosine[an >> ANGLETOFINESHIFT]);
-    th->momy = FixedMul(th->info->speed, finesine[an >> ANGLETOFINESHIFT]);
+    th->momx = FixedMul(th->info->speed, finecosine(an >> ANGLETOFINESHIFT));
+    th->momy = FixedMul(th->info->speed, finesine(an >> ANGLETOFINESHIFT));
     th->momz = FixedMul(th->info->speed, slope);
     return (P_CheckMissileSpawn(th) ? th : NULL);
 }
@@ -2429,8 +2430,8 @@ mobj_t *P_SPMAngleXYZ(mobj_t * source, fixed_t x, fixed_t y,
 //      }
     th->target = source;
     th->angle = an;
-    th->momx = FixedMul(th->info->speed, finecosine[an >> ANGLETOFINESHIFT]);
-    th->momy = FixedMul(th->info->speed, finesine[an >> ANGLETOFINESHIFT]);
+    th->momx = FixedMul(th->info->speed, finecosine(an >> ANGLETOFINESHIFT));
+    th->momy = FixedMul(th->info->speed, finesine(an >> ANGLETOFINESHIFT));
     th->momz = FixedMul(th->info->speed, slope);
     return (P_CheckMissileSpawn(th) ? th : NULL);
 }
@@ -2456,8 +2457,8 @@ mobj_t *P_SpawnKoraxMissile(fixed_t x, fixed_t y, fixed_t z,
     }
     th->angle = an;
     an >>= ANGLETOFINESHIFT;
-    th->momx = FixedMul(th->info->speed, finecosine[an]);
-    th->momy = FixedMul(th->info->speed, finesine[an]);
+    th->momx = FixedMul(th->info->speed, finecosine(an));
+    th->momy = FixedMul(th->info->speed, finesine(an));
     dist = P_AproxDistance(dest->x - x, dest->y - y);
     dist = dist / th->info->speed;
     if (dist < 1)

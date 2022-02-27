@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -73,8 +74,8 @@ P_Thrust
 {
     angle >>= ANGLETOFINESHIFT;
     
-    player->mo->momx += FixedMul(move,finecosine[angle]); 
-    player->mo->momy += FixedMul(move,finesine[angle]);
+    player->mo->momx += FixedMul(move,finecosine(angle));
+    player->mo->momy += FixedMul(move,finesine(angle));
 }
 
 
@@ -122,7 +123,7 @@ void P_CalcHeight (player_t* player)
     }
 
     angle = (FINEANGLES/20*leveltime)&FINEMASK;
-    bob = FixedMul ( player->bob/2, finesine[angle]);
+    bob = FixedMul ( player->bob/2, finesine(angle));
 
     // move viewheight
     if (player->playerstate == PST_LIVE)
@@ -705,8 +706,8 @@ void P_DropInventoryItem(player_t* player, int sprite)
         mo = player->mo;
         dist = mobjinfo[type].radius + mo->info->radius + (4*FRACUNIT);
 
-        x = mo->x + FixedMul(finecosine[angle], dist);
-        y = mo->y + FixedMul(finesine[angle], dist);
+        x = mo->x + FixedMul(finecosine(angle), dist);
+        y = mo->y + FixedMul(finesine(angle), dist);
         z = mo->z + (10*FRACUNIT);
         mobjitem = P_SpawnMobj(x, y, z, type);
         mobjitem->flags |= (MF_SPECIAL|MF_DROPPED);
@@ -714,8 +715,8 @@ void P_DropInventoryItem(player_t* player, int sprite)
         if(P_CheckPosition(mobjitem, x, y))
         {
             mobjitem->angle = (angle << ANGLETOFINESHIFT);
-            mobjitem->momx = FixedMul(finecosine[angle], (5*FRACUNIT)) + mo->momx;
-            mobjitem->momy = FixedMul(finesine[angle], (5*FRACUNIT)) + mo->momy;
+            mobjitem->momx = FixedMul(finecosine(angle), (5*FRACUNIT)) + mo->momx;
+            mobjitem->momy = FixedMul(finesine(angle), (5*FRACUNIT)) + mo->momy;
             mobjitem->momz = FRACUNIT;
 
             P_RemoveInventoryItem(player, invslot, amount);
@@ -756,8 +757,8 @@ boolean P_TossDegninOre(player_t* player)
     mo = player->mo;
     dist = mobjinfo[MT_DEGNINORE].radius + mo->info->radius + (4*FRACUNIT);
 
-    x = mo->x + FixedMul(finecosine[angle], dist);
-    y = mo->y + FixedMul(finesine[angle], dist);
+    x = mo->x + FixedMul(finecosine(angle), dist);
+    y = mo->y + FixedMul(finesine(angle), dist);
     z = mo->z + (10*FRACUNIT);
     ore = P_SpawnMobj(x, y, z, MT_DEGNINORE);
 
@@ -765,8 +766,8 @@ boolean P_TossDegninOre(player_t* player)
     {
         ore->target = mo;
         ore->angle = (angle << ANGLETOFINESHIFT);
-        ore->momx = FixedMul(finecosine[angle], (5*FRACUNIT));
-        ore->momy = FixedMul(finesine[angle], (5*FRACUNIT));
+        ore->momx = FixedMul(finecosine(angle), (5*FRACUNIT));
+        ore->momy = FixedMul(finesine(angle), (5*FRACUNIT));
         ore->momz = FRACUNIT;
         return true;
     }
@@ -812,8 +813,8 @@ boolean P_SpawnTeleportBeacon(player_t* player)
     mo = player->mo;
     dist = mobjinfo[MT_BEACON].radius + mo->info->radius + (4*FRACUNIT);
 
-    x = mo->x + FixedMul(finecosine[angle], dist);
-    y = mo->y + FixedMul(finesine[angle], dist);
+    x = mo->x + FixedMul(finecosine(angle), dist);
+    y = mo->y + FixedMul(finesine(angle), dist);
     z = mo->z + (10*FRACUNIT);
     beacon = P_SpawnMobj(x, y, z, MT_BEACON);
 
@@ -822,8 +823,8 @@ boolean P_SpawnTeleportBeacon(player_t* player)
         beacon->target = mo;
         beacon->miscdata = (byte)(player->allegiance);
         beacon->angle = (angle << ANGLETOFINESHIFT);
-        beacon->momx = FixedMul(finecosine[angle], (5*FRACUNIT));
-        beacon->momy = FixedMul(finesine[angle], (5*FRACUNIT));
+        beacon->momx = FixedMul(finecosine(angle), (5*FRACUNIT));
+        beacon->momy = FixedMul(finesine(angle), (5*FRACUNIT));
         beacon->momz = FRACUNIT;
         P_SetMobjState(beacon, beacon->info->seestate);
         return true;

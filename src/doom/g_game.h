@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,7 +36,7 @@ void G_InitNew (skill_t skill, int episode, int map);
 // Can be called by the startup code or M_Responder.
 // A normal game starts at map 1,
 // but a warp test can start elsewhere
-void G_DeferedInitNew (skill_t skill, int episode, int map);
+void G_DeferedInitNew (skill_t skill, int episode, int map, boolean net);
 
 void G_DeferedPlayDemo (const char* demo);
 
@@ -48,10 +49,12 @@ void G_DoLoadGame (void);
 // Called by M_Responder.
 void G_SaveGame (int slot, char* description);
 
+#if !NO_DEMO_RECORDING
 // Only called by startup code.
 void G_RecordDemo (char* name);
 
 void G_BeginRecording (void);
+#endif
 
 void G_PlayDemo (char* name);
 void G_TimeDemo (char* name);
@@ -74,7 +77,11 @@ void G_ScreenShot (void);
 void G_DrawMouseSpeedBox(void);
 int G_VanillaVersionCode(void);
 
-extern int vanilla_savegame_limit;
-extern int vanilla_demo_limit;
+extern isb_int8_t vanilla_savegame_limit;
+extern isb_int8_t vanilla_demo_limit;
+
+#if PICO_ON_DEVICE
+extern uint8_t g_load_slot;
+#endif
 #endif
 

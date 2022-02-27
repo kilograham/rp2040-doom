@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,7 +36,7 @@
 //
 
 
-ceiling_t*	activeceilings[MAXCEILINGS];
+shortptr_t/*ceiling_t**/ activeceilings[MAXCEILINGS];
 
 
 //
@@ -191,8 +192,8 @@ EV_DoCeiling
 	rtn = 1;
 	ceiling = Z_Malloc (sizeof(*ceiling), PU_LEVSPEC, 0);
 	P_AddThinker (&ceiling->thinker);
-	sec->specialdata = ceiling;
-	ceiling->thinker.function.acp1 = (actionf_p1)T_MoveCeiling;
+	sec->specialdata = ptr_to_shortptr(ceiling);
+	ceiling->thinker.function = ThinkF_T_MoveCeiling;
 	ceiling->sector = sec;
 	ceiling->crush = false;
 	
@@ -200,8 +201,8 @@ EV_DoCeiling
 	{
 	  case fastCrushAndRaise:
 	    ceiling->crush = true;
-	    ceiling->topheight = sec->ceilingheight;
-	    ceiling->bottomheight = sec->floorheight + (8*FRACUNIT);
+	    ceiling->topheight = sector_ceilingheight(sec);
+	    ceiling->bottomheight = sector_floorheight(sec) + (8*FRACUNIT);
 	    ceiling->direction = -1;
 	    ceiling->speed = CEILSPEED * 2;
 	    break;
@@ -209,10 +210,10 @@ EV_DoCeiling
 	  case silentCrushAndRaise:
 	  case crushAndRaise:
 	    ceiling->crush = true;
-	    ceiling->topheight = sec->ceilingheight;
+	    ceiling->topheight = sector_ceilingheight(sec);
 	  case lowerAndCrush:
 	  case lowerToFloor:
-	    ceiling->bottomheight = sec->floorheight;
+	      ceiling->bottomheight = sector_floorheight(sec);
 	    if (type != lowerToFloor)
 		ceiling->bottomheight += 8*FRACUNIT;
 	    ceiling->direction = -1;
@@ -243,9 +244,9 @@ void P_AddActiveCeiling(ceiling_t* c)
     
     for (i = 0; i < MAXCEILINGS;i++)
     {
-	if (activeceilings[i] == NULL)
+	if (!activeceilings[i])
 	{
-	    activeceilings[i] = c;
+	    activeceilings[i] = ceiling_to_shortptr(c);
 	    return;
 	}
     }
@@ -262,11 +263,12 @@ void P_RemoveActiveCeiling(ceiling_t* c)
 	
     for (i = 0;i < MAXCEILINGS;i++)
     {
-	if (activeceilings[i] == c)
+        ceiling_t *ci = shortptr_to_ceiling(activeceilings[i]);
+	if (ci == c)
 	{
-	    activeceilings[i]->sector->specialdata = NULL;
-	    P_RemoveThinker (&activeceilings[i]->thinker);
-	    activeceilings[i] = NULL;
+	    ci->sector->specialdata = 0;
+	    P_RemoveThinker (&ci->thinker);
+	    activeceilings[i] = 0;
 	    break;
 	}
     }
@@ -283,14 +285,13 @@ void P_ActivateInStasisCeiling(line_t* line)
 	
     for (i = 0;i < MAXCEILINGS;i++)
     {
-	if (activeceilings[i]
-	    && (activeceilings[i]->tag == line->tag)
-	    && (activeceilings[i]->direction == 0))
-	{
-	    activeceilings[i]->direction = activeceilings[i]->olddirection;
-	    activeceilings[i]->thinker.function.acp1
-	      = (actionf_p1)T_MoveCeiling;
-	}
+        if (activeceilings[i]) {
+            ceiling_t *ci = shortptr_to_ceiling(activeceilings[i]);
+            if (ci->tag == line_tag(line) && ci->direction == 0) {
+                ci->direction = ci->olddirection;
+                ci->thinker.function = ThinkF_T_MoveCeiling;
+            }
+        }
     }
 }
 
@@ -308,17 +309,16 @@ int	EV_CeilingCrushStop(line_t	*line)
     rtn = 0;
     for (i = 0;i < MAXCEILINGS;i++)
     {
-	if (activeceilings[i]
-	    && (activeceilings[i]->tag == line->tag)
-	    && (activeceilings[i]->direction != 0))
-	{
-	    activeceilings[i]->olddirection = activeceilings[i]->direction;
-	    activeceilings[i]->thinker.function.acv = (actionf_v)NULL;
-	    activeceilings[i]->direction = 0;		// in-stasis
-	    rtn = 1;
+        if (activeceilings[i]) {
+            ceiling_t *ci = shortptr_to_ceiling(activeceilings[i]);
+            if (ci->tag == line_tag(line) && ci->direction != 0) {
+                ci->olddirection = ci->direction;
+                ci->thinker.function = ThinkF_NULL;
+                ci->direction = 0;		// in-stasis
+                rtn = 1;
+            }
 	}
     }
     
-
     return rtn;
 }

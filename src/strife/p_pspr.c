@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -295,9 +296,9 @@ void A_WeaponReady( player_t* player, pspdef_t* psp)
     
     // bob the weapon based on movement speed
     angle = (128*leveltime)&FINEMASK;
-    psp->sx = FRACUNIT + FixedMul (player->bob, finecosine[angle]);
+    psp->sx = FRACUNIT + FixedMul (player->bob, finecosine(angle));
     angle &= FINEANGLES/2-1;
-    psp->sy = WEAPONTOP + FixedMul (player->bob, finesine[angle]);
+    psp->sy = WEAPONTOP + FixedMul (player->bob, finesine(angle));
 }
 
 
@@ -581,8 +582,8 @@ void A_FireGrenade(player_t* player, pspdef_t* pspr)
     radius = mobjinfo[type].radius + player->mo->info->radius;
     an = (player->mo->angle >> ANGLETOFINESHIFT);
 
-    mo->x += FixedMul(finecosine[an], radius + (4*FRACUNIT));
-    mo->y += FixedMul(finesine[an], radius + (4*FRACUNIT));
+    mo->x += FixedMul(finecosine(an), radius + (4*FRACUNIT));
+    mo->y += FixedMul(finesine(an), radius + (4*FRACUNIT));
 
     // shoot grenade from left or right side?
     if(&states[weaponinfo[player->readyweapon].atkstate] == pspr->state)
@@ -590,8 +591,8 @@ void A_FireGrenade(player_t* player, pspdef_t* pspr)
     else
         an = (player->mo->angle + ANG90) >> ANGLETOFINESHIFT;
 
-    mo->x += FixedMul((15*FRACUNIT), finecosine[an]);
-    mo->y += FixedMul((15*FRACUNIT), finesine[an]);
+    mo->x += FixedMul((15*FRACUNIT), finecosine(an));
+    mo->y += FixedMul((15*FRACUNIT), finesine(an));
 
     // set bounce flag
     mo->flags |= MF_BOUNCE;
@@ -805,8 +806,8 @@ void A_FireSigil(player_t* player, pspdef_t* pspr)
             an = player->mo->angle>>ANGLETOFINESHIFT;
             mo = P_SpawnMobj(player->mo->x, player->mo->y, player->mo->z, 
                              MT_SIGIL_A_GROUND);
-            mo->momx += FixedMul((28*FRACUNIT), finecosine[an]);
-            mo->momy += FixedMul((28*FRACUNIT), finesine[an]);
+            mo->momx += FixedMul((28*FRACUNIT), finecosine(an));
+            mo->momy += FixedMul((28*FRACUNIT), finesine(an));
         }
         mo->health = -1;
         mo->target = player->mo;
@@ -842,8 +843,8 @@ void A_FireSigil(player_t* player, pspdef_t* pspr)
         {
             an = player->mo->angle >> ANGLETOFINESHIFT;
             mo = P_SpawnPlayerMissile(player->mo, MT_SIGIL_D_SHOT);
-            mo->momx += FixedMul(mo->info->speed, finecosine[an]);
-            mo->momy += FixedMul(mo->info->speed, finesine[an]);
+            mo->momx += FixedMul(mo->info->speed, finecosine(an));
+            mo->momy += FixedMul(mo->info->speed, finesine(an));
         }
         mo->health = -1;
         break;
@@ -855,7 +856,7 @@ void A_FireSigil(player_t* player, pspdef_t* pspr)
         if(!linetarget)
         {
             an = (unsigned int)player->pitch >> ANGLETOFINESHIFT;
-            mo->momz += FixedMul(finesine[an], mo->info->speed); 
+            mo->momz += FixedMul(finesine(an), mo->info->speed);
         }
         break;
 

@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -39,6 +40,7 @@
 #include "net_sdl.h"
 #include "net_structrw.h"
 
+#if !NO_USE_NET
 // How often to refresh our registration with the master server.
 
 #define MASTER_REFRESH_PERIOD 20 * 60 /* 20 minutes */
@@ -656,12 +658,12 @@ static void NET_SV_ParseSYN(net_packet_t *packet, net_client_t *client,
         return;
     }
 
-    if (!D_ValidGameMode(data.gamemission, data.gamemode)
+    if (!D_ValidGameMode(data.gamemission, data._gamemode)
      || data.max_players > NET_MAXPLAYERS)
     {
         NET_Log("server: error: invalid connect data, max_players=%d, "
                 "gamemission=%d, gamemode=%d",
-                data.max_players, data.gamemission, data.gamemode);
+                data.max_players, data.gamemission, data._gamemode);
         return;
     }
 
@@ -705,7 +707,7 @@ static void NET_SV_ParseSYN(net_packet_t *packet, net_client_t *client,
     // Adopt the game mode and mission of the first connecting client:
     if (num_players == 0 && !data.drone)
     {
-        sv_gamemode = data.gamemode;
+        sv_gamemode = data._gamemode;
         sv_gamemission = data.gamemission;
         NET_Log("server: new game, mode=%d, mission=%d",
                 sv_gamemode, sv_gamemission);
@@ -713,17 +715,17 @@ static void NET_SV_ParseSYN(net_packet_t *packet, net_client_t *client,
 
     // Check the connecting client is playing the same game as all
     // the other clients
-    if (data.gamemode != sv_gamemode || data.gamemission != sv_gamemission)
+    if (data._gamemode != sv_gamemode || data.gamemission != sv_gamemission)
     {
         char msg[128];
         NET_Log("server: wrong mode/mission, %d != %d || %d != %d",
-                data.gamemode, sv_gamemode, data.gamemission, sv_gamemission);
+                data._gamemode, sv_gamemode, data.gamemission, sv_gamemission);
         M_snprintf(msg, sizeof(msg),
                    "Game mismatch: server is %s (%s), client is %s (%s)",
                    D_GameMissionString(sv_gamemission),
                    D_GameModeString(sv_gamemode),
                    D_GameMissionString(data.gamemission),
-                   D_GameModeString(data.gamemode));
+                   D_GameModeString(data._gamemode));
 
         NET_SV_SendReject(addr, msg);
         return;
@@ -2006,3 +2008,4 @@ void NET_SV_Shutdown(void)
         I_Sleep(1);
     }
 }
+#endif

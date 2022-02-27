@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -111,13 +112,13 @@ typedef struct player_s
     // Is wp_nochange if not changing.
     weapontype_t	pendingweapon;
 
-    int                 weaponowned[NUMWEAPONS];
-    int			ammo[NUMAMMO];
-    int			maxammo[NUMAMMO];
+    isb_int8_t  weaponowned[NUMWEAPONS];
+    int			ammo[NUMAMMO]; // int because pointed to by st_ stuff
+    int			maxammo[NUMAMMO]; // int because pointed to by st_ stuff
 
     // True if button down last tic.
-    int			attackdown;
-    int			usedown;
+    isb_int8_t	attackdown;
+    isb_int8_t	usedown;
 
     // Bit flags, for cheats and debug.
     // See cheat_t, above.
@@ -142,21 +143,21 @@ typedef struct player_s
     mobj_t*		attacker;
     
     // So gun flashes light up areas.
-    int			extralight;
+    isb_int8_t	extralight;
 
     // Current PLAYPAL, ???
     //  can be set to REDCOLORMAP for pain, etc.
-    int			fixedcolormap;
+    isb_int8_t 	fixedcolormap;
 
     // Player skin colorshift,
     //  0-3 for which color to draw player.
-    int			colormap;	
-
-    // Overlay view sprites (gun, etc).
-    pspdef_t		psprites[NUMPSPRITES];
+    isb_int8_t 	colormap;
 
     // True if secret level has been done.
-    boolean		didsecret;	
+    boolean		didsecret;
+
+    // Overlay view sprites (gun, etc).
+    pspdef_t	psprites[NUMPSPRITES];
 
 } player_t;
 

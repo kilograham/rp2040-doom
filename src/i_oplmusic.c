@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -108,51 +109,75 @@ typedef struct
 
 typedef struct opl_voice_s opl_voice_t;
 
+#if DOOM_SMALL
+typedef int8_t opl_index_t;
+typedef int8_t opl_op_t;
+typedef uint8_t opl_voice_index_t;
+typedef uint8_t opl_key_t;
+typedef uint8_t opl_vol_t;
+typedef uint8_t opl_note_t;
+typedef uint8_t opl_pan_t;
+typedef uint8_t opl_priority_t;
+typedef uint16_t opl_array_t;
+typedef uint16_t opl_freq_t;
+#else
+typedef int opl_index_t;
+typedef int opl_op_t;
+typedef int opl_array_t;
+typedef unsigned int opl_voice_index_t;
+typedef unsigned int opl_key_t;
+typedef unsigned int opl_vol_t;
+typedef unsigned int opl_note_t;
+typedef unsigned int opl_pan_t;
+typedef unsigned int opl_priority_t;
+typedef unsigned int opl_freq_t;
+#endif
 struct opl_voice_s
 {
     // Index of this voice:
-    int index;
+    opl_index_t index;
 
     // The operators used by this voice:
-    int op1, op2;
-
-    // Array used by voice:
-    int array;
-
-    // Currently-loaded instrument data
-    genmidi_instr_t *current_instr;
+    opl_op_t op1, op2;
 
     // The voice number in the instrument to use.
     // This is normally set to zero; if this is a double voice
     // instrument, it may be one.
-    unsigned int current_instr_voice;
-
-    // The channel currently using this voice.
-    opl_channel_data_t *channel;
+    opl_voice_index_t current_instr_voice;
 
     // The midi key that this voice is playing.
-    unsigned int key;
+    opl_key_t key;
 
     // The note being played.  This is normally the same as
     // the key, but if the instrument is a fixed pitch
     // instrument, it is different.
-    unsigned int note;
-
-    // The frequency value being used.
-    unsigned int freq;
+    opl_note_t note;
 
     // The volume of the note being played on this channel.
-    unsigned int note_volume;
+    opl_vol_t note_volume;
 
     // The current volume (register value) that has been set for this channel.
-    unsigned int car_volume;
-    unsigned int mod_volume;
+    opl_vol_t car_volume;
+    opl_vol_t mod_volume;
 
     // Pan.
-    unsigned int reg_pan;
+    opl_pan_t reg_pan;
 
     // Priority.
-    unsigned int priority;
+    opl_priority_t priority;
+
+    // Array used by voice:
+    opl_array_t array; // todo grahm this is just a small number << 8
+
+    // The frequency value being used.
+    opl_freq_t freq;
+
+    // todo graham could convert these back to indexes
+    // Currently-loaded instrument data
+    genmidi_instr_t *current_instr;
+
+    // The channel currently using this voice.
+    opl_channel_data_t *channel;
 };
 
 // Operators used by the different voices.
@@ -282,7 +307,7 @@ static const unsigned short frequency_curve[] = {
 
 // Mapping from MIDI volume level to OPL level value.
 
-static const unsigned int volume_mapping_table[] = {
+static const unsigned char volume_mapping_table[] = {
     0, 1, 3, 5, 6, 8, 10, 11,
     13, 14, 16, 17, 19, 20, 22, 23,
     25, 26, 27, 29, 30, 32, 33, 34,
@@ -301,7 +326,11 @@ static const unsigned int volume_mapping_table[] = {
     124, 124, 125, 125, 126, 126, 127, 127
 };
 
+#if DOOM_TINY
+//const
+#endif
 static opl_driver_ver_t opl_drv_ver = opl_doom_1_9;
+
 static boolean music_initialized = false;
 
 //static boolean musicpaused = false;
@@ -322,8 +351,13 @@ static opl_voice_t *voice_free_list[OPL_NUM_VOICES * 2];
 static opl_voice_t *voice_alloced_list[OPL_NUM_VOICES * 2];
 static int voice_free_num;
 static int voice_alloced_num;
+#if !DOOM_TINY
 static int opl_opl3mode;
 static int num_opl_voices;
+#else
+#define opl_opl3mode 0
+#define num_opl_voices OPL_NUM_VOICES
+#endif
 
 // Data for each channel.
 
@@ -349,8 +383,8 @@ static unsigned int last_perc_count;
 // Configuration file variable, containing the port number for the
 // adlib chip.
 
-char *snd_dmxoption = "";
-int opl_io_port = 0x388;
+should_be_const constcharstar snd_dmxoption = "";
+isb_int16_t opl_io_port = 0x388;
 
 // If true, OPL sound channels are reversed to their correct arrangement
 // (as intended by the MIDI standard) rather than the backwards one
@@ -362,7 +396,7 @@ static boolean opl_stereo_correct = false;
 
 static boolean LoadInstrumentTable(void)
 {
-    byte *lump;
+    should_be_const byte *lump;
 
     lump = W_CacheLumpName(DEH_String("genmidi"), PU_STATIC);
 
@@ -459,7 +493,7 @@ static void ReleaseVoice(int index)
 // Load data to the specified operator
 
 static void LoadOperatorData(int operator, genmidi_op_t *data,
-                             boolean max_level, unsigned int *volume)
+                             boolean max_level, opl_vol_t *volume)
 {
     int level;
 
@@ -535,6 +569,7 @@ static void SetVoiceInstrument(opl_voice_t *voice,
                     + 0x0f - (data->carrier.sustain & 0x0f);
 }
 
+#include <assert.h>
 static void SetVoiceVolume(opl_voice_t *voice, unsigned int volume)
 {
     genmidi_voice_t *opl_voice;
@@ -543,6 +578,7 @@ static void SetVoiceVolume(opl_voice_t *voice, unsigned int volume)
     unsigned int car_volume;
     unsigned int mod_volume;
 
+    assert(volume < 256);
     voice->note_volume = volume;
 
     opl_voice = &voice->current_instr->voices[voice->current_instr_voice];
@@ -595,6 +631,7 @@ static void SetVoicePan(opl_voice_t *voice, unsigned int pan)
 {
     genmidi_voice_t *opl_voice;
 
+    assert(pan < 256);
     voice->reg_pan = pan;
     opl_voice = &voice->current_instr->voices[voice->current_instr_voice];;
 
@@ -638,6 +675,9 @@ static void I_OPL_SetMusicVolume(int volume)
 {
     unsigned int i;
 
+#if DUMPO
+    volume = 127;
+#endif
     if (current_music_volume == volume)
     {
         return;
@@ -1211,7 +1251,7 @@ static void ControllerEvent(opl_track_data_t *track, midi_event_t *event)
 
         default:
 #ifdef OPL_MIDI_DEBUG
-            fprintf(stderr, "Unknown MIDI controller type: %i\n", controller);
+            stderr_print( "Unknown MIDI controller type: %i\n", controller);
 #endif
             break;
     }
@@ -1263,7 +1303,7 @@ static void PitchBendEvent(opl_track_data_t *track, midi_event_t *event)
 
 static void MetaSetTempo(unsigned int tempo)
 {
-    OPL_AdjustCallbacks((float) us_per_beat / tempo);
+    OPL_AdjustCallbacks(us_per_beat, tempo);
     us_per_beat = tempo;
 }
 
@@ -1304,7 +1344,7 @@ static void MetaEvent(opl_track_data_t *track, midi_event_t *event)
 
         default:
 #ifdef OPL_MIDI_DEBUG
-            fprintf(stderr, "Unknown MIDI meta event type: %i\n",
+            stderr_print( "Unknown MIDI meta event type: %i\n",
                             event->data.meta.type);
 #endif
             break;
@@ -1349,7 +1389,7 @@ static void ProcessEvent(opl_track_data_t *track, midi_event_t *event)
 
         default:
 #ifdef OPL_MIDI_DEBUG
-            fprintf(stderr, "Unknown MIDI event type %i\n", event->event_type);
+            stderr_print( "Unknown MIDI event type %i\n", event->event_type);
 #endif
             break;
     }
@@ -1360,8 +1400,22 @@ static void InitChannel(opl_channel_data_t *channel);
 
 // Restart a song from the beginning.
 
-static void RestartSong(void *unused)
+#if DOOM_TINY
+// bit 0 means we can't restart because we are too deep in stack
+// bit 1 means we need to restart
+uint8_t restart_song_state;
+#endif
+
+void RestartSong(void *unused)
 {
+#if DOOM_TINY
+    if (restart_song_state & 1) {
+        // need to defer restart of song (because of stack)
+        restart_song_state |= 2;
+        return;
+    }
+    restart_song_state &= ~2;
+#endif
     unsigned int i;
 
     running_tracks = num_tracks;
@@ -1383,7 +1437,7 @@ static void RestartSong(void *unused)
 // Callback function invoked when another event needs to be read from
 // a track.
 
-static void TrackTimerCallback(void *arg)
+void TrackTimerCallback(void *arg)
 {
     opl_track_data_t *track = arg;
     midi_event_t *event;
@@ -1394,7 +1448,7 @@ static void TrackTimerCallback(void *arg)
     {
         return;
     }
-
+//    printf("MIDIEVENT %d %d %d %d\n", event->event_type, event->data.channel.channel, event->data.channel.param1, event->data.channel.param2);
     ProcessEvent(track, event);
 
     // End of track?
@@ -1432,6 +1486,7 @@ static void ScheduleTrack(opl_track_data_t *track)
     // Get the number of microseconds until the next event.
 
     nticks = MIDI_GetDeltaTime(track->iter);
+//    printf("DELTA TICK %d\n", nticks);
     us = ((uint64_t) nticks * us_per_beat) / ticks_per_beat;
 
     // Set a timer to be invoked when the next event is
@@ -1607,12 +1662,13 @@ static void I_OPL_UnRegisterSong(void *handle)
 
 // Determine whether memory block is a .mid file
 
-static boolean IsMid(byte *mem, int len)
+static boolean IsMid(should_be_const byte *mem, int len)
 {
     return len > 4 && !memcmp(mem, "MThd", 4);
 }
 
-static boolean ConvertMus(byte *musdata, int len, char *filename)
+#if !USE_MUSX
+static boolean ConvertMus(should_be_const byte *musdata, int len, char *filename)
 {
     MEMFILE *instream;
     MEMFILE *outstream;
@@ -1637,11 +1693,11 @@ static boolean ConvertMus(byte *musdata, int len, char *filename)
 
     return result;
 }
+#endif
 
-static void *I_OPL_RegisterSong(void *data, int len)
+static void *I_OPL_RegisterSong(should_be_const void *data, int len)
 {
     midi_file_t *result;
-    char *filename;
 
     if (!music_initialized)
     {
@@ -1651,6 +1707,14 @@ static void *I_OPL_RegisterSong(void *data, int len)
     // MUS files begin with "MUS"
     // Reject anything which doesnt have this signature
 
+#if USE_DIRECT_MIDI_LUMP
+#if !USE_MUSX
+    result = MIDI_LoadRaw(data, len);
+#else
+    result = MUSX_LoadRaw(data, len);
+#endif
+#else
+    char *filename;
     filename = M_TempFile("doom.mid");
 
     if (IsMid(data, len) && len < MAXMIDLENGTH)
@@ -1664,17 +1728,40 @@ static void *I_OPL_RegisterSong(void *data, int len)
         ConvertMus(data, len, filename);
     }
 
+    int free_file = 1;
+#if 0
+    static int foo = -1;
+    if (foo == 0) filename = "/home/graham/dev/MCWhereIsMyMind.mid";
+    if (foo == 1) filename = "/home/graham/dev/moonlight.mid";
+    if (foo == 2) filename = "/home/graham/dev/Compound_quadruple_drum_pattern.mid";
+    foo++;
+
+    free_file = 0;
+#endif
     result = MIDI_LoadFile(filename);
 
+#if USE_MIDI_DUMP_FILE
+    for(int i=0;i<numlumps;i++) {
+        if (lumpinfo[i]->mem == data) {
+            char out_filename[32];
+            sprintf(out_filename, "%s.midx", lumpinfo[i]->name);
+            MIDI_DumpFile(result, out_filename);
+            break;
+        }
+    }
+#endif
     if (result == NULL)
     {
-        fprintf(stderr, "I_OPL_RegisterSong: Failed to load MID.\n");
+        stderr_print( "I_OPL_RegisterSong: Failed to load MID.\n");
     }
 
     // remove file now
 
-    remove(filename);
-    free(filename);
+    if (free_file) {
+        remove(filename);
+        free(filename);
+    }
+#endif
 
     return result;
 }
@@ -1715,11 +1802,10 @@ static void I_OPL_ShutdownMusic(void)
 
 static boolean I_OPL_InitMusic(void)
 {
-    char *dmxoption;
+#if !DOOM_TINY
+    const char *dmxoption;
     opl_init_result_t chip_type;
-
     OPL_SetSampleRate(snd_samplerate);
-
     chip_type = OPL_Init(opl_io_port);
     if (chip_type == OPL_INIT_NONE)
     {
@@ -1749,6 +1835,9 @@ static boolean I_OPL_InitMusic(void)
     // Secret, undocumented DMXOPTION that reverses the stereo channels
     // into their correct orientation.
     opl_stereo_correct = strstr(dmxoption, "-reverse") != NULL;
+#else
+    OPL_Init(opl_io_port);
+#endif
 
     // Initialize all registers.
 
@@ -1771,13 +1860,13 @@ static boolean I_OPL_InitMusic(void)
     return true;
 }
 
-static snddevice_t music_opl_devices[] =
+static const snddevice_t music_opl_devices[] =
 {
     SNDDEVICE_ADLIB,
     SNDDEVICE_SB,
 };
 
-music_module_t music_opl_module =
+const music_module_t music_opl_module =
 {
     music_opl_devices,
     arrlen(music_opl_devices),

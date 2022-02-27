@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -223,7 +224,7 @@ void R_RenderSegLoop(void)
             // calculate texture offset
             angle = (rw_centerangle + xtoviewangle[rw_x]) >> ANGLETOFINESHIFT;
             texturecolumn =
-                rw_offset - FixedMul(finetangent[angle], rw_distance);
+                rw_offset - FixedMul(finetangent(angle), rw_distance);
             texturecolumn >>= FRACBITS;
             // calculate lighting
             index = rw_scale >> LIGHTSCALESHIFT;
@@ -353,7 +354,7 @@ void R_StoreWallRange(int start, int stop)
         offsetangle = ANG90;
     distangle = ANG90 - offsetangle;
     hyp = R_PointToDist(curline->v1->x, curline->v1->y);
-    sineval = finesine[distangle >> ANGLETOFINESHIFT];
+    sineval = finesine(distangle >> ANGLETOFINESHIFT);
     rw_distance = FixedMul(hyp, sineval);
 
 
@@ -546,7 +547,7 @@ void R_StoreWallRange(int start, int stop)
             offsetangle = -offsetangle;
         if (offsetangle > ANG90)
             offsetangle = ANG90;
-        sineval = finesine[offsetangle >> ANGLETOFINESHIFT];
+        sineval = finesine(offsetangle >> ANGLETOFINESHIFT);
         rw_offset = FixedMul(hyp, sineval);
         if (rw_normalangle - rw_angle1 < ANG180)
             rw_offset = -rw_offset;

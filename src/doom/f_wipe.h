@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -60,4 +61,16 @@ wipe_ScreenWipe
   int		height,
   int		ticks );
 
+#if DOOM_TINY
+typedef enum {
+    WIPESTATE_NONE,
+    WIPESTATE_SKIP1,
+    WIPESTATE_REDRAW1,
+    WIPESTATE_SKIP2,
+    WIPESTATE_REDRAW2,
+    WIPESTATE_SKIP3,
+} wipestate_t;
+extern wipestate_t wipestate;
+extern volatile uint8_t wipe_min;
+#endif
 #endif

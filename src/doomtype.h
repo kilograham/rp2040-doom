@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -34,6 +35,10 @@
 #if !HAVE_DECL_STRCASECMP || !HAVE_DECL_STRNCASECMP
 
 #include <string.h>
+#if PICO_ON_DEVICE
+extern int stricmp(const char *a, const char *b);
+extern int strnicmp(const char *a, const char *b, size_t len);
+#endif
 #if !HAVE_DECL_STRCASECMP
 #define strcasecmp stricmp
 #endif
@@ -102,11 +107,14 @@ typedef bool boolean;
 
 #else
 
-typedef enum 
-{
-    false, 
-    true
-} boolean;
+typedef uint8_t boolean;
+#define false 0
+#define true 1
+//typedef enum
+//{
+//    false,
+//    true
+//} boolean;
 
 #endif
 
@@ -114,6 +122,15 @@ typedef uint8_t byte;
 typedef uint8_t pixel_t;
 typedef int16_t dpixel_t;
 
+#if !DOOM_SMALL
+typedef int isb_int8_t;
+typedef int isb_int16_t;
+typedef int isb_uint8_t;
+#else
+typedef int8_t isb_int8_t;
+typedef int16_t isb_int16_t;
+typedef uint8_t isb_uint8_t;
+#endif
 #include <limits.h>
 
 #ifdef _WIN32
@@ -131,6 +148,98 @@ typedef int16_t dpixel_t;
 #endif
 
 #define arrlen(array) (sizeof(array) / sizeof(*array))
+
+#if USE_FLAT_MAX_256
+typedef uint8_t flatnum_t;
+#else
+typedef int flatnum_t;
+#endif
+
+#if !DOOM_SMALL
+typedef int texnum_t;
+#else
+typedef short texnum_t;
+#endif
+
+#if DOOM_CONST
+#define should_be_const const
+#else
+#define should_be_const
+#endif
+
+#if DOOM_SMALL
+typedef uint8_t key_type_t;
+typedef int8_t mouseb_type_t; // allow -1
+#else
+typedef int key_type_t;
+typedef int mouseb_type_t;
+#endif
+
+#if DOOM_SMALL
+typedef short lumpindex_t;
+typedef uint16_t cardinal_t;
+#else
+typedef int lumpindex_t;
+typedef int cardinal_t;
+#endif
+typedef const char * constcharstar;
+
+#if !FLOOR_CEILING_CLIP_8BIT
+#define FLOOR_CEILING_CLIP_OFFSET 0
+typedef short floor_ceiling_clip_t;
+#else
+#define FLOOR_CEILING_CLIP_OFFSET 1
+typedef uint8_t floor_ceiling_clip_t;
+#endif
+
+#if PICO_ON_DEVICE
+#include <assert.h>
+typedef uint16_t shortptr_t;
+static inline void *shortptr_to_ptr(shortptr_t s) {
+    return s ? (void *)(0x20000000 + s * 4) : NULL;
+}
+static inline shortptr_t ptr_to_shortptr(void *p) {
+    if (!p) return 0;
+    uintptr_t v = (uintptr_t)p;
+    assert(v>=0x20000004 && v <= 0x20040000 && !(v&3));
+    return (shortptr_t) ((v << 14u)>>16u);
+}
+#else
+typedef void *shortptr_t;
+#define shortptr_to_ptr(s) (s)
+#define ptr_to_shortptr(s) (s)
+#endif
+
+#if DOOM_TINY
+#define stderr_print(...) printf(__VA_ARGS__)
+#else
+#define stderr_print(...) fprintf(stderr, __VA_ARGS__)
+#endif
+
+
+#ifndef MIN
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#endif
+
+#ifndef MAX
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#endif
+
+#if DOOM_SMALL && !defined(USE_ROWAD)
+#define USE_ROWAD 1
+#endif
+
+#if USE_ROWAD
+#define rowad_const const
+#define hack_rowad_p(type, instance, member) ((type *)instance)->member
+#else
+#define rowad_const
+#define hack_rowad_p(type, instance, member) (instance)->member
+#endif
+
+#ifndef count_of
+#define count_of(a) (sizeof(a)/sizeof((a)[0]))
+#endif
 
 #endif
 

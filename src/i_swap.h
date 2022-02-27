@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,7 +21,17 @@
 #ifndef __I_SWAP__
 #define __I_SWAP__
 
+#if !PICO_ON_DEVICE
 #include "SDL_endian.h"
+#else
+#define SDL_SwapLE16(x) (x)
+#define SDL_SwapLE32(x) (x)
+#define SDL_SwapBE16(x) __builtin_bswap16(x)
+#define SDL_SwapBE32(x) __builtin_bswap32(x)
+#define SDL_BYTEORDER 0
+#define SDL_LITTLE_ENDIAN 0
+#define SDL_BIG_ENDIAN 1
+#endif
 
 // Endianess handling.
 // WAD files are stored little endian.

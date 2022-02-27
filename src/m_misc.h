@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -25,6 +26,7 @@
 
 #include "doomtype.h"
 
+#if !NO_FILE_ACCESS
 boolean M_WriteFile(const char *name, const void *source, int length);
 int M_ReadFile(const char *name, byte **buffer);
 void M_MakeDirectory(const char *dir);
@@ -32,10 +34,11 @@ char *M_TempFile(const char *s);
 boolean M_FileExists(const char *file);
 char *M_FileCaseExists(const char *file);
 long M_FileLength(FILE *handle);
-boolean M_StrToInt(const char *str, int *result);
 char *M_DirName(const char *path);
 const char *M_BaseName(const char *path);
 void M_ExtractFileBase(const char *path, char *dest);
+#endif
+boolean M_StrToInt(const char *str, int *result);
 void M_ForceUppercase(char *text);
 void M_ForceLowercase(char *text);
 const char *M_StrCaseStr(const char *haystack, const char *needle);

@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -21,21 +22,24 @@
 #define __R_THINGS__
 
 
-
+#if !NO_VISSPRITES
 #define MAXVISSPRITES  	128
 
 extern vissprite_t	vissprites[MAXVISSPRITES];
 extern vissprite_t*	vissprite_p;
 extern vissprite_t	vsprsortedhead;
+#endif
 
 // Constant arrays used for psprite clipping
 //  and initializing clipping.
-extern short		negonearray[SCREENWIDTH];
-extern short		screenheightarray[SCREENWIDTH];
+// todo graham remove these
 
 // vars for R_DrawMaskedColumn
-extern short*		mfloorclip;
-extern short*		mceilingclip;
+extern floor_ceiling_clip_t		minfloorceilingcliparray[SCREENWIDTH];
+extern floor_ceiling_clip_t		maxfloorceilingcliparray[SCREENWIDTH];
+extern floor_ceiling_clip_t*		mfloorclip;
+extern floor_ceiling_clip_t*		mceilingclip;
+
 extern fixed_t		spryscale;
 extern fixed_t		sprtopscreen;
 
@@ -43,7 +47,8 @@ extern fixed_t		pspritescale;
 extern fixed_t		pspriteiscale;
 
 
-void R_DrawMaskedColumn (column_t* column);
+void R_DrawMaskedColumn (maskedcolumn_t column);
+
 
 
 void R_SortVisSprites (void);
@@ -51,9 +56,16 @@ void R_SortVisSprites (void);
 void R_AddSprites (sector_t* sec);
 void R_AddPSprites (void);
 void R_DrawSprites (void);
-void R_InitSprites(const char **namelist);
+void R_DrawSpriteEarly (vissprite_t* spr);
+void R_InitSprites();
 void R_ClearSprites (void);
 void R_DrawMasked (void);
+#if DOOM_TINY
+void R_DrawVisSprite
+        (vissprite_t *vis,
+         int x1,
+         int x2);
+#endif
 
 void
 R_ClipVisSprite

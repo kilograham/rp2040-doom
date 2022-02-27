@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,6 +27,7 @@
 #include "deh_main.h"
 #include "p_local.h"
 
+#if !NO_USE_DEH
 static void *DEH_AmmoStart(deh_context_t *context, char *line)
 {
     int ammo_number = 0;
@@ -101,3 +103,4 @@ deh_section_t deh_section_ammo =
     DEH_AmmoSHA1Hash,
 };
 
+#endif

@@ -1,4 +1,6 @@
-add_library(doom STATIC
+add_library(doom INTERFACE)
+cmake_policy(SET CMP0076 NEW)
+target_sources(doom INTERFACE
             am_map.c        am_map.h
             deh_ammo.c
             deh_bexstr.c
@@ -21,8 +23,10 @@ add_library(doom STATIC
             dstrings.c      dstrings.h
                             d_textur.h
                             d_think.h
-            f_finale.c      f_finale.h
-            f_wipe.c        f_wipe.h
+            f_finale.h
+            f_finale.c
+            f_wipe.c
+            f_wipe.h
             g_game.c        g_game.h
             hu_lib.c        hu_lib.h
             hu_stuff.c      hu_stuff.h
@@ -50,6 +54,7 @@ add_library(doom STATIC
             p_tick.c        p_tick.h
             p_user.c
             r_bsp.c         r_bsp.h
+            r_data_whd.c
             r_data.c        r_data.h
                             r_defs.h
             r_draw.c        r_draw.h
@@ -67,5 +72,9 @@ add_library(doom STATIC
             st_stuff.c      st_stuff.h
             wi_stuff.c      wi_stuff.h)
 
-target_include_directories(doom PRIVATE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
-target_link_libraries(doom SDL2::SDL2 SDL2::mixer SDL2::net)
+target_include_directories(doom INTERFACE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
+if (NOT PICO_SDK)
+    target_link_libraries(doom INTERFACE SDL2::SDL2 SDL2::mixer SDL2::net)
+else()
+    target_link_libraries(doom INTERFACE pico_stdlib pico_multicore)
+endif()

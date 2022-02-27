@@ -17,6 +17,7 @@ chocolate-setup
 *.desktop
 *.txt
 !CMakeLists.txt
+!license.txt
 *.appdata.xml
 tags
 TAGS

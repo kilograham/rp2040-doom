@@ -1,4 +1,6 @@
-add_library(hexen STATIC
+cmake_policy(SET CMP0076 NEW)
+add_library(hexen INTERFACE)
+target_sources(hexen INTERFACE
             a_action.c
                                 am_data.h
             am_map.c            am_map.h
@@ -54,5 +56,5 @@ add_library(hexen STATIC
                                 textdefs.h
                                 xddefs.h)
 
-target_include_directories(hexen PRIVATE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
-target_link_libraries(hexen SDL2::SDL2 SDL2::mixer SDL2::net)
+target_include_directories(hexen INTERFACE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
+target_link_libraries(hexen INTERFACE SDL2::SDL2 SDL2::mixer SDL2::net)

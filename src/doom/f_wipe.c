@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -234,8 +235,10 @@ wipe_StartScreen
   int	width,
   int	height )
 {
-    wipe_scr_start = Z_Malloc(SCREENWIDTH * SCREENHEIGHT * sizeof(*wipe_scr_start), PU_STATIC, NULL);
+#if !NO_USE_WIPE
+    wipe_scr_start = Z_Malloc(SCREENWIDTH * SCREENHEIGHT * sizeof(*wipe_scr_start), PU_STATIC, 0);
     I_ReadScreen(wipe_scr_start);
+#endif
     return 0;
 }
 
@@ -246,9 +249,11 @@ wipe_EndScreen
   int	width,
   int	height )
 {
-    wipe_scr_end = Z_Malloc(SCREENWIDTH * SCREENHEIGHT * sizeof(*wipe_scr_end), PU_STATIC, NULL);
+#if !NO_USE_WIPE
+    wipe_scr_end = Z_Malloc(SCREENWIDTH * SCREENHEIGHT * sizeof(*wipe_scr_end), PU_STATIC, 0);
     I_ReadScreen(wipe_scr_end);
     V_DrawBlock(x, y, width, height, wipe_scr_start); // restore start scr.
+#endif
     return 0;
 }
 
@@ -261,6 +266,7 @@ wipe_ScreenWipe
   int	height,
   int	ticks )
 {
+#if !NO_USE_WIPE
     int rc;
     static int (*wipes[])(int, int, int) =
     {
@@ -290,5 +296,8 @@ wipe_ScreenWipe
     }
 
     return !go;
+#else
+    return 1;
+#endif
 }
 

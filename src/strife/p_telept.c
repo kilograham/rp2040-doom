@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -132,7 +133,7 @@ EV_Teleport
                 an = m->angle >> ANGLETOFINESHIFT;
                 
                 if(!(flags & TF_NODSTFOG))
-                    fog = P_SpawnMobj (m->x+20*finecosine[an], m->y+20*finesine[an], 
+                    fog = P_SpawnMobj (m->x+20*finecosine(an), m->y+20*finesine(an),
                                        thing->z, MT_TFOG);
                 if(!(flags & TF_NODSTSND))
                     S_StartSound (fog, sfx_telept);

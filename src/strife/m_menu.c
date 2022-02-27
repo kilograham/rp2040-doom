@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -119,7 +120,7 @@ int			saveStringEnter;
 int             	saveSlot;	// which slot to save in
 int			saveCharIndex;	// which char we're editing
 // old save description before edit
-char			saveOldString[SAVESTRINGSIZE];  
+char			stringEntryOldString[SAVESTRINGSIZE];
 
 boolean                 inhelpscreens;
 boolean                 menuactive;
@@ -768,7 +769,7 @@ void M_SaveSelect(int choice)
     quickSaveSlot = choice;
     //saveSlot = choice;
 
-    M_StringCopy(saveOldString, savegamestrings[choice], sizeof(saveOldString));
+    M_StringCopy(stringEntryOldString, savegamestrings[choice], sizeof(stringEntryOldString));
     if (!strcmp(savegamestrings[choice], DEH_String(EMPTYSTRING)))
         savegamestrings[choice][0] = 0;
     saveCharIndex = strlen(savegamestrings[choice]);
@@ -1859,7 +1860,7 @@ boolean M_Responder (event_t* ev)
         case KEY_ESCAPE:
             saveStringEnter = 0;
             I_StopTextInput();
-            M_StringCopy(savegamestrings[quickSaveSlot], saveOldString,
+            M_StringCopy(savegamestrings[quickSaveSlot], stringEntryOldString,
                          sizeof(savegamestrings[quickSaveSlot]));
             break;
 

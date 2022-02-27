@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -95,10 +96,10 @@ void	P_PlayerThink (player_t* player);
 // Time interval for item respawning.
 #define ITEMQUESIZE		128
 
-extern mapthing_t	itemrespawnque[ITEMQUESIZE];
-extern int		itemrespawntime[ITEMQUESIZE];
-extern int		iquehead;
-extern int		iquetail;
+extern spawnpoint_t itemrespawnque[ITEMQUESIZE];
+extern isb_int16_t itemrespawntime[ITEMQUESIZE];
+extern isb_uint8_t iquehead;
+extern isb_uint8_t iquetail;
 
 
 void P_RespawnSpecials (void);
@@ -136,7 +137,6 @@ typedef struct
     fixed_t	y;
     fixed_t	dx;
     fixed_t	dy;
-    
 } divline_t;
 
 typedef struct
@@ -152,7 +152,11 @@ typedef struct
 // Extended MAXINTERCEPTS, to allow for intercepts overrun emulation.
 
 #define MAXINTERCEPTS_ORIGINAL 128
+#if !NO_INTERCEPTS_OVERRUN
 #define MAXINTERCEPTS          (MAXINTERCEPTS_ORIGINAL + 61)
+#else
+#define MAXINTERCEPTS          MAXINTERCEPTS_ORIGINAL
+#endif
 
 extern intercept_t	intercepts[MAXINTERCEPTS];
 extern intercept_t*	intercept_p;
@@ -193,6 +197,7 @@ P_PathTraverse
 
 void P_UnsetThingPosition (mobj_t* thing);
 void P_SetThingPosition (mobj_t* thing);
+void P_ResetThingPosition (mobj_t* thing, fixed_t x, fixed_t y);
 
 
 //
@@ -258,14 +263,18 @@ P_RadiusAttack
 //
 // P_SETUP
 //
-extern byte*		rejectmatrix;	// for fast sight rejection
-extern short*		blockmaplump;	// offsets in blockmap are from here
-extern short*		blockmap;
-extern int		bmapwidth;
-extern int		bmapheight;	// in mapblocks
+extern should_be_const byte*		rejectmatrix;	// for fast sight rejection
+extern rowad_const short*		blockmaplump;	// offsets in blockmap are from here
+#if !USE_WHD
+extern rowad_const short*		blockmap;
+#else
+extern byte *blockmap_whd;
+#endif
+extern cardinal_t		bmapwidth;
+extern cardinal_t		bmapheight;	// in mapblocks
 extern fixed_t		bmaporgx;
 extern fixed_t		bmaporgy;	// origin of block map
-extern mobj_t**		blocklinks;	// for thing chains
+extern shortptr_t /*mobj_t*/*		blocklinks;	// for thing chains
 
 
 

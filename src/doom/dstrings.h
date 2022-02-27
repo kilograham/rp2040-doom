@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -34,8 +35,9 @@
 // 8 per each game type
 #define NUM_QUITMESSAGES   8
 
-extern const char *doom1_endmsg[];
-extern const char *doom2_endmsg[];
+#include "doomtype.h"
+extern const constcharstar doom1_endmsg[NUM_QUITMESSAGES];
+extern const constcharstar doom2_endmsg[NUM_QUITMESSAGES];
 
 
 #endif

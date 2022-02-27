@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -29,6 +30,8 @@
 #include "w_merge.h"
 #include "w_wad.h"
 #include "z_zone.h"
+
+#if !USE_SINGLE_IWAD
 
 typedef enum 
 { 
@@ -719,4 +722,4 @@ void W_NWTDashMerge(const char *filename)
 
     W_CloseFile(wad_file);
 }
-
+#endif

@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -37,12 +38,12 @@ static int OPL_Linux_Init(unsigned int port_base)
 
     if (ioperm(port_base, 2, 1) < 0)
     {
-        fprintf(stderr, "Failed to get I/O port permissions for 0x%x: %s\n",
+        stderr_print( "Failed to get I/O port permissions for 0x%x: %s\n",
                         port_base, strerror(errno));
 
         if (errno == EPERM)
         {
-            fprintf(stderr,
+            stderr_print(
                     "\tYou may need to run the program as root in order\n"
                     "\tto acquire I/O port permissions for OPL MIDI playback.\n");
         }

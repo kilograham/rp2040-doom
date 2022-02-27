@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -32,7 +33,7 @@ typedef void (*opl_clear_callbacks_func)(void);
 typedef void (*opl_lock_func)(void);
 typedef void (*opl_unlock_func)(void);
 typedef void (*opl_set_paused_func)(int paused);
-typedef void (*opl_adjust_callbacks_func)(float value);
+typedef void (*opl_adjust_callbacks_func)(unsigned int old_tempo, unsigned int new_tempo);
 
 typedef struct
 {

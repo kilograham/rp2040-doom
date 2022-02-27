@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -17,6 +18,8 @@
 //
 
 
+#include <assert.h>
+#include <sys/param.h>
 #include "SDL.h"
 #include "SDL_opengl.h"
 
@@ -98,11 +101,11 @@ int png_screenshots = 0;
 
 // SDL video driver name
 
-char *video_driver = "";
+should_be_const constcharstar video_driver = "";
 
 // Window position:
 
-char *window_position = "center";
+should_be_const constcharstar window_position = "center";
 
 // SDL display number on which to run.
 
@@ -194,13 +197,18 @@ static unsigned int last_resize_time;
 
 // Gamma correction level to use
 
-int usegamma = 0;
+isb_int8_t usegamma = 0;
 
+#ifndef NO_USE_JOYSTICK
 // Joystick/gamepad hysteresis
 unsigned int joywait = 0;
+#endif
 
 static boolean MouseShouldBeGrabbed()
 {
+#if DOOM_SMALL
+    return false;
+#endif
     // never grab the mouse when in screensaver mode
    
     if (screensaver_mode)
@@ -482,10 +490,12 @@ void I_StartTic (void)
         I_ReadMouse();
     }
 
+#if !NO_USE_JOYSTICK
     if (joywait < I_GetTime())
     {
         I_UpdateJoystick();
     }
+#endif
 }
 
 
@@ -816,7 +826,7 @@ void I_ReadScreen (pixel_t* scr)
 //
 // I_SetPalette
 //
-void I_SetPalette (byte *doompalette)
+void I_SetPalette (should_be_const byte *doompalette)
 {
     int i;
 
@@ -973,6 +983,7 @@ void I_GraphicsCheckCommandLine(void)
     // Specify the screen width, in pixels. Implies -window.
     //
 
+#if !NO_USE_ARGS
     i = M_CheckParmWithArgs("-width", 1);
 
     if (i > 0)
@@ -1017,6 +1028,7 @@ void I_GraphicsCheckCommandLine(void)
             fullscreen = false;
         }
     }
+#endif
 
     //!
     // @category video
@@ -1090,7 +1102,7 @@ static void CenterWindow(int *x, int *y, int w, int h)
 
     if (SDL_GetDisplayBounds(video_display, &bounds) < 0)
     {
-        fprintf(stderr, "CenterWindow: Failed to read display bounds "
+        stderr_print( "CenterWindow: Failed to read display bounds "
                         "for display #%d!\n", video_display);
         return;
     }
@@ -1105,7 +1117,7 @@ void I_GetWindowPosition(int *x, int *y, int w, int h)
     // and if it doesn't, reset it.
     if (video_display < 0 || video_display >= SDL_GetNumVideoDisplays())
     {
-        fprintf(stderr,
+        stderr_print(
                 "I_GetWindowPosition: We were configured to run on display #%d, "
                 "but it no longer exists (max %d). Moving to display 0.\n",
                 video_display, SDL_GetNumVideoDisplays() - 1);
@@ -1339,7 +1351,7 @@ static void SetVideoMode(void)
 void I_InitGraphics(void)
 {
     SDL_Event dummy;
-    byte *doompal;
+    should_be_const byte *doompal;
     char *env;
 
     // Pass through the XSCREENSAVER_WINDOW environment variable to 
@@ -1395,6 +1407,20 @@ void I_InitGraphics(void)
     // Set the palette
 
     doompal = W_CacheLumpName(DEH_String("PLAYPAL"), PU_CACHE);
+#if PRINT_PALETTE
+    int size = W_LumpLength(W_GetNumForName(DEH_String("PLAYPAL")));
+    assert(!(size % 768));
+    printf("\nconst uint8_t doompal[%d * 768] = {\n", size / 768);
+    for(int i=0;i<size;i+=32) {
+        if (!(i % 768)) printf("    // %d \n", i/256);
+        printf("    ");
+        for(int j=i;j<MIN(size,i+32);j++) {
+            printf("0x%02x, ", doompal[j]);
+        }
+        printf("\n");
+    }
+    printf("};\n");
+#endif
     I_SetPalette(doompal);
     SDL_SetPaletteColors(screenbuffer->format->palette, palette, 0, 256);
 

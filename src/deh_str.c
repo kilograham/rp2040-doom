@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,6 +27,7 @@
 
 #include "z_zone.h"
 
+#if !NO_USE_DEH
 typedef struct 
 {
     char *from_text;
@@ -103,7 +105,7 @@ static void InitHashTable(void)
     hash_table_entries = 0;
     hash_table_length = 16;
     hash_table = Z_Malloc(sizeof(deh_substitution_t *) * hash_table_length,
-                          PU_STATIC, NULL);
+                          PU_STATIC, 0);
     memset(hash_table, 0, sizeof(deh_substitution_t *) * hash_table_length);
 }
 
@@ -124,7 +126,7 @@ static void IncreaseHashtable(void)
 
     hash_table_length *= 2;
     hash_table = Z_Malloc(sizeof(deh_substitution_t *) * hash_table_length,
-                          PU_STATIC, NULL);
+                          PU_STATIC, 0);
     memset(hash_table, 0, sizeof(deh_substitution_t *) * hash_table_length);
 
     // go through the old table and insert all the old entries
@@ -184,7 +186,7 @@ void DEH_AddStringReplacement(const char *from_text, const char *to_text)
         Z_Free(sub->to_text);
 
         len = strlen(to_text) + 1;
-        sub->to_text = Z_Malloc(len, PU_STATIC, NULL);
+        sub->to_text = Z_Malloc(len, PU_STATIC, 0);
         memcpy(sub->to_text, to_text, len);
     }
     else
@@ -194,11 +196,11 @@ void DEH_AddStringReplacement(const char *from_text, const char *to_text)
 
         // We need to create our own duplicates of the provided strings.
         len = strlen(from_text) + 1;
-        sub->from_text = Z_Malloc(len, PU_STATIC, NULL);
+        sub->from_text = Z_Malloc(len, PU_STATIC, 0);
         memcpy(sub->from_text, from_text, len);
 
         len = strlen(to_text) + 1;
-        sub->to_text = Z_Malloc(len, PU_STATIC, NULL);
+        sub->to_text = Z_Malloc(len, PU_STATIC, 0);
         memcpy(sub->to_text, to_text, len);
 
         DEH_AddToHashtable(sub);
@@ -431,3 +433,4 @@ void DEH_snprintf(char *buffer, size_t len, const char *fmt, ...)
     va_end(args);
 }
 
+#endif

@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -45,13 +46,15 @@ void ST_Ticker (void);
 // Called by main loop.
 void ST_Drawer (boolean fullscreen, boolean refresh);
 
+void ST_FpsDrawer(int fps);
+
 // Called when the console player is spawned on each level.
 void ST_Start (void);
 
 // Called by startup code.
 void ST_Init (void);
 
-
+void ST_doPaletteStuff(void);
 
 // States for status bar code.
 typedef enum
@@ -72,8 +75,12 @@ typedef enum
 } st_chatstateenum_t;
 
 
-
+#if USE_FPS
+extern boolean show_fps;
+#endif
+#if !DOOM_TINY
 extern pixel_t *st_backing_screen;
+#endif
 extern cheatseq_t cheat_mus;
 extern cheatseq_t cheat_god;
 extern cheatseq_t cheat_ammo;
@@ -84,6 +91,7 @@ extern cheatseq_t cheat_powerup[7];
 extern cheatseq_t cheat_choppers;
 extern cheatseq_t cheat_clev;
 extern cheatseq_t cheat_mypos;
-
-
+#if DOOM_TINY
+void ST_drawWidgets(boolean refresh);
+#endif
 #endif

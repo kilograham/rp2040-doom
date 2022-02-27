@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,9 +21,11 @@
 #ifndef __SOUNDS__
 #define __SOUNDS__
 
+#include "doomdef.h"
 #include "i_sound.h"
 
 // the complete set of sound effects
+#define NUM_SFX 110
 extern sfxinfo_t	S_sfx[];
 
 // the complete set of music
@@ -223,5 +226,7 @@ typedef enum
     sfx_radio,
     NUMSFX
 } sfxenum_t;
+#include <assert.h>
+static_assert(NUMSFX < 256, ""); // for mobj_info
 
 #endif

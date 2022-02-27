@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -1089,7 +1090,7 @@ void BindJoystickVariables(void)
     int i;
 
     M_BindIntVariable("use_joystick",           &usejoystick);
-    M_BindStringVariable("joystick_guid",       &joystick_guid);
+    M_BindStringVariable("joystick_guid",       (constcharstar *)&joystick_guid);
     M_BindIntVariable("joystick_index",         &joystick_index);
     M_BindIntVariable("joystick_x_axis",        &joystick_x_axis);
     M_BindIntVariable("joystick_y_axis",        &joystick_y_axis);

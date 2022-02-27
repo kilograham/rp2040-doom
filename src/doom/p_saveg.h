@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -31,10 +32,22 @@
 
 // temporary filename to use while saving.
 
+#if !NO_FILE_ACCESS
 char *P_TempSaveGameFile(void);
 
 // filename to use for a savegame slot
 
+#endif
+#if PICO_ON_DEVICE
+typedef struct {
+    const uint8_t *data; // null for empty slot
+    int size;
+} flash_slot_info_t;
+
+void P_SaveGameGetExistingFlashSlotAddresses(flash_slot_info_t *slots, int count);
+// can pass null to clear a slot
+boolean P_SaveGameWriteFlashSlot(int slot, const uint8_t *buffer, uint size, uint8_t *buffer4k);
+#endif
 char *P_SaveGameFile(int slot);
 
 // Savegame file header read/write functions
@@ -58,7 +71,18 @@ void P_UnArchiveThinkers (void);
 void P_ArchiveSpecials (void);
 void P_UnArchiveSpecials (void);
 
+#if !NO_FILE_ACCESS
 extern FILE *save_stream;
+#endif
+#if SAVE_COMPRESSED || LOAD_COMPRESSED
+#include "tiny_huff.h"
+#endif
+#if LOAD_COMPRESSED
+extern th_bit_input  *sg_bi;
+#endif
+#if SAVE_COMPRESSED
+extern th_bit_output *sg_bo;
+#endif
 extern boolean savegame_error;
 
 

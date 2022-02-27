@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -41,8 +42,13 @@
 // Frame flags:
 // handles maximum brightness (torches, muzzle flare, light sources)
 //
+#if !DOOM_SMALL
 #define FF_FULLBRIGHT	0x8000	// flag in thing->frame
 #define FF_FRAMEMASK	0x7fff
+#else
+#define FF_FULLBRIGHT	0x80	// flag in thing->frame
+#define FF_FRAMEMASK	0x7f
+#endif
 
 
 
@@ -61,7 +67,7 @@ typedef enum
 
 typedef struct
 {
-    state_t*	state;	// a NULL state means not active
+    should_be_const state_t*	state;	// a NULL state means not active
     int		tics;
     fixed_t	sx;
     fixed_t	sy;

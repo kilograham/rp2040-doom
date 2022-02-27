@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -22,14 +23,18 @@
 
 
 // Game Mode - identify IWAD as shareware, retail etc.
+#if !DEMO1_ONLY
 GameMode_t gamemode = indetermined;
+#endif
 GameMission_t	gamemission = doom;
 GameVersion_t   gameversion = exe_final2;
 GameVariant_t   gamevariant = vanilla;
 const char *gamedescription;
 
+#if !DOOM_TINY
 // Set if homebrew PWAD stuff has been added.
 boolean	modifiedgame;
+#endif
 
 
 

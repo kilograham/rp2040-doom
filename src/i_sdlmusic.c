@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -56,7 +57,7 @@ static boolean sdl_was_initialized = false;
 static boolean musicpaused = false;
 static int current_music_volume;
 
-char *timidity_cfg_path = "";
+constcharstar timidity_cfg_path = "";
 
 static char *temp_timidity_cfg = NULL;
 
@@ -101,7 +102,11 @@ void I_InitTimidityConfig(void)
 
     if (snd_musicdevice == SNDDEVICE_GUS)
     {
+#if !NO_USE_GUS
         success = GUS_WriteConfig(temp_timidity_cfg);
+#else
+        success = false;
+#endif
     }
     else
     {
@@ -177,11 +182,11 @@ static boolean I_SDL_InitMusic(void)
     {
         if (SDL_Init(SDL_INIT_AUDIO) < 0)
         {
-            fprintf(stderr, "Unable to set up sound.\n");
+            stderr_print( "Unable to set up sound.\n");
         }
         else if (Mix_OpenAudio(snd_samplerate, AUDIO_S16SYS, 2, 1024) < 0)
         {
-            fprintf(stderr, "Error initializing SDL_mixer: %s\n",
+            stderr_print( "Error initializing SDL_mixer: %s\n",
                     Mix_GetError());
             SDL_QuitSubSystem(SDL_INIT_AUDIO);
         }
@@ -348,12 +353,12 @@ static void I_SDL_UnRegisterSong(void *handle)
 
 // Determine whether memory block is a .mid file 
 
-static boolean IsMid(byte *mem, int len)
+static boolean IsMid(should_be_const byte *mem, int len)
 {
     return len > 4 && !memcmp(mem, "MThd", 4);
 }
 
-static boolean ConvertMus(byte *musdata, int len, const char *filename)
+static boolean ConvertMus(should_be_const byte *musdata, int len, const char *filename)
 {
     MEMFILE *instream;
     MEMFILE *outstream;
@@ -379,7 +384,7 @@ static boolean ConvertMus(byte *musdata, int len, const char *filename)
     return result;
 }
 
-static void *I_SDL_RegisterSong(void *data, int len)
+static void *I_SDL_RegisterSong(should_be_const void *data, int len)
 {
     char *filename;
     Mix_Music *music;
@@ -417,7 +422,7 @@ static void *I_SDL_RegisterSong(void *data, int len)
         music = NULL;
         if (!I_MidiPipe_RegisterSong(filename))
         {
-            fprintf(stderr, "Error loading midi: %s\n",
+            stderr_print( "Error loading midi: %s\n",
                 "Could not communicate with midiproc.");
         }
     }
@@ -428,7 +433,7 @@ static void *I_SDL_RegisterSong(void *data, int len)
         if (music == NULL)
         {
             // Failed to load
-            fprintf(stderr, "Error loading midi: %s\n", Mix_GetError());
+            stderr_print( "Error loading midi: %s\n", Mix_GetError());
         }
 
         // Remove the temporary MIDI file; however, when using an external

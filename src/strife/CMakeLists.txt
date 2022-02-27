@@ -1,4 +1,6 @@
-set(STRIFE_SOURCES
+cmake_policy(SET CMP0076 NEW)
+add_library(strife INTERFACE)
+target_sources(strife INTERFACE
     am_map.c        am_map.h
     deh_ammo.c
     deh_cheat.c
@@ -67,7 +69,5 @@ set(STRIFE_SOURCES
     st_stuff.c      st_stuff.h
     wi_stuff.c      wi_stuff.h)
 
-add_library(strife STATIC ${STRIFE_SOURCES})
-
-target_include_directories(strife PRIVATE "../" "../../win32/" "${CMAKE_CURRENT_BINARY_DIR}/../../")
-target_link_libraries(strife textscreen SDL2::SDL2 SDL2::mixer SDL2::net)
+target_include_directories(strife INTERFACE "../" "../../win32/" "${CMAKE_CURRENT_BINARY_DIR}/../../")
+target_link_libraries(strife INTERFACE textscreen SDL2::SDL2 SDL2::mixer SDL2::net)

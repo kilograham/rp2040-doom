@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,7 +28,7 @@ void OPL_Timer_ClearCallbacks(void);
 void OPL_Timer_Lock(void);
 void OPL_Timer_Unlock(void);
 void OPL_Timer_SetPaused(int paused);
-void OPL_Timer_AdjustCallbacks(float factor);
+void OPL_Timer_AdjustCallbacks(unsigned int old_tempo, unsigned int new_tempo);
 
 #endif /* #ifndef OPL_TIMER_H */
 

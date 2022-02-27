@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,21 +29,33 @@
 // NET_MAXPLAYERS, as there may be observers that are not participating
 // (eg. left/right monitors)
 
-#define MAXNETNODES 16
-
 // The maximum number of players, multiplayer/networking.
 // This is the maximum supported by the networking code; individual games
 // have their own values for MAXPLAYERS that can be smaller.
 
+#if !DOOM_SMALL
 #define NET_MAXPLAYERS 8
+#define MAXNETNODES 16
+#else
+#define NET_MAXPLAYERS 4
+#define MAXNETNODES 4
+#endif
 
 // Maximum length of a player's name.
 
+#if !DOOM_TINY
 #define MAXPLAYERNAME 30
-
+#else
+#define MAXPLAYERNAME 18 // really just based on the entry field size
+#endif
 // Networking and tick handling related.
 
+#if DOOM_TINY
+// todo graham figure out what we actually need (for multiplayer maybe more, for single player possibly only 1)
+#define BACKUPTICS 5
+#else
 #define BACKUPTICS 128
+#endif
 
 typedef struct _net_module_s net_module_t;
 typedef struct _net_packet_s net_packet_t;
@@ -169,7 +182,7 @@ typedef enum
 
 typedef struct
 {
-    int gamemode;
+    int _gamemode;
     int gamemission;
     int lowres_turn;
     int drone;

@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -100,7 +101,7 @@ static boolean music_initialized = false;
 
 static boolean sdl_was_initialized = false;
 
-char *music_pack_path = "";
+constcharstar music_pack_path = "";
 
 // If true, we are playing a substitute digital track rather than in-WAD
 // MIDI/MUS track, and file_metadata contains loop metadata.
@@ -622,7 +623,7 @@ static void ReadLoopPoints(const char *filename, file_metadata_t *metadata)
 // Given a MUS lump, look up a substitute MUS file to play instead
 // (or NULL to just use normal MIDI playback).
 
-static const char *GetSubstituteMusicFile(void *data, size_t data_len)
+static const char *GetSubstituteMusicFile(should_be_const void *data, size_t data_len)
 {
     sha1_context_t context;
     sha1_digest_t hash;
@@ -983,6 +984,7 @@ static void LoadSubstituteConfigs(void)
 
     free(musicdir);
 }
+#if !DOOM_SMALL
 
 // Returns true if the given lump number is a music lump that should
 // be included in substitute configs.
@@ -991,7 +993,7 @@ static void LoadSubstituteConfigs(void)
 
 static boolean IsMusicLump(int lumpnum)
 {
-    byte *data;
+    should_be_const byte *data;
     boolean result;
 
     if (W_LumpLength(lumpnum) < 4)
@@ -1017,7 +1019,7 @@ static void DumpSubstituteConfig(char *filename)
     sha1_context_t context;
     sha1_digest_t digest;
     char name[9];
-    byte *data;
+    should_be_const byte *data;
     FILE *fs;
     unsigned int lumpnum;
     size_t h;
@@ -1065,6 +1067,7 @@ static void DumpSubstituteConfig(char *filename)
     printf("Substitute MIDI config file written to %s.\n", filename);
     I_Quit();
 }
+#endif
 
 // Shutdown music
 
@@ -1104,6 +1107,7 @@ static boolean I_MP_InitMusic(void)
 {
     int i;
 
+#if !DOOM_SMALL
     //!
     // @category obscure
     // @arg <filename>
@@ -1117,6 +1121,7 @@ static boolean I_MP_InitMusic(void)
     {
         DumpSubstituteConfig(myargv[i + 1]);
     }
+#endif
 
     // If we're in GENMIDI mode, try to load sound packs.
     LoadSubstituteConfigs();
@@ -1258,7 +1263,7 @@ static void I_MP_UnRegisterSong(void *handle)
     Mix_FreeMusic(music);
 }
 
-static void *I_MP_RegisterSong(void *data, int len)
+static void *I_MP_RegisterSong(should_be_const void *data, int len)
 {
     const char *filename;
     Mix_Music *music;

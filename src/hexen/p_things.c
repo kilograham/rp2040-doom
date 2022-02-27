@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -194,8 +195,8 @@ boolean EV_ThingProjectile(byte * args, boolean gravity)
         }
         newMobj->target = mobj; // Originator
         newMobj->angle = angle;
-        newMobj->momx = FixedMul(speed, finecosine[fineAngle]);
-        newMobj->momy = FixedMul(speed, finesine[fineAngle]);
+        newMobj->momx = FixedMul(speed, finecosine(fineAngle));
+        newMobj->momy = FixedMul(speed, finesine(fineAngle));
         newMobj->momz = vspeed;
         newMobj->flags2 |= MF2_DROPPED; // Don't respawn
         if (gravity == true)

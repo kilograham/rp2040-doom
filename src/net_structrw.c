@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -36,7 +37,7 @@ static struct
 
 void NET_WriteConnectData(net_packet_t *packet, net_connect_data_t *data)
 {
-    NET_WriteInt8(packet, data->gamemode);
+    NET_WriteInt8(packet, data->_gamemode);
     NET_WriteInt8(packet, data->gamemission);
     NET_WriteInt8(packet, data->lowres_turn);
     NET_WriteInt8(packet, data->drone);
@@ -49,7 +50,7 @@ void NET_WriteConnectData(net_packet_t *packet, net_connect_data_t *data)
 
 boolean NET_ReadConnectData(net_packet_t *packet, net_connect_data_t *data)
 {
-    return NET_ReadInt8(packet, (unsigned int *) &data->gamemode)
+    return NET_ReadInt8(packet, (unsigned int *) &data->_gamemode)
         && NET_ReadInt8(packet, (unsigned int *) &data->gamemission)
         && NET_ReadInt8(packet, (unsigned int *) &data->lowres_turn)
         && NET_ReadInt8(packet, (unsigned int *) &data->drone)
@@ -201,6 +202,7 @@ void NET_WriteTiccmdDiff(net_packet_t *packet, net_ticdiff_t *diff,
         NET_WriteInt8(packet, diff->cmd.consistancy);
     if (diff->diff & NET_TICDIFF_CHATCHAR)
         NET_WriteInt8(packet, diff->cmd.chatchar);
+#if !DOOM_ONLY
     if (diff->diff & NET_TICDIFF_RAVEN)
     {
         NET_WriteInt8(packet, diff->cmd.lookfly);
@@ -211,6 +213,7 @@ void NET_WriteTiccmdDiff(net_packet_t *packet, net_ticdiff_t *diff,
         NET_WriteInt8(packet, diff->cmd.buttons2);
         NET_WriteInt16(packet, diff->cmd.inventory);
     }
+#endif
 }
 
 boolean NET_ReadTiccmdDiff(net_packet_t *packet, net_ticdiff_t *diff,
@@ -277,6 +280,7 @@ boolean NET_ReadTiccmdDiff(net_packet_t *packet, net_ticdiff_t *diff,
         diff->cmd.chatchar = val;
     }
 
+#if !DOOM_ONLY
     if (diff->diff & NET_TICDIFF_RAVEN)
     {
         if (!NET_ReadInt8(packet, &val))
@@ -298,6 +302,7 @@ boolean NET_ReadTiccmdDiff(net_packet_t *packet, net_ticdiff_t *diff,
             return false;
         diff->cmd.inventory = val;
     }
+#endif
 
     return true;
 }
@@ -320,6 +325,7 @@ void NET_TiccmdDiff(ticcmd_t *tic1, ticcmd_t *tic2, net_ticdiff_t *diff)
     if (tic2->chatchar != 0)
         diff->diff |= NET_TICDIFF_CHATCHAR;
 
+#if !DOOM_ONLY
     // Heretic/Hexen-specific
 
     if (tic1->lookfly != tic2->lookfly || tic2->arti != 0)
@@ -329,6 +335,7 @@ void NET_TiccmdDiff(ticcmd_t *tic1, ticcmd_t *tic2, net_ticdiff_t *diff)
 
     if (tic1->buttons2 != tic2->buttons2 || tic2->inventory != 0)
         diff->diff |= NET_TICDIFF_STRIFE;
+#endif
 }
 
 void NET_TiccmdPatch(ticcmd_t *src, net_ticdiff_t *diff, ticcmd_t *dest)
@@ -353,6 +360,7 @@ void NET_TiccmdPatch(ticcmd_t *src, net_ticdiff_t *diff, ticcmd_t *dest)
     else
         dest->chatchar = 0;
 
+#if !DOOM_ONLY
     // Heretic/Hexen specific:
 
     if (diff->diff & NET_TICDIFF_RAVEN)
@@ -376,6 +384,7 @@ void NET_TiccmdPatch(ticcmd_t *src, net_ticdiff_t *diff, ticcmd_t *dest)
     {
         dest->inventory = 0;
     }
+#endif
 }
 
 // 

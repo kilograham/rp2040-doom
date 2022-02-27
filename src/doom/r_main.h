@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -44,7 +45,11 @@ extern fixed_t		centerxfrac;
 extern fixed_t		centeryfrac;
 extern fixed_t		projection;
 
+#if !USE_WHD
 extern int		validcount;
+#else
+extern int8_t		validcount; // really should remove completely
+#endif
 
 extern int		linecount;
 extern int		loopcount;
@@ -66,12 +71,27 @@ extern int		loopcount;
 #define MAXLIGHTZ	       128
 #define LIGHTZSHIFT		20
 
-extern lighttable_t*	scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
-extern lighttable_t*	scalelightfixed[MAXLIGHTSCALE];
-extern lighttable_t*	zlight[LIGHTLEVELS][MAXLIGHTZ];
+// todo graham could be const
+#if !USE_LIGHTMAP_INDEXES
+extern const lighttable_t*	scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
+extern const lighttable_t*	scalelightfixed[MAXLIGHTSCALE];
+#if !NO_USE_ZLIGHT
+extern const lighttable_t*	zlight[LIGHTLEVELS][MAXLIGHTZ];
+#endif
+#else
+extern int8_t	scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
+extern int8_t	scalelightfixed[MAXLIGHTSCALE];
+#if !NO_USE_ZLIGHT
+extern int8_t	zlight[LIGHTLEVELS][MAXLIGHTZ];
+#endif
+#endif
 
 extern int		extralight;
-extern lighttable_t*	fixedcolormap;
+#if !USE_LIGHTMAP_INDEXES
+extern const lighttable_t*	fixedcolormap;
+#else
+extern int8_t fixedcolormap;
+#endif
 
 
 // Number of diminishing brightness levels.
@@ -84,7 +104,6 @@ extern lighttable_t*	fixedcolormap;
 //  0 = high, 1 = low
 extern	int		detailshift;	
 
-
 //
 // Function pointers to switch refresh/drawing functions.
 // Used to select shadow mode etc.
@@ -95,7 +114,6 @@ extern void		(*basecolfunc) (void);
 extern void		(*fuzzcolfunc) (void);
 // No shadow effects on floors.
 extern void		(*spanfunc) (void);
-
 
 //
 // Utility functions.
@@ -112,9 +130,15 @@ R_PointOnSegSide
   seg_t*	line );
 
 angle_t
-R_PointToAngle
+R_PointToAngleDX
 ( fixed_t	x,
   fixed_t	y );
+
+static inline angle_t R_PointToAngle( fixed_t	x, fixed_t	y ) {
+    x -= viewx;
+    y -= viewy;
+    return R_PointToAngleDX(x, y);
+}
 
 angle_t
 R_PointToAngle2

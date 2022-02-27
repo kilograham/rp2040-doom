@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -40,6 +41,7 @@ char**		myargv;
 // or 0 if not present
 //
 
+#if !NO_USE_ARGS
 int M_CheckParmWithArgs(const char *check, int num_args)
 {
     int i;
@@ -60,10 +62,6 @@ int M_CheckParmWithArgs(const char *check, int num_args)
 // line arguments, false if not.
 //
 
-boolean M_ParmExists(const char *check)
-{
-    return M_CheckParm(check) != 0;
-}
 
 int M_CheckParm(const char *check)
 {
@@ -268,3 +266,4 @@ const char *M_GetExecutableName(void)
     return M_BaseName(myargv[0]);
 }
 
+#endif

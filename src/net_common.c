@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -495,6 +496,7 @@ void NET_OpenLog(void)
 {
     int p;
 
+#if !NO_USE_ARGS
     p = M_CheckParmWithArgs("-netlog", 1);
     if (p > 0)
     {
@@ -505,6 +507,7 @@ void NET_OpenLog(void)
         }
         I_AtExit(CloseLog, true);
     }
+#endif
 }
 
 void NET_Log(const char *fmt, ...)

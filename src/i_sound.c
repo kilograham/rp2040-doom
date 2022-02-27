@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,7 +19,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "SDL_mixer.h"
+#if PICO_BUILD
+#include "i_picosound.h"
+#endif
+
+//#include "SDL_mixer.h"
 
 #include "config.h"
 #include "doomtype.h"
@@ -30,6 +35,7 @@
 #include "m_config.h"
 
 // Sound sample rate to use for digital output (Hz)
+#if !DOOM_TINY
 
 int snd_samplerate = 44100;
 
@@ -45,76 +51,101 @@ int snd_maxslicetime_ms = 28;
 
 // External command to invoke to play back music.
 
-char *snd_musiccmd = "";
+should_be_const constcharstar snd_musiccmd = "";
+#endif
 
 // Whether to vary the pitch of sound effects
 // Each game will set the default differently
 
-int snd_pitchshift = -1;
+isb_int8_t snd_pitchshift = -1;
 
+#if !DOOM_TINY
 int snd_musicdevice = SNDDEVICE_SB;
 int snd_sfxdevice = SNDDEVICE_SB;
+#endif
 
 // Low-level sound and music modules we are using
-static sound_module_t *sound_module;
-static music_module_t *music_module;
+static const sound_module_t *sound_module;
+static const music_module_t *music_module;
 
 // If true, the music pack module was successfully initialized.
+#if !NO_USE_MUSIC_PACKS
 static boolean music_packs_active = false;
 
 // This is either equal to music_module or &music_pack_module,
 // depending on whether the current track is substituted.
-static music_module_t *active_music_module;
+static const music_module_t *active_music_module;
+#else
+#define active_music_module music_module
+#endif
 
 // Sound modules
 
+#if !NO_USE_TIMIDITY
 extern void I_InitTimidityConfig(void);
+#endif
 extern sound_module_t sound_sdl_module;
 extern sound_module_t sound_pcsound_module;
 extern music_module_t music_sdl_module;
-extern music_module_t music_opl_module;
+extern const music_module_t music_opl_module;
 extern music_module_t music_pack_module;
+#if PICO_BUILD
+extern sound_module_t sound_pico_module;
+#endif
 
 // For OPL module:
-
+#if !DOOM_SMALL
 extern opl_driver_ver_t opl_drv_ver;
 extern int opl_io_port;
+#endif
 
 // For native music module:
 
-extern char *music_pack_path;
-extern char *timidity_cfg_path;
+#if !NO_USE_MUSIC_PACKS
+extern constcharstar music_pack_path;
+#endif
+#if !NO_USE_TIMIDITY
+extern constcharstar timidity_cfg_path;
+#endif
 
 // DOS-specific options: These are unused but should be maintained
 // so that the config file can be shared between chocolate
 // doom and doom.exe
 
+#if !DOOM_SMALL
 static int snd_sbport = 0;
 static int snd_sbirq = 0;
 static int snd_sbdma = 0;
 static int snd_mport = 0;
+#endif
 
 // Compiled-in sound modules:
 
-static sound_module_t *sound_modules[] = 
+static sound_module_t *sound_modules[] =
 {
+#if PICO_BUILD
+    &sound_pico_module,
+#else
     &sound_sdl_module,
     &sound_pcsound_module,
+#endif
     NULL,
 };
 
 // Compiled-in music modules:
 
-static music_module_t *music_modules[] =
+static const music_module_t *music_modules[] =
 {
+#if !PICO_BUILD
     &music_sdl_module,
+#endif
     &music_opl_module,
     NULL,
 };
 
 // Check if a sound device is in the given list of devices
 
-static boolean SndDeviceInList(snddevice_t device, snddevice_t *list,
+static boolean SndDeviceInList(snddevice_t device, const snddevice_t *list,
                                int len)
 {
     int i;
@@ -135,6 +166,7 @@ static boolean SndDeviceInList(snddevice_t device, snddevice_t *list,
 
 static void InitSfxModule(boolean use_sfx_prefix)
 {
+#if !DOOM_TINY
     int i;
 
     sound_module = NULL;
@@ -157,12 +189,18 @@ static void InitSfxModule(boolean use_sfx_prefix)
             }
         }
     }
+#else
+    if (sound_modules[0] && sound_modules[0]->Init(use_sfx_prefix)) {
+        sound_module = sound_modules[0];
+    }
+#endif
 }
 
 // Initialize music according to snd_musicdevice.
 
 static void InitMusicModule(void)
 {
+#if !DOOM_TINY
     int i;
 
     music_module = NULL;
@@ -185,6 +223,12 @@ static void InitMusicModule(void)
             }
         }
     }
+#else
+    if (music_modules[0] && music_modules[0]->Init())
+    {
+        music_module = music_modules[0];
+    }
+#endif
 }
 
 //
@@ -195,7 +239,10 @@ static void InitMusicModule(void)
 
 void I_InitSound(boolean use_sfx_prefix)
 {
-    boolean nosound, nosfx, nomusic, nomusicpacks;
+    boolean nosound, nosfx, nomusic;
+#if !NO_USE_MUSIC_PACKS
+    boolean nomusicpacks;
+#endif
 
     //!
     // @vanilla
@@ -221,6 +268,7 @@ void I_InitSound(boolean use_sfx_prefix)
 
     nomusic = M_CheckParm("-nomusic") > 0;
 
+#if !NO_USE_MUSIC_PACKS
     //!
     //
     // Disable substitution music packs.
@@ -230,6 +278,7 @@ void I_InitSound(boolean use_sfx_prefix)
 
     // Auto configure the music pack directory.
     M_SetMusicPackDir();
+#endif
 
     // Initialize the sound and music subsystems.
 
@@ -239,12 +288,14 @@ void I_InitSound(boolean use_sfx_prefix)
         // the TIMIDITY_CFG environment variable here before SDL_mixer
         // is opened.
 
+#if !NO_USE_TIMIDITY
         if (!nomusic
          && (snd_musicdevice == SNDDEVICE_GENMIDI
           || snd_musicdevice == SNDDEVICE_GUS))
         {
             I_InitTimidityConfig();
         }
+#endif
 
         if (!nosfx)
         {
@@ -257,11 +308,13 @@ void I_InitSound(boolean use_sfx_prefix)
             active_music_module = music_module;
         }
 
+#if !NO_USE_MUSIC_PACKS
         // We may also have substitute MIDIs we can load.
         if (!nomusicpacks && music_module != NULL)
         {
             music_packs_active = music_pack_module.Init();
         }
+#endif
     }
 }
 
@@ -272,10 +325,12 @@ void I_ShutdownSound(void)
         sound_module->Shutdown();
     }
 
+#if !NO_USE_MUSIC_PACKS
     if (music_packs_active)
     {
         music_pack_module.Shutdown();
     }
+#endif
 
     if (music_module != NULL)
     {
@@ -283,7 +338,7 @@ void I_ShutdownSound(void)
     }
 }
 
-int I_GetSfxLumpNum(sfxinfo_t *sfxinfo)
+int I_GetSfxLumpNum(should_be_const sfxinfo_t *sfxinfo)
 {
     if (sound_module != NULL)
     {
@@ -338,7 +393,7 @@ void I_UpdateSoundParams(int channel, int vol, int sep)
     }
 }
 
-int I_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch)
+int I_StartSound(should_be_const sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch)
 {
     if (sound_module != NULL)
     {
@@ -371,7 +426,7 @@ boolean I_SoundIsPlaying(int channel)
     }
 }
 
-void I_PrecacheSounds(sfxinfo_t *sounds, int num_sounds)
+void I_PrecacheSounds(should_be_const sfxinfo_t *sounds, int num_sounds)
 {
     if (sound_module != NULL && sound_module->CacheSounds != NULL)
     {
@@ -412,8 +467,9 @@ void I_ResumeSong(void)
     }
 }
 
-void *I_RegisterSong(void *data, int len)
+void *I_RegisterSong(should_be_const void *data, int len)
 {
+#if !NO_USE_MUSIC_PACKS
     // If the music pack module is active, check to see if there is a
     // valid substitution for this track. If there is, we set the
     // active_music_module pointer to the music pack module for the
@@ -432,6 +488,7 @@ void *I_RegisterSong(void *data, int len)
 
     // No substitution for this track, so use the main module.
     active_music_module = music_module;
+#endif
     if (active_music_module != NULL)
     {
         return active_music_module->RegisterSong(data, len);
@@ -480,30 +537,46 @@ boolean I_MusicIsPlaying(void)
 
 void I_BindSoundVariables(void)
 {
-    extern char *snd_dmxoption;
+    extern should_be_const constcharstar snd_dmxoption;
+#if !NO_USE_LIBSAMPLERATE
     extern int use_libsamplerate;
     extern float libsamplerate_scale;
+#endif
 
+#if !DOOM_TINY
     M_BindIntVariable("snd_musicdevice",         &snd_musicdevice);
     M_BindIntVariable("snd_sfxdevice",           &snd_sfxdevice);
+#endif
+#if !DOOM_SMALL
     M_BindIntVariable("snd_sbport",              &snd_sbport);
     M_BindIntVariable("snd_sbirq",               &snd_sbirq);
     M_BindIntVariable("snd_sbdma",               &snd_sbdma);
     M_BindIntVariable("snd_mport",               &snd_mport);
+#endif
+#if !DOOM_TINY
     M_BindIntVariable("snd_maxslicetime_ms",     &snd_maxslicetime_ms);
     M_BindStringVariable("snd_musiccmd",         &snd_musiccmd);
     M_BindStringVariable("snd_dmxoption",        &snd_dmxoption);
     M_BindIntVariable("snd_samplerate",          &snd_samplerate);
     M_BindIntVariable("snd_cachesize",           &snd_cachesize);
+#endif
+#if !DOOM_SMALL
     M_BindIntVariable("opl_io_port",             &opl_io_port);
+#endif
     M_BindIntVariable("snd_pitchshift",          &snd_pitchshift);
 
+#if !NO_USE_MUSIC_PACKS
     M_BindStringVariable("music_pack_path",      &music_pack_path);
+#endif
+#if !NO_USE_TIMIDITY
     M_BindStringVariable("timidity_cfg_path",    &timidity_cfg_path);
+#endif
+#if !NO_USE_GUS
     M_BindStringVariable("gus_patch_path",       &gus_patch_path);
     M_BindIntVariable("gus_ram_kb",              &gus_ram_kb);
-
+#endif
+#if !NO_USE_LIBSAMPLERATE
     M_BindIntVariable("use_libsamplerate",       &use_libsamplerate);
     M_BindFloatVariable("libsamplerate_scale",   &libsamplerate_scale);
+#endif
 }
-

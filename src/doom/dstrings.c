@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,7 +21,7 @@
 
 #include "dstrings.h"
 
-const char *doom1_endmsg[] =
+const constcharstar doom1_endmsg[NUM_QUITMESSAGES] =
 {
   "are you sure you want to\nquit this great game?",
   "please don't leave, there's more\ndemons to toast!",
@@ -32,7 +33,7 @@ const char *doom1_endmsg[] =
   "go ahead and leave. see if i care.",
 };
 
-const char *doom2_endmsg[] =
+const constcharstar doom2_endmsg[NUM_QUITMESSAGES] =
 {
   // QuitDOOM II messages
   "are you sure you want to\nquit this great game?",

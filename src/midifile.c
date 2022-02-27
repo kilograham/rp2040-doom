@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,6 +25,10 @@
 #include "i_swap.h"
 #include "i_system.h"
 #include "midifile.h"
+
+#if USE_MUSX
+#include "musx_decoder.h"
+#endif
 
 #define HEADER_CHUNK_ID "MThd"
 #define TRACK_CHUNK_ID  "MTrk"
@@ -53,8 +58,25 @@ typedef PACKED_STRUCT (
 #pragma pack(pop)
 #endif
 
+#if USE_DIRECT_MIDI_LUMP || USE_MIDI_DUMP_FILE
+typedef struct {
+                           midi_header_t header;
+                           uint16_t pad;
+} raw_midi_t;
+static_assert(sizeof(raw_midi_t) == 16, "");
+
+typedef struct {
+                           // Time between the previous event and this event.
+                           uint32_t delta_time;
+                           uint8_t event;
+                           uint8_t param[3];
+} raw_midi_event_t;
+static_assert(sizeof(raw_midi_event_t) == 8, "");
+#endif
+
 typedef struct
 {
+#if !USE_DIRECT_MIDI_LUMP
     // Length in bytes:
 
     unsigned int data_len;
@@ -62,27 +84,52 @@ typedef struct
     // Events in this track:
 
     midi_event_t *events;
+#else
+#if !USE_MUSX
+    raw_midi_event_t *raw_events;
+#else
+    const byte *buffer;
+    uint32_t buffer_size;
+#endif
+#endif
     int num_events;
 } midi_track_t;
 
-struct midi_track_iter_s
-{
-    midi_track_t *track;
-    unsigned int position;
-};
-
 struct midi_file_s
 {
+#if !USE_MUSX
     midi_header_t header;
 
     // All tracks in this file:
     midi_track_t *tracks;
     unsigned int num_tracks;
-
+#endif
+#if !USE_DIRECT_MIDI_LUMP
     // Data buffer used to store data read for SysEx or meta events:
     byte *buffer;
     unsigned int buffer_size;
+#endif
+#if USE_MUSX
+    midi_track_t tracks[1];
+#endif
 };
+
+struct midi_track_iter_s
+{
+    midi_track_t *track;
+    unsigned int position;
+#if USE_MUSX
+    midi_event_t events[2];
+    int peek_index;
+    th_bit_input bit_input; // note we mark end of stream reached by NULLing this out
+    musx_decoder decoder;
+    uint16_t decoder_space[MUSX_MAX_DECODER_SPACE];
+#endif
+};
+
+
+#if !USE_DIRECT_MIDI_LUMP
+
 
 // Check the header of a chunk:
 
@@ -95,7 +142,7 @@ static boolean CheckChunkHeader(chunk_header_t *chunk,
 
     if (!result)
     {
-        fprintf(stderr, "CheckChunkHeader: Expected '%s' chunk header, "
+        stderr_print( "CheckChunkHeader: Expected '%s' chunk header, "
                         "got '%c%c%c%c'\n",
                         expected_id,
                         chunk->chunk_id[0], chunk->chunk_id[1],
@@ -115,7 +162,7 @@ static boolean ReadByte(byte *result, FILE *stream)
 
     if (c == EOF)
     {
-        fprintf(stderr, "ReadByte: Unexpected end of file\n");
+        stderr_print( "ReadByte: Unexpected end of file\n");
         return false;
     }
     else
@@ -139,7 +186,7 @@ static boolean ReadVariableLength(unsigned int *result, FILE *stream)
     {
         if (!ReadByte(&b, stream))
         {
-            fprintf(stderr, "ReadVariableLength: Error while reading "
+            stderr_print( "ReadVariableLength: Error while reading "
                             "variable-length value\n");
             return false;
         }
@@ -157,7 +204,7 @@ static boolean ReadVariableLength(unsigned int *result, FILE *stream)
         }
     }
 
-    fprintf(stderr, "ReadVariableLength: Variable-length value too "
+    stderr_print( "ReadVariableLength: Variable-length value too "
                     "long: maximum of four bytes\n");
     return false;
 }
@@ -176,7 +223,7 @@ static void *ReadByteSequence(unsigned int num_bytes, FILE *stream)
 
     if (result == NULL)
     {
-        fprintf(stderr, "ReadByteSequence: Failed to allocate buffer\n");
+        stderr_print( "ReadByteSequence: Failed to allocate buffer\n");
         return NULL;
     }
 
@@ -186,7 +233,7 @@ static void *ReadByteSequence(unsigned int num_bytes, FILE *stream)
     {
         if (!ReadByte(&result[i], stream))
         {
-            fprintf(stderr, "ReadByteSequence: Error while reading byte %u\n",
+            stderr_print( "ReadByteSequence: Error while reading byte %u\n",
                             i);
             free(result);
             return NULL;
@@ -215,7 +262,7 @@ static boolean ReadChannelEvent(midi_event_t *event,
 
     if (!ReadByte(&b, stream))
     {
-        fprintf(stderr, "ReadChannelEvent: Error while reading channel "
+        stderr_print( "ReadChannelEvent: Error while reading channel "
                         "event parameters\n");
         return false;
     }
@@ -228,12 +275,14 @@ static boolean ReadChannelEvent(midi_event_t *event,
     {
         if (!ReadByte(&b, stream))
         {
-            fprintf(stderr, "ReadChannelEvent: Error while reading channel "
+            stderr_print( "ReadChannelEvent: Error while reading channel "
                             "event parameters\n");
             return false;
         }
 
         event->data.channel.param2 = b;
+    } else {
+        event->data.channel.param2 = 0;
     }
 
     return true;
@@ -248,7 +297,7 @@ static boolean ReadSysExEvent(midi_event_t *event, int event_type,
 
     if (!ReadVariableLength(&event->data.sysex.length, stream))
     {
-        fprintf(stderr, "ReadSysExEvent: Failed to read length of "
+        stderr_print( "ReadSysExEvent: Failed to read length of "
                                         "SysEx block\n");
         return false;
     }
@@ -259,7 +308,7 @@ static boolean ReadSysExEvent(midi_event_t *event, int event_type,
 
     if (event->data.sysex.data == NULL)
     {
-        fprintf(stderr, "ReadSysExEvent: Failed while reading SysEx event\n");
+        stderr_print( "ReadSysExEvent: Failed while reading SysEx event\n");
         return false;
     }
 
@@ -278,7 +327,7 @@ static boolean ReadMetaEvent(midi_event_t *event, FILE *stream)
 
     if (!ReadByte(&b, stream))
     {
-        fprintf(stderr, "ReadMetaEvent: Failed to read meta event type\n");
+        stderr_print( "ReadMetaEvent: Failed to read meta event type\n");
         return false;
     }
 
@@ -288,7 +337,7 @@ static boolean ReadMetaEvent(midi_event_t *event, FILE *stream)
 
     if (!ReadVariableLength(&event->data.meta.length, stream))
     {
-        fprintf(stderr, "ReadSysExEvent: Failed to read length of "
+        stderr_print( "ReadSysExEvent: Failed to read length of "
                                         "SysEx block\n");
         return false;
     }
@@ -299,7 +348,7 @@ static boolean ReadMetaEvent(midi_event_t *event, FILE *stream)
 
     if (event->data.meta.data == NULL)
     {
-        fprintf(stderr, "ReadSysExEvent: Failed while reading SysEx event\n");
+        stderr_print( "ReadSysExEvent: Failed while reading SysEx event\n");
         return false;
     }
 
@@ -313,13 +362,13 @@ static boolean ReadEvent(midi_event_t *event, unsigned int *last_event_type,
 
     if (!ReadVariableLength(&event->delta_time, stream))
     {
-        fprintf(stderr, "ReadEvent: Failed to read event timestamp\n");
+        stderr_print( "ReadEvent: Failed to read event timestamp\n");
         return false;
     }
 
     if (!ReadByte(&event_type, stream))
     {
-        fprintf(stderr, "ReadEvent: Failed to read event type\n");
+        stderr_print( "ReadEvent: Failed to read event type\n");
         return false;
     }
 
@@ -334,7 +383,7 @@ static boolean ReadEvent(midi_event_t *event, unsigned int *last_event_type,
 
         if (fseek(stream, -1, SEEK_CUR) < 0)
         {
-            fprintf(stderr, "ReadEvent: Unable to seek in stream\n");
+            stderr_print( "ReadEvent: Unable to seek in stream\n");
             return false;
         }
     }
@@ -381,7 +430,7 @@ static boolean ReadEvent(midi_event_t *event, unsigned int *last_event_type,
             break;
     }
 
-    fprintf(stderr, "ReadEvent: Unknown MIDI event type: 0x%x\n", event_type);
+    stderr_print( "ReadEvent: Unknown MIDI event type: 0x%x\n", event_type);
     return false;
 }
 
@@ -542,7 +591,7 @@ static boolean ReadFileHeader(midi_file_t *file, FILE *stream)
     if (!CheckChunkHeader(&file->header.chunk_header, HEADER_CHUNK_ID)
      || SDL_SwapBE32(file->header.chunk_header.chunk_size) != 6)
     {
-        fprintf(stderr, "ReadFileHeader: Invalid MIDI chunk header! "
+        stderr_print( "ReadFileHeader: Invalid MIDI chunk header! "
                         "chunk_size=%i\n",
                         SDL_SwapBE32(file->header.chunk_header.chunk_size));
         return false;
@@ -554,31 +603,34 @@ static boolean ReadFileHeader(midi_file_t *file, FILE *stream)
     if ((format_type != 0 && format_type != 1)
      || file->num_tracks < 1)
     {
-        fprintf(stderr, "ReadFileHeader: Only type 0/1 "
+        stderr_print( "ReadFileHeader: Only type 0/1 "
                                          "MIDI files supported!\n");
         return false;
     }
 
     return true;
 }
+#endif
 
 void MIDI_FreeFile(midi_file_t *file)
 {
-    int i;
 
+#if !USE_DIRECT_MIDI_LUMP
     if (file->tracks != NULL)
     {
+        int i;
         for (i=0; i<file->num_tracks; ++i)
         {
             FreeTrack(&file->tracks[i]);
         }
-
         free(file->tracks);
     }
+#endif
 
     free(file);
 }
 
+#if !USE_DIRECT_MIDI_LUMP
 midi_file_t *MIDI_LoadFile(char *filename)
 {
     midi_file_t *file;
@@ -602,7 +654,7 @@ midi_file_t *MIDI_LoadFile(char *filename)
 
     if (stream == NULL)
     {
-        fprintf(stderr, "MIDI_LoadFile: Failed to open '%s'\n", filename);
+        stderr_print( "MIDI_LoadFile: Failed to open '%s'\n", filename);
         MIDI_FreeFile(file);
         return NULL;
     }
@@ -629,26 +681,31 @@ midi_file_t *MIDI_LoadFile(char *filename)
 
     return file;
 }
+#endif
 
 // Get the number of tracks in a MIDI file.
 
 unsigned int MIDI_NumTracks(midi_file_t *file)
 {
-    return file->num_tracks;
+    return midifile_numtracks(file);
 }
 
 // Start iterating over the events in a track.
 
+#ifdef TEST
+static void PrintTrack(midi_track_t *track);
+#endif
 midi_track_iter_t *MIDI_IterateTrack(midi_file_t *file, unsigned int track)
 {
     midi_track_iter_t *iter;
 
-    assert(track < file->num_tracks);
+    assert(track < midifile_numtracks(file));
 
+//    printf("Begin iterating track %d\n", track);
+//    PrintTrack(&file->tracks[track]);
     iter = malloc(sizeof(*iter));
     iter->track = &file->tracks[track];
-    iter->position = 0;
-
+    MIDI_RestartIterator(iter);
     return iter;
 }
 
@@ -661,40 +718,79 @@ void MIDI_FreeIterator(midi_track_iter_t *iter)
 
 unsigned int MIDI_GetDeltaTime(midi_track_iter_t *iter)
 {
+#if USE_MUSX
+    return iter->events[iter->peek_index^1].delta_time;
+#else
     if (iter->position < iter->track->num_events)
     {
+#if USE_DIRECT_MIDI_LUMP
+        raw_midi_event_t *next_event;
+        next_event = &iter->track->raw_events[iter->position];
+#else
         midi_event_t *next_event;
-
         next_event = &iter->track->events[iter->position];
-
+        return next_event->delta_time;
+#endif
         return next_event->delta_time;
     }
     else
     {
         return 0;
     }
+#endif
 }
 
 // Get a pointer to the next MIDI event.
+#if USE_MUSX
+void peek_event(midi_track_iter_t *iter);
+#endif
+
+#if USE_DIRECT_MIDI_LUMP && !USE_MUSX
+static void MIDI_DecodeEvent(raw_midi_event_t *raw_event, midi_event_t *event) {
+    event->delta_time = raw_event->delta_time;
+    if (raw_event->event == MIDI_EVENT_META) {
+        event->event_type = raw_event->event;
+        event->data.meta.type = MIDI_META_SET_TEMPO;
+        event->data.meta.data = raw_event->param;
+        event->data.meta.length = 3;
+    } else {
+        event->event_type = raw_event->event & 0xf0;
+        event->data.channel.channel = raw_event->event & 0x0f;
+        event->data.channel.param1 = raw_event->param[0];
+        event->data.channel.param2 = raw_event->param[1];
+    }
+}
+#endif
 
 int MIDI_GetNextEvent(midi_track_iter_t *iter, midi_event_t **event)
 {
+#if USE_MUSX
+    *event = &iter->events[iter->peek_index];
+    peek_event(iter);
+    return 1;
+#else
     if (iter->position < iter->track->num_events)
     {
-        *event = &iter->track->events[iter->position];
+#if USE_DIRECT_MIDI_LUMP
+        *event = &iter->track->current_event;
+        MIDI_DecodeEvent(&iter->track->raw_events[iter->position], *event);
         ++iter->position;
-
+#else
+        *event = &iter->track->events[iter->position];
+#endif
+        ++iter->position;
         return 1;
     }
     else
     {
         return 0;
     }
+#endif
 }
 
 unsigned int MIDI_GetFileTimeDivision(midi_file_t *file)
 {
-    short result = SDL_SwapBE16(file->header.time_division);
+    short result = midifile_timedivision(file);
 
     // Negative time division indicates SMPTE time and must be handled
     // differently.
@@ -712,8 +808,17 @@ unsigned int MIDI_GetFileTimeDivision(midi_file_t *file)
 void MIDI_RestartIterator(midi_track_iter_t *iter)
 {
     iter->position = 0;
+#if USE_MUSX
+    iter->peek_index = 0;
+    iter->events[iter->peek_index].delta_time = 0; // time before first event
+    uint8_t tmp_buf[512]; // todo get tem[ workspace if stack not big enough
+    th_sized_bit_input_init(&iter->bit_input, iter->track->buffer, iter->track->buffer_size);
+    musx_decoder_init(&iter->decoder, &iter->bit_input, iter->decoder_space, count_of(iter->decoder_space), tmp_buf, sizeof(tmp_buf));
+    peek_event(iter);
+#endif
 }
 
+//#define TEST
 #ifdef TEST
 
 static char *MIDI_EventTypeToString(midi_event_type_t event_type)
@@ -753,7 +858,13 @@ void PrintTrack(midi_track_t *track)
 
     for (i=0; i<track->num_events; ++i)
     {
+#if USE_DIRECT_MIDI_LUMP
+        midi_event_t the_event;
+        MIDI_DecodeEvent(&track->raw_events[i], &the_event);
+        event = &the_event;
+#else
         event = &track->events[i];
+#endif
 
         if (event->delta_time > 0)
         {
@@ -790,7 +901,9 @@ void PrintTrack(midi_track_t *track)
         }
     }
 }
+#endif
 
+#ifdef TEST
 int main(int argc, char *argv[])
 {
     midi_file_t *file;
@@ -806,11 +919,11 @@ int main(int argc, char *argv[])
 
     if (file == NULL)
     {
-        fprintf(stderr, "Failed to open %s\n", argv[1]);
+        stderr_print( "Failed to open %s\n", argv[1]);
         exit(1);
     }
 
-    for (i=0; i<file->num_tracks; ++i)
+    for (i=0; i<midifile_numtracks(file); ++i)
     {
         printf("\n== Track %i ==\n\n", i);
 
@@ -822,3 +935,244 @@ int main(int argc, char *argv[])
 
 #endif
 
+#if USE_DIRECT_MIDI_LUMP
+#if !USE_MUSX
+midi_file_t *MIDI_LoadRaw(const void *data, int len) {
+    const raw_midi_t *raw = (const raw_midi_t *)data;
+    if (memcmp(raw->header.chunk_header.chunk_id, "MidX", 4) != 0) {
+        stderr_print( "MIDI_LoadRAW Data wasn't RAW MID.\n");
+        return NULL;
+    }
+    midi_file_t *file = malloc(sizeof(midi_file_t));
+    if (file == NULL)
+    {
+        return NULL;
+    }
+    file->header = raw->header;
+    file->num_tracks = SDL_SwapBE16(file->header.num_tracks);
+    file->tracks = calloc(file->num_tracks, sizeof(midi_track_t));
+    if (!file->tracks) {
+        free(file);
+        return NULL;
+    }
+    const void *event_data = data + sizeof(raw_midi_t);
+    for(int i=0;i<file->num_tracks;i++) {
+        file->tracks[i].num_events = *(int32_t*)event_data;
+        event_data += 4;
+        file->tracks[i].raw_events = (raw_midi_event_t *)event_data;
+        event_data += file->tracks[i].num_events * 8;
+    }
+    return file;
+}
+#else
+
+midi_file_t *MUSX_LoadRaw(const void *data, int len) {
+#if !MUSX_COMPRESSED
+    if (memcmp(data, "MUS2", 4) != 0) {
+        stderr_print( "MUSX_LoadRAW Data wasn't uncompressed MUS2.\n");
+        return NULL;
+    }
+#else
+    if (memcmp(data, "MUSX", 4) != 0) {
+        stderr_print( "MUSX_LoadRAW Data wasn't compressed MUSX.\n");
+        return NULL;
+    }
+#endif
+    midi_file_t *file = malloc(sizeof(midi_file_t));
+    if (file == NULL)
+    {
+        return NULL;
+    }
+    file->tracks[0].buffer_size = *(uint32_t *)(data+4);
+    assert(file->tracks[0].buffer_size == len - 8);
+    file->tracks[0].buffer = data + 8;
+    return file;
+}
+
+static const byte controller_map[] = {
+        0x00, 0x20, 0x01, 0x07, 0x0A, 0x0B, 0x5B, 0x5D,
+        0x40, 0x43, 0x78, 0x7B, 0x7E, 0x7F, 0x79
+};
+
+void peek_event(midi_track_iter_t *iter) {
+    iter->peek_index ^= 1;
+    midi_event_t *me = &iter->events[iter->peek_index];
+
+    musx_decoder *d = &iter->decoder;
+    th_bit_input *bi = &iter->bit_input;
+
+    if (bi->cur) {
+        if (!d->group_remaining) {
+            d->group_remaining = th_decode(d->decoders + d->group_size_idx, bi);
+        }
+        uint8_t ec = th_decode(d->decoders + d->channel_event_idx, bi);
+        uint channel = me->data.channel.channel = ec >> 4;
+        me->data.channel.param1 = me->data.channel.param2 = 0; // not sure if necessary
+        switch (ec & 0xf) {
+            case change_controller: {
+                uint8_t controller = th_read_bits(bi, 4);
+                uint8_t value = th_read_bits(bi, 8);
+                if (controller == 0) {
+                    me->event_type = MIDI_EVENT_PROGRAM_CHANGE;
+                    me->data.channel.param1 = value;
+                } else {
+                    assert(controller >= 1 && controller <= 9);
+                    me->event_type = MIDI_EVENT_CONTROLLER;
+                    me->data.channel.param1 = controller_map[controller];
+                    me->data.channel.param2 = value;
+                }
+                break;
+            }
+            case delta_volume: {
+                int delta = from_zig(th_decode(d->decoders + d->delta_volume_idx, bi));
+                d->channel_last_volume[channel] += delta;
+                me->event_type = MIDI_EVENT_CONTROLLER;
+                me->data.channel.param1 = controller_map[3];
+                me->data.channel.param2 = d->channel_last_volume[channel];
+//                printf("delta volume %d, so %d\n", delta, d->channel_last_volume[channel]);
+                break;
+            }
+            case delta_pitch: {
+                int delta = from_zig(th_decode(d->decoders + d->delta_pitch_idx, bi));
+                d->channel_last_wheel[channel] += delta;
+                uint wheel = d->channel_last_wheel[channel] * 64;
+                me->event_type = MIDI_EVENT_PITCH_BEND;
+                me->data.channel.param1 = wheel & 0x7fu;
+                me->data.channel.param2 = (wheel >> 7u) & 0x7fu;
+                //            printf("delta pitch %d, so %d\n", delta, d->channel_last_wheel[channel]);
+                break;
+            }
+            case delta_vibrato: {
+                uint delta = from_zig(th_decode(d->decoders + d->delta_vibrato_idx, bi));
+                d->channel_last_vibrato[channel] += delta;
+                me->event_type = MIDI_EVENT_CONTROLLER;
+                me->data.channel.param1 = controller_map[2];
+                me->data.channel.param2 = d->channel_last_vibrato[channel];
+//                printf("delta vibrato %d, so %d\n", delta, d->channel_last_vibrato[channel]);
+                break;
+            }
+            case press_key: {
+                int note = th_decode(d->decoders + (channel == 9 ? d->press_note9_idx : d->press_note_idx), bi);
+                int vol = th_decode(d->decoders + d->press_volume_idx, bi);
+                //            printf("press key %d vol %d", note, vol);
+                if (vol == vol_last_global) {
+                    vol = d->channel_last_volume[channel] = d->channel_last_press_volume[channel] = d->last_volume;
+                } else if (vol == vol_last_channel) {
+                    vol = d->channel_last_press_volume[channel];
+                } else {
+                    d->last_volume = d->channel_last_volume[channel] = d->channel_last_press_volume[channel] = vol;
+                }
+                //            printf(" so %d\n", vol);
+                musx_record_note_on(d, channel, note);
+                me->event_type = MIDI_EVENT_NOTE_ON;
+                me->data.channel.param1 = note;
+                me->data.channel.param2 = vol;
+                break;
+            }
+            case release_key: {
+                assert(d->channel_note_count[channel]);
+                uint8_t dist = 0;
+                if (d->channel_note_count[channel] > 1) {
+                    dist = th_decode(d->decoders + d->release_dist_idx[d->channel_note_count[channel]], bi);
+                }
+                uint8_t note = musx_record_note_off(d, channel, dist);
+                me->event_type = MIDI_EVENT_NOTE_OFF;
+                me->data.channel.param1 = note;
+                //            printf("release key dist %d note %d\n", dist, note);
+                break;
+            }
+            case system_event: {
+                uint controller = th_read_bits(bi, 3) + 10;
+                me->event_type = MIDI_EVENT_CONTROLLER;
+                me->data.channel.param1 = controller_map[controller];
+                //            printf("system event %d\n", controller);
+                break;
+            }
+            case score_end:
+                me->event_type = MIDI_EVENT_META;
+                me->data.meta.type = MIDI_META_END_OF_TRACK;
+                bi->cur = NULL;
+                break;
+            default:
+                assert(false);
+        }
+        int gap = 0;
+        if (bi->cur) {
+            if (!--d->group_remaining) {
+                int lgap;
+                do {
+                    lgap = th_decode(d->decoders + d->gap_idx, bi);
+                    gap += lgap;
+                } while (lgap == MUSX_GAP_MAX);
+            }
+        }
+        me->delta_time = gap;
+//        printf("%d MIDI %02x %d %02x %02x\n", d->pos++, me->event_type, me->data.channel.channel, me->data.channel.param1, me->data.channel.param2);
+    } else {
+        // already at score end; should we fill in?
+    }
+}
+#endif
+#endif
+
+#if USE_MIDI_DUMP_FILE
+static int filter_event(const midi_event_t *event) {
+    midi_event_type_t type = event->event_type;
+    if (type == MIDI_EVENT_SYSEX || type == MIDI_EVENT_SYSEX_SPLIT) {
+        return false;
+    }
+    if (type == MIDI_EVENT_META) {
+        if (event->data.meta.type != MIDI_META_SET_TEMPO) {
+            printf("Skipping meta 0x%02x\n", event->data.meta.type);
+            return false;
+        }
+        if (event->data.meta.length != 3) {
+            printf("EXPECTED LENGTH 3\n");
+            return false;
+        }
+    }
+    return true;
+}
+
+void MIDI_DumpFile(midi_file_t *file, const char *filename) {
+    FILE *out = fopen(filename, "wb");
+    if (!out) return;
+    raw_midi_t rm;
+    rm.header = file->header;
+    memcpy(rm.header.chunk_header.chunk_id, "MidX", 4);
+    fwrite(&rm, sizeof(rm), 1, out);
+    for(int i=0;i<file->num_tracks;i++) {
+        const midi_track_t *track = &file->tracks[i];
+        int32_t event_count = 0;
+        for(int j=0;j<track->num_events;j++) {
+            const midi_event_t *event = &track->events[j];
+            if (filter_event(event)) event_count++;
+        }
+        fwrite(&event_count, 4, 1, out);
+        int ecount = 0;
+        for(int j=0;j<track->num_events;j++) {
+            const midi_event_t *event = &track->events[j];
+            raw_midi_event_t raw_event;
+            raw_event.delta_time = event->delta_time;
+            raw_event.event = event->event_type;
+            if (filter_event(event)) {
+                if (event->event_type == MIDI_EVENT_META) {
+                    assert(event->data.meta.length == 3);
+                    assert(event->data.meta.type == MIDI_META_SET_TEMPO);
+                    memcpy(raw_event.param, event->data.meta.data, 3);
+                } else {
+                    raw_event.event |= event->data.channel.channel;
+                    raw_event.param[0] = event->data.channel.param1;
+                    raw_event.param[1] = event->data.channel.param2;
+                    raw_event.param[2] = 0;
+                }
+                ecount++;
+                static_assert(sizeof(raw_event) == 8, "");
+                fwrite(&raw_event, sizeof(raw_event), 1, out);
+            }
+        }
+        assert(ecount == event_count);
+    }
+    fclose(out);
+}
+#endif

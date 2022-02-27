@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -37,6 +38,11 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
+#if INCLUDE_SOUND_C_IN_S_SOUND
+#undef INCLUDE_SOUND_C_IN_S_SOUND
+#include "sounds.c"
+#endif
+
 // when to clip out sounds
 // Does not fit the large outdoor areas.
 
@@ -61,13 +67,14 @@
 #define NORM_PRIORITY 64
 #define NORM_SEP 128
 
+// todo graham this could be half the size or so, there are 8 of them
 typedef struct
 {
     // sound information (if null, channel avail.)
-    sfxinfo_t *sfxinfo;
+    should_be_const sfxinfo_t *sfxinfo;
 
     // origin of sound
-    mobj_t *origin;
+    xy_positioned_t *origin;
 
     // handle of the sound being played
     int handle;
@@ -153,7 +160,11 @@ void S_Init(int sfxVolume, int musicVolume)
     // Note that sounds have not been cached (yet).
     for (i=1 ; i<NUMSFX ; i++)
     {
+#if !USE_CONST_SFX
         S_sfx[i].lumpnum = S_sfx[i].usefulness = -1;
+#else
+        S_sfx_mut[i].lumpnum = S_sfx_mut[i].usefulness = -1;
+#endif
     }
 
     // Doom defaults to pitch-shifting off.
@@ -162,14 +173,18 @@ void S_Init(int sfxVolume, int musicVolume)
         snd_pitchshift = 0;
     }
 
+#if !NO_USE_EXIT
     I_AtExit(S_Shutdown, true);
+#endif
 }
 
+#if !NO_USE_EXIT
 void S_Shutdown(void)
 {
     I_ShutdownSound();
     I_ShutdownMusic();
 }
+#endif
 
 static void S_StopChannel(int cnum)
 {
@@ -199,7 +214,7 @@ static void S_StopChannel(int cnum)
 
         // degrade usefulness of sound data
 
-        c->sfxinfo->usefulness--;
+        sfx_mut(c->sfxinfo)->usefulness--;
         c->sfxinfo = NULL;
         c->origin = NULL;
     }
@@ -263,7 +278,7 @@ void S_Start(void)
     S_ChangeMusic(mnum, true);
 }
 
-void S_StopSound(mobj_t *origin)
+void S_StopSound(xy_positioned_t  *origin)
 {
     int cnum;
 
@@ -282,7 +297,7 @@ void S_StopSound(mobj_t *origin)
 //   If none available, return -1.  Otherwise channel #.
 //
 
-static int S_GetChannel(mobj_t *origin, sfxinfo_t *sfxinfo)
+static int S_GetChannel(xy_positioned_t *origin, should_be_const sfxinfo_t *sfxinfo)
 {
     // channel number to use
     int                cnum;
@@ -343,7 +358,7 @@ static int S_GetChannel(mobj_t *origin, sfxinfo_t *sfxinfo)
 // Otherwise, modifies parameters and returns 1.
 //
 
-static int S_AdjustSoundParams(mobj_t *listener, mobj_t *source,
+static int S_AdjustSoundParams(mobj_t *listener, xy_positioned_t *source,
                                int *vol, int *sep)
 {
     fixed_t        approx_dist;
@@ -353,8 +368,8 @@ static int S_AdjustSoundParams(mobj_t *listener, mobj_t *source,
 
     // calculate the distance to sound origin
     //  and clip it if necessary
-    adx = abs(listener->x - source->x);
-    ady = abs(listener->y - source->y);
+    adx = abs(listener->xy.x - source->x);
+    ady = abs(listener->xy.y - source->y);
 
     // From _GG1_ p.428. Appox. eucledian distance fast.
     approx_dist = adx + ady - ((adx < ady ? adx : ady)>>1);
@@ -365,24 +380,24 @@ static int S_AdjustSoundParams(mobj_t *listener, mobj_t *source,
     }
 
     // angle of source to listener
-    angle = R_PointToAngle2(listener->x,
-                            listener->y,
+    angle = R_PointToAngle2(listener->xy.x,
+                            listener->xy.y,
                             source->x,
                             source->y);
 
-    if (angle > listener->angle)
+    if (angle > mobj_full(listener)->angle)
     {
-        angle = angle - listener->angle;
+        angle = angle - mobj_full(listener)->angle;
     }
     else
     {
-        angle = angle + (0xffffffff - listener->angle);
+        angle = angle + (0xffffffff - mobj_full(listener)->angle);
     }
 
     angle >>= ANGLETOFINESHIFT;
 
     // stereo separation
-    *sep = 128 - (FixedMul(S_STEREO_SWING, finesine[angle]) >> FRACBITS);
+    *sep = 128 - (FixedMul(S_STEREO_SWING, finesine(angle)) >> FRACBITS);
 
     // volume calculation
     if (approx_dist < S_CLOSE_DIST)
@@ -426,17 +441,27 @@ static int Clamp(int x)
     return x;
 }
 
-void S_StartSound(void *origin_p, int sfx_id)
+void S_StartObjSound(mobj_t *obj, int sfx_id) {
+    S_StartSound(obj ? &obj->xy : NULL, sfx_id);
+}
+
+void S_StopObjSound(mobj_t *obj) {
+    S_StopSound(obj ? &obj->xy : NULL);
+}
+
+void S_StartUnpositionedSound(int sfx_id) {
+    S_StartSound(NULL, sfx_id);
+}
+
+void S_StartSound(xy_positioned_t *origin, int sfx_id)
 {
-    sfxinfo_t *sfx;
-    mobj_t *origin;
+    should_be_const sfxinfo_t *sfx;
     int rc;
     int sep;
     int pitch;
     int cnum;
     int volume;
 
-    origin = (mobj_t *) origin_p;
     volume = snd_SfxVolume;
 
     // check for bogus sound #
@@ -446,6 +471,7 @@ void S_StartSound(void *origin_p, int sfx_id)
     }
 
     sfx = &S_sfx[sfx_id];
+//    printf("Start sound %d %s\n", sfx_id, DEH_String(sfx->name));
 
     // Initialize sound parameters
     pitch = NORM_PITCH;
@@ -468,15 +494,15 @@ void S_StartSound(void *origin_p, int sfx_id)
 
     // Check to see if it is audible,
     //  and if not, modify the params
-    if (origin && origin != players[consoleplayer].mo)
+    if (origin && origin != &players[consoleplayer].mo->xy)
     {
         rc = S_AdjustSoundParams(players[consoleplayer].mo,
                                  origin,
                                  &volume,
                                  &sep);
 
-        if (origin->x == players[consoleplayer].mo->x
-         && origin->y == players[consoleplayer].mo->y)
+        if (origin->x == players[consoleplayer].mo->xy.x
+         && origin->y == players[consoleplayer].mo->xy.y)
         {
             sep = NORM_SEP;
         }
@@ -514,14 +540,14 @@ void S_StartSound(void *origin_p, int sfx_id)
     }
 
     // increase the usefulness
-    if (sfx->usefulness++ < 0)
+    if (sfx_mut(sfx)->usefulness++ < 0)
     {
-        sfx->usefulness = 1;
+        sfx_mut(sfx)->usefulness = 1;
     }
 
-    if (sfx->lumpnum < 0)
+    if (sfx_mut(sfx)->lumpnum < 0)
     {
-        sfx->lumpnum = I_GetSfxLumpNum(sfx);
+        sfx_mut(sfx)->lumpnum = I_GetSfxLumpNum(sfx);
     }
 
     channels[cnum].pitch = pitch;
@@ -560,7 +586,7 @@ void S_UpdateSounds(mobj_t *listener)
     int                cnum;
     int                volume;
     int                sep;
-    sfxinfo_t*        sfx;
+    should_be_const sfxinfo_t*        sfx;
     channel_t*        c;
 
     I_UpdateSound();
@@ -594,7 +620,7 @@ void S_UpdateSounds(mobj_t *listener)
 
                 // check non-local sounds for distance clipping
                 //  or modify their params
-                if (c->origin && listener != c->origin)
+                if (c->origin && &listener->xy != c->origin)
                 {
                     audible = S_AdjustSoundParams(listener,
                                                   c->origin,
@@ -690,9 +716,12 @@ void S_ChangeMusic(int musicnum, int looping)
         music->lumpnum = W_GetNumForName(namebuf);
     }
 
+#if !DOOM_SMALL
     music->data = W_CacheLumpNum(music->lumpnum, PU_STATIC);
-
     handle = I_RegisterSong(music->data, W_LumpLength(music->lumpnum));
+#else
+    handle = I_RegisterSong(W_CacheLumpNum(music->lumpnum, PU_STATIC), W_LumpLength(music->lumpnum));
+#endif
     music->handle = handle;
     I_PlaySong(handle, looping);
 
@@ -716,8 +745,32 @@ void S_StopMusic(void)
         I_StopSong();
         I_UnRegisterSong(mus_playing->handle);
         W_ReleaseLumpNum(mus_playing->lumpnum);
+#if !DOOM_SMALL
         mus_playing->data = NULL;
+#endif
         mus_playing = NULL;
     }
 }
+
+#if 1
+void test_next_sound() {
+    static int snd_idx = 0;
+    do {
+        char buf[10];
+        snd_idx++;
+        if (snd_idx == NUMSFX) snd_idx = 1;
+        should_be_const sfxinfo_t *sfx = &S_sfx[snd_idx];
+        // Linked sfx lumps? Get the lump number for the sound linked to.
+        if (sfx->link != NULL)
+        {
+            sfx = sfx->link;
+        }
+        M_snprintf(buf, sizeof(buf), "ds%s", DEH_String(sfx->name));
+        if (W_CheckNumForName(buf) > 0) {
+            break;
+        }
+    } while (true);
+    S_StartUnpositionedSound(snd_idx);
+}
+#endif
 

@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
 // Copyright(C) 2006 Ben Ryves 2006
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,6 +25,7 @@
 #include "memio.h"
 #include "mus2mid.h"
 
+#if !USE_MUSX
 #define NUM_CHANNELS 16
 
 #define MIDI_PERCUSSION_CHAN 9
@@ -733,3 +735,4 @@ int main(int argc, char *argv[])
 
 #endif
 
+#endif

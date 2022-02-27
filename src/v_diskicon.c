@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -16,6 +17,7 @@
 //	Disk load indicator.
 //
 
+#if !NO_USE_LOADING_DISK
 #include "doomtype.h"
 #include "deh_str.h"
 #include "i_swap.h"
@@ -64,7 +66,7 @@ static void CopyRegion(pixel_t *dest, int dest_pitch,
 static void SaveDiskData(const char *disk_lump, int xoffs, int yoffs)
 {
     pixel_t *tmpscreen;
-    patch_t *disk;
+    should_be_const patch_t *disk;
 
     // Allocate a complete temporary screen where we'll draw the patch.
     tmpscreen = Z_Malloc(SCREENWIDTH * SCREENHEIGHT * sizeof(*tmpscreen),
@@ -156,3 +158,4 @@ void V_RestoreDiskBackground(void)
     }
 }
 
+#endif

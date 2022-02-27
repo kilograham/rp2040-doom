@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -50,12 +51,15 @@ void M_Init (void);
 // Called by intro code to force menu up upon a keypress,
 // does nothing if menu is already up.
 void M_StartControlPanel (void);
+void M_StartMessage(const char *string, boolean (*routine)(int), boolean input);
+void M_StartMessage2(const char *string, boolean (*routine)(int), boolean input, const char *string2);
+#if !NO_USE_SAVE
+void M_SaveGame(int choice);
+#endif
+void M_ClearMenus (void);
 
-
-
-extern int detailLevel;
-extern int screenblocks;
-
-
+extern uint8_t			inhelpscreens;
+extern isb_int8_t detailLevel;
+extern isb_int8_t screenblocks;
 
 #endif    

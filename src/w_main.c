@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,7 +36,8 @@ boolean W_ParseCommandLine(void)
     boolean modifiedgame = false;
     int p;
 
-    // Merged PWADs are loaded first, because they are supposed to be 
+#if !USE_SINGLE_IWAD
+    // Merged PWADs are loaded first, because they are supposed to be
     // modified IWADs.
 
     //!
@@ -67,7 +69,6 @@ boolean W_ParseCommandLine(void)
     // NWT-style merging:
 
     // NWT's -merge option:
-
     //!
     // @arg <files>
     // @category mod
@@ -92,7 +93,7 @@ boolean W_ParseCommandLine(void)
             free(filename);
         }
     }
-    
+
     // Add flats
 
     //!
@@ -195,6 +196,7 @@ boolean W_ParseCommandLine(void)
             free(filename);
         }
     }
+#endif
 
 //    W_PrintDirectory();
 
@@ -204,6 +206,7 @@ boolean W_ParseCommandLine(void)
 // Load all WAD files from the given directory.
 void W_AutoLoadWADs(const char *path)
 {
+#if !USE_SINGLE_IWAD
     glob_t *glob;
     const char *filename;
 
@@ -221,6 +224,7 @@ void W_AutoLoadWADs(const char *path)
     }
 
     I_EndGlob(glob);
+#endif
 }
 
 // Lump names that are unique to particular game types. This lets us check
@@ -232,9 +236,11 @@ static const struct
     const char *lumpname;
 } unique_lumps[] = {
     { doom,    "POSSA1" },
+#if !DOOM_ONLY
     { heretic, "IMPXA1" },
     { hexen,   "ETTNA1" },
     { strife,  "AGRDA1" },
+#endif
 };
 
 void W_CheckCorrectIWAD(GameMission_t mission)

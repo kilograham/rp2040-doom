@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -29,6 +30,7 @@
 #include "net_sdl.h"
 #include "net_server.h"
 
+#if !NO_USE_NET
 // 
 // People can become confused about how dedicated servers work.  Game
 // options are specified to the controlling player who is the first to
@@ -78,3 +80,4 @@ void NET_DedicatedServer(void)
     }
 }
 
+#endif

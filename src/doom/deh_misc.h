@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,6 +36,8 @@
 #define DEH_DEFAULT_BFG_CELLS_PER_SHOT 40
 #define DEH_DEFAULT_SPECIES_INFIGHTING 0
 
+#if !NO_USE_DEH
+
 extern int deh_initial_health;
 extern int deh_initial_bullets;
 extern int deh_max_health;
@@ -52,7 +55,7 @@ extern int deh_idkfa_armor_class;
 extern int deh_bfg_cells_per_shot;
 extern int deh_species_infighting;
 
-#if 0
+#else
 
 // To compile without dehacked, it's possible to use these:
 

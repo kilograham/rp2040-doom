@@ -1,5 +1,6 @@
 //
 // Copyright (C) 2013-2018 Alexey Khokholov (Nuke.YKT)
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -48,6 +49,7 @@ typedef int8_t          Bit8s;
 typedef struct _opl3_slot opl3_slot;
 typedef struct _opl3_channel opl3_channel;
 typedef struct _opl3_chip opl3_chip;
+
 
 struct _opl3_slot {
     opl3_channel *channel;

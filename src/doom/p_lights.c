@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -70,7 +71,7 @@ void P_SpawnFireFlicker (sector_t*	sector)
 
     P_AddThinker (&flick->thinker);
 
-    flick->thinker.function.acp1 = (actionf_p1) T_FireFlicker;
+    flick->thinker.function = ThinkF_T_FireFlicker;
     flick->sector = sector;
     flick->maxlight = sector->lightlevel;
     flick->minlight = P_FindMinSurroundingLight(sector,sector->lightlevel)+16;
@@ -125,7 +126,7 @@ void P_SpawnLightFlash (sector_t*	sector)
 
     P_AddThinker (&flash->thinker);
 
-    flash->thinker.function.acp1 = (actionf_p1) T_LightFlash;
+    flash->thinker.function = ThinkF_T_LightFlash;
     flash->sector = sector;
     flash->maxlight = sector->lightlevel;
 
@@ -185,7 +186,7 @@ P_SpawnStrobeFlash
     flash->sector = sector;
     flash->darktime = fastOrSlow;
     flash->brighttime = STROBEBRIGHT;
-    flash->thinker.function.acp1 = (actionf_p1) T_StrobeFlash;
+    flash->thinker.function = ThinkF_T_StrobeFlash;
     flash->maxlight = sector->lightlevel;
     flash->minlight = P_FindMinSurroundingLight(sector, sector->lightlevel);
 		
@@ -239,12 +240,12 @@ void EV_TurnTagLightsOff(line_t* line)
     
     for (j = 0;j < numsectors; j++, sector++)
     {
-	if (sector->tag == line->tag)
+	if (sector->tag == line_tag(line))
 	{
 	    min = sector->lightlevel;
 	    for (i = 0;i < sector->linecount; i++)
 	    {
-		templine = sector->lines[i];
+		templine = sector_line(sector, i);
 		tsec = getNextSector(templine,sector);
 		if (!tsec)
 		    continue;
@@ -275,7 +276,7 @@ EV_LightTurnOn
 	
     for (i=0;i<numsectors;i++, sector++)
     {
-	if (sector->tag == line->tag)
+	if (sector->tag == line_tag(line))
 	{
 	    // bright = 0 means to search
 	    // for highest light level
@@ -284,7 +285,7 @@ EV_LightTurnOn
 	    {
 		for (j = 0;j < sector->linecount; j++)
 		{
-		    templine = sector->lines[j];
+		    templine = sector_line(sector, j);
 		    temp = getNextSector(templine,sector);
 
 		    if (!temp)
@@ -342,7 +343,7 @@ void P_SpawnGlowingLight(sector_t*	sector)
     g->sector = sector;
     g->minlight = P_FindMinSurroundingLight(sector,sector->lightlevel);
     g->maxlight = sector->lightlevel;
-    g->thinker.function.acp1 = (actionf_p1) T_Glow;
+    g->thinker.function = ThinkF_T_Glow;
     g->direction = -1;
 
     sector->special = 0;

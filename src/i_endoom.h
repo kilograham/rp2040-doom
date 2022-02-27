@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -23,7 +24,7 @@
 // Display the Endoom screen on shutdown.  Pass a pointer to the
 // ENDOOM lump.
 
-void I_Endoom(byte *data);
+void I_Endoom(should_be_const byte *data);
 
 #endif
 

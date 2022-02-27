@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -40,23 +41,46 @@
 	
 #define FINEANGLES		8192
 #define FINEMASK		(FINEANGLES-1)
+#define FINEBITS        13
 
 
 // 0x100000000 to 0x2000
 #define ANGLETOFINESHIFT	19		
 
+#if !DOOM_TINY
 // Effective size is 10240.
-extern const fixed_t finesine[5*FINEANGLES/4];
+extern const fixed_t _finesine[5*FINEANGLES/4];
 
 // Re-use data, is just PI/2 pahse shift.
-extern const fixed_t *finecosine;
+extern const fixed_t *_finecosine;
+// just for checking
+#define finesine(x) (_finesine[x] / (1 << (16 - FRACBITS)))
+#define finecosine(x) (_finecosine[x] / (1 << (16 - FRACBITS)))
+#else
+#include <assert.h>
+static_assert(FINEANGLES == 1u << FINEBITS, "");
+extern const uint16_t _finesine[5* FINEANGLES/4];
+static inline fixed_t finesine(int x) {
+    fixed_t rc = _finesine[x];
+    // fix the top 16 bits based on the quadrant (they are either 0000 or ffff - this way without a branch)
+    rc -= (x & (FINEANGLES >> 1)) << (16 - (FINEBITS - 1));
+    return rc;
+}
 
+#define finecosine(x) finesine((x) + FINEANGLES/4)
+#endif
 
 // Effective size is 4096.
-extern const fixed_t finetangent[FINEANGLES/2];
+extern const fixed_t _finetangent[FINEANGLES/2];
+
+#define finetangent(x) (_finetangent[x] / (1 << (16 - FRACBITS)))
 
 // Gamma correction tables.
+#if !DOOM_TINY
 extern const byte gammatable[5][256];
+#else
+extern const byte gammatable[4][256];
+#endif
 
 // Binary Angle Measument, BAM.
 
@@ -89,7 +113,7 @@ extern const angle_t tantoangle[SLOPERANGE+1];
 
 // Utility function,
 //  called by R_PointToAngle.
-int SlopeDiv(unsigned int num, unsigned int den);
+//int SlopeDiv(unsigned int num, unsigned int den);
 
 
 #endif

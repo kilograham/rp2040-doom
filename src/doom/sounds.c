@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -17,23 +18,31 @@
 //	Kept as a sample, DOOM2 sounds.
 //
 
-
+#if !INCLUDE_SOUND_C_IN_S_SOUND
 #include <stdlib.h>
+#include <assert.h>
 
 
 #include "doomtype.h"
 #include "sounds.h"
-
 //
 // Information about all the music
 //
 
-#define MUSIC(name) \
-    { name, 0, NULL, NULL }
+#if !DOOM_SMALL
+#define MUSIC(name) { name, 0, NULL, NULL }
+#else
+#define MUSIC(name) { name, 0, NULL }
+#endif
 
+// todo graham big waste of space
 musicinfo_t S_music[] =
 {
+#if !USE_CONST_SFX
     MUSIC(NULL),
+#else
+    MUSIC(""),
+#endif
     MUSIC("e1m1"),
     MUSIC("e1m2"),
     MUSIC("e1m3"),
@@ -108,12 +117,27 @@ musicinfo_t S_music[] =
 // Information about all the sfx
 //
 
-#define SOUND(name, priority) \
-  { NULL, name, priority, NULL, -1, -1, 0, 0, -1, NULL }
-#define SOUND_LINK(name, priority, link_id, pitch, volume) \
-  { NULL, name, priority, &S_sfx[link_id], pitch, volume, 0, 0, -1, NULL }
+#if !DOOM_ONLY
+#define FIRST_ONE 0,
+#define LAST_TWO -1, NULL
+#else
+#define FIRST_ONE
+#define LAST_TWO
+#endif
 
-sfxinfo_t S_sfx[] =
+#if !USE_CONST_SFX
+#define SOUND(name, priority) \
+  { FIRST_ONE name, priority, NULL, -1, -1, 0, 0, LAST_TWO }
+#define SOUND_LINK(name, priority, link_id, pitch, volume) \
+  { FIRST_ONE name, priority, &S_sfx[link_id], pitch, volume, 0, 0, LAST_TWO }
+#else
+#define SOUND(name, priority) \
+  { FIRST_ONE name, priority, NULL, -1, -1, LAST_TWO }
+#define SOUND_LINK(name, priority, link_id, pitch, volume) \
+  { FIRST_ONE name, priority, &S_sfx[link_id], pitch, volume, LAST_TWO }
+#endif
+
+sfxinfo_t S_sfx[NUM_SFX] =
 {
   // S_sfx[0] needs to be a dummy for odd reasons.
   SOUND("none",   0),
@@ -227,3 +251,16 @@ sfxinfo_t S_sfx[] =
   SOUND("radio",  60),
 };
 
+#if USE_CONST_SFX
+sfxinfo_mut_t S_sfx_mut[NUM_SFX];
+
+sfxinfo_mut_t *get_mut_sfxinfo_t(const sfxinfo_t *sfxinfo) {
+    // todo graham maybe pass indexes around instead of pointers anyway
+    unsigned int index = sfxinfo - S_sfx;
+    assert(index < NUM_SFX);
+    return S_sfx_mut + index;
+}
+
+#endif
+
+#endif

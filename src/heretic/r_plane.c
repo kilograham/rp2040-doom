@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -149,8 +150,8 @@ void R_MapPlane(int y, int x1, int x2)
 
     length = FixedMul(distance, distscale[x1]);
     angle = (viewangle + xtoviewangle[x1]) >> ANGLETOFINESHIFT;
-    ds_xfrac = viewx + FixedMul(finecosine[angle], length);
-    ds_yfrac = -viewy - FixedMul(finesine[angle], length);
+    ds_xfrac = viewx + FixedMul(finecosine(angle), length);
+    ds_yfrac = -viewy - FixedMul(finesine(angle), length);
 
     if (fixedcolormap)
         ds_colormap = fixedcolormap;
@@ -204,8 +205,8 @@ void R_ClearPlanes(void)
     angle = (viewangle - ANG90) >> ANGLETOFINESHIFT;    // left to right mapping
 
     // scale will be unit scale at SCREENWIDTH/2 distance
-    basexscale = FixedDiv(finecosine[angle], centerxfrac);
-    baseyscale = -FixedDiv(finesine[angle], centerxfrac);
+    basexscale = FixedDiv(finecosine(angle), centerxfrac);
+    baseyscale = -FixedDiv(finesine(angle), centerxfrac);
 }
 
 

@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -25,6 +26,14 @@
 //
 // MISC
 //
+#if NO_USE_ARGS
+static inline int M_CheckParm(const char *check) {
+    return 0;
+}
+static inline int M_CheckParmWithArgs(const char *check, int num_args) {
+    return 0;
+}
+#else
 extern  int	myargc;
 extern  char**	myargv;
 
@@ -38,12 +47,15 @@ int M_CheckParmWithArgs(const char *check, int num_args);
 
 void M_FindResponseFile(void);
 
-// Parameter has been specified?
-
-boolean M_ParmExists(const char *check);
 
 // Get name of executable used to run this program:
 
 const char *M_GetExecutableName(void);
+#endif
+// Parameter has been specified?
+static inline boolean M_ParmExists(const char *check)
+{
+    return M_CheckParm(check) != 0;
+}
 
 #endif

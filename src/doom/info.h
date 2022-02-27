@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,6 +21,8 @@
 
 #ifndef __INFO__
 #define __INFO__
+
+#include "doomdef.h"
 
 // Needed for action function pointer handling.
 #include "d_think.h"
@@ -166,7 +169,11 @@ typedef enum
     SPR_TLP2,
     NUMSPRITES
 
-} spritenum_t;
+} spritenum_t_orig;
+
+#include <assert.h>
+static_assert(NUMSPRITES <= 256, "");
+typedef uint8_t spritenum_t;
 
 typedef enum
 {
@@ -1138,22 +1145,52 @@ typedef enum
     S_TECH2LAMP3,
     S_TECH2LAMP4,
     NUMSTATES
-} statenum_t;
+} statenum_t_orig;
 
+static_assert(NUMSTATES < 1024, ""); // just so we know
+typedef uint16_t statenum_t;
+
+#include <stdint.h>
 
 typedef struct
 {
+#if !DOOM_SMALL
     spritenum_t sprite;
     int frame;
     int tics;
     // void (*action) ();
     actionf_t action;
     statenum_t nextstate;
+#ifndef NO_USE_STATE_MISC
     int misc1;
     int misc2;
+#endif
+#else
+    uint8_t sprite;
+#if !DOOM_SMALL
+    uint16_t frame; // todo highbit is a flag
+#else
+    uint8_t frame;
+#endif
+    int8_t xtics;
+    // void (*action) ();
+    actionf_t action; // could be trivially small
+    statenum_t nextstate;
+#if !NO_USE_STATE_MISC
+    int misc1;
+    int misc2;
+#endif
+#endif
 } state_t;
+#if !DOOM_CONST
+#define state_tics(s) ((s)->tics)
+#else
+int state_tics(const state_t *s);
+extern boolean nightmare_speeds;
+#endif
 
-extern state_t	states[NUMSTATES];
+extern should_be_const state_t	states[NUMSTATES];
+
 extern const char *sprnames[];
 
 typedef enum {
@@ -1296,36 +1333,40 @@ typedef enum {
     MT_MISC86,
     NUMMOBJTYPES
 
-} mobjtype_t;
+} mobjtype_t_orig;
+static_assert(NUMMOBJTYPES<256, "");
+typedef uint8_t mobjtype_t;
 
 typedef struct
 {
-    int	doomednum;
-    int	spawnstate;
-    int	spawnhealth;
-    int	seestate;
-    int	seesound;
-    int	reactiontime;
-    int	attacksound;
-    int	painstate;
-    int	painchance;
-    int	painsound;
-    int	meleestate;
-    int	missilestate;
-    int	deathstate;
-    int	xdeathstate;
-    int	deathsound;
+    isb_int16_t doomednum;
+    statenum_t	spawnstate;
+
+    isb_int16_t	spawnhealth;
+    statenum_t 	seestate;
+
+    isb_uint8_t	seesound;
+    isb_int8_t	reactiontime;
+    isb_uint8_t	attacksound;
+    statenum_t	painstate;
+    isb_int16_t	painchance;
+    isb_uint8_t	painsound;
+    statenum_t	meleestate;
+    statenum_t	missilestate;
+    statenum_t	deathstate;
+    statenum_t	xdeathstate;
+    isb_uint8_t	deathsound;
     int	speed;
-    int	radius;
-    int	height;
+    int	radius; // todo wasteful
+    int	height; // todo wasteful
     int	mass;
-    int	damage;
-    int	activesound;
+    isb_int8_t	damage;
+    isb_uint8_t	activesound;
     int	flags;
-    int	raisestate;
+    statenum_t	raisestate;
 
 } mobjinfo_t;
 
-extern mobjinfo_t mobjinfo[NUMMOBJTYPES];
+extern should_be_const mobjinfo_t mobjinfo[NUMMOBJTYPES];
 
 #endif

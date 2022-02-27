@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,6 +29,8 @@
 #include "net_packet.h"
 #include "net_sdl.h"
 #include "z_zone.h"
+
+#if !NO_USE_NET
 
 //
 // NETWORKING
@@ -375,3 +378,4 @@ net_module_t net_sdl_module =
     NET_SDL_ResolveAddress,
 };
 
+#endif

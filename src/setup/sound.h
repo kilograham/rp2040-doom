@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,6 +21,6 @@
 void ConfigSound(void *widget, void *user_data);
 void BindSoundVariables(void);
 
-extern char *snd_dmxoption;
+extern const char *snd_dmxoption;
 
 #endif /* #ifndef SETUP_SOUND_H */

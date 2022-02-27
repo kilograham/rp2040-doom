@@ -1,7 +1,30 @@
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-cmake_minimum_required(VERSION 3.7.2)
-project("Chocolate Doom" VERSION 3.0.0 LANGUAGES C)
+cmake_minimum_required(VERSION 3.13)
+
+# We use PICO_SDK_PATH being set as an indicator that we're doing a Pico BUILD
+if (PICO_SDK_PATH)
+    include(pico_sdk_import.cmake)
+    include(pico_extras_import.cmake)
+endif()
+
+project("Chocolate Doom" VERSION 3.0.0 LANGUAGES C CXX)
+enable_language(CXX)
+set(CMAKE_CXX_STANDARD 14)
+
+if (PICO_SDK_PATH)
+    # we are using git@github.com:liamfraser/tinyusb.git as it has some RP2040 fixes that aren't upstreamed yet
+    set(PICO_TINYUSB_PATH ${CMAKE_CURRENT_LIST_DIR}/3rdparty/tinyusb)
+    # this only affects device builds device, but we want to use zone for malloc in this case so we don't have two separate elastic spaces and can fit more in
+    set(SKIP_PICO_MALLOC 1)
+    pico_sdk_init()
+    if (PICO_ON_DEVICE AND NOT CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+        message(WARNING "You should do a MinSizeRel build when targeting the RP2040
+        (with -DCMAKE_BUILD_TYPE=MinSizeRel)")
+    endif()
+endif()
+
+set(CMAKE_C_STANDARD 11)
 
 # Autotools variables
 set(top_srcdir ${CMAKE_CURRENT_SOURCE_DIR})
@@ -24,26 +47,30 @@ if(MSVC)
     add_definitions("/D_CRT_SECURE_NO_WARNINGS" "/D_CRT_SECURE_NO_DEPRECATE"
                     "/D_CRT_NONSTDC_NO_DEPRECATE")
 else()
-    add_compile_options("-Wall" "-Wdeclaration-after-statement"
-                        "-Wredundant-decls")
+    #add_compile_options("-Wall" "-Wdeclaration-after-statement" "-Wredundant-decls")
+    add_compile_options("-Wall" "-Wredundant-decls")
 endif()
 
-find_package(SDL2 2.0.1)
-find_package(SDL2_mixer 2.0.0)
-find_package(SDL2_net 2.0.0)
+# Note PICO_SDK path is set by the SDK initialization if it occurs above
+if (NOT PICO_SDK)
+    find_package(SDL2 2.0.1 REQUIRED)
+    find_package(SDL2_mixer 2.0.0 REQUIRED)
+    find_package(SDL2_net 2.0.0 REQUIRED)
 
-# Check for libsamplerate.
-find_package(samplerate)
-if(SAMPLERATE_FOUND)
-    set(HAVE_LIBSAMPLERATE TRUE)
+    # Check for libsamplerate.
+    find_package(samplerate)
+    if(SAMPLERATE_FOUND)
+        set(HAVE_LIBSAMPLERATE TRUE)
+    endif()
+
+    # Check for libpng.
+    find_package(PNG)
+    if(PNG_FOUND)
+        set(HAVE_LIBPNG TRUE)
+    endif()
 endif()
 
-# Check for libpng.
-find_package(PNG)
-if(PNG_FOUND)
-    set(HAVE_LIBPNG TRUE)
-endif()
-
+set(HAVE_MMAP 1)
 find_package(m)
 
 include(CheckSymbolExists)

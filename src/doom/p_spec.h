@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -179,6 +180,7 @@ void    P_SpawnFireFlicker (sector_t* sector);
 void    T_LightFlash (lightflash_t* flash);
 void    P_SpawnLightFlash (sector_t* sector);
 void    T_StrobeFlash (strobe_t* flash);
+void    T_FireFlicker (fireflicker_t* flick);
 
 void
 P_SpawnStrobeFlash
@@ -205,9 +207,13 @@ void    P_SpawnGlowingLight(sector_t* sector);
 //
 typedef struct
 {
-    char	name1[9];
-    char	name2[9];
+    texturename_def_t name1;
+    texturename_def_t name2;
+#if DOOM_TINY
+    int8_t episode;
+#else
     short	episode;
+#endif
     
 } switchlist_t;
 
@@ -224,11 +230,18 @@ typedef enum
 typedef struct
 {
     line_t*	line;
+#if !DOOM_SMALL
     bwhere_e	where;
-    int		btexture;
+#else
+    uint8_t where;
+#endif
+#if !DOOM_SMALL
     int		btimer;
-    degenmobj_t *soundorg;
-
+#else
+    uint8_t  btimer;
+#endif
+    lumpindex_t 	btexture;
+    xy_positioned_t *soundorg;
 } button_t;
 
 
@@ -296,6 +309,8 @@ typedef struct
     
 } plat_t;
 
+static inline shortptr_t plat_to_shortptr(plat_t *c) { return ptr_to_shortptr(c); }
+#define shortptr_to_plat(s) ((plat_t *)shortptr_to_ptr(s))
 
 
 #define PLATWAIT		3
@@ -303,7 +318,7 @@ typedef struct
 #define MAXPLATS		30
 
 
-extern plat_t*	activeplats[MAXPLATS];
+extern shortptr_t /*plat_t* */	activeplats[MAXPLATS];
 
 void    T_PlatRaise(plat_t*	plat);
 
@@ -485,8 +500,6 @@ typedef enum
 
 } ceiling_e;
 
-
-
 typedef struct
 {
     thinker_t	thinker;
@@ -506,15 +519,14 @@ typedef struct
     
 } ceiling_t;
 
-
-
-
+static inline shortptr_t ceiling_to_shortptr(ceiling_t *c) { return ptr_to_shortptr(c); }
+#define shortptr_to_ceiling(s) ((ceiling_t *)shortptr_to_ptr(s))
 
 #define CEILSPEED		FRACUNIT
 #define CEILWAIT		150
 #define MAXCEILINGS		30
 
-extern ceiling_t*	activeceilings[MAXCEILINGS];
+extern shortptr_t/*ceiling_t**/	activeceilings[MAXCEILINGS];
 
 int
 EV_DoCeiling
@@ -634,4 +646,21 @@ EV_Teleport
   int		side,
   mobj_t*	thing );
 
+
+//
+//      Animating line specials
+//
+#if WHD_SUPER_TINY
+#define MAXLINEANIMS            32 // 64 seems excessive
+#else
+#define MAXLINEANIMS            64
+#endif
+
+extern  short	numlinespecials;
+#if !USE_WHD
+extern  line_t*	linespeciallist[MAXLINEANIMS];
+#else
+extern uint16_t linespecialoffsetlist[MAXLINEANIMS];
+extern uint16_t linespecialoffset;
+#endif
 #endif

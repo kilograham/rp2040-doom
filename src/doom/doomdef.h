@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -39,7 +40,9 @@
 
 // If rangecheck is undefined,
 // most parameter validation debugging code will not be compiled
+#ifndef NDEBUG
 #define RANGECHECK
+#endif
 
 // The maximum number of players, multiplayer/networking.
 #define MAXPLAYERS 4
@@ -66,7 +69,15 @@ typedef enum
     ga_completed,
     ga_victory,
     ga_worlddone,
-    ga_screenshot
+#if !NO_SCREENSHOT
+    ga_screenshot,
+#endif
+#if USE_PICO_NET
+    ga_newgamenet,
+#endif
+#if DOOM_TINY
+    ga_deferredquit,
+#endif
 } gameaction_t;
 
 //

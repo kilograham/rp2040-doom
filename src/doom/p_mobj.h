@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,12 +36,7 @@
 //  tied to animation frames.
 // Needs precompiled tables/data structures.
 #include "info.h"
-
-
-
-
-
-
+#include "r_defs.h"
 //
 // NOTES: mobj_t
 //
@@ -192,10 +188,40 @@ typedef enum
     //  use a translation table for player colormaps
     MF_TRANSLATION  	= 0xc000000,
     // Hmm ???.
-    MF_TRANSSHIFT	= 26
+    MF_TRANSSHIFT	= 26,
 
+    MF_DECORATION = 0x10000000,
+    MF_STATIC  = (MF_DECORATION | MF_SPECIAL)	// Objects with these flags go in the static mobj zone, and occupy less RAM
 } mobjflag_t;
 
+#if !SHRINK_MOBJ
+typedef mapthing_t spawnpoint_t;
+#define spawnpoint_mapthing(s) (s)
+#define mobj_info(o) ((o)->info)
+#define mobj_subsector(o) ((o)->subsector)
+#define mobj_sector(o) subsector_sector(mobj_subsector(o))
+#define mobj_state(o) ((o)->state)
+#define mobj_state_num(o) (mobj_state(o) - states)
+#define mobj_sprite(o) ((o)->sprite)
+#define mobj_frame(o) ((o)->frame)
+#else
+
+extern const mapthing_t *mapthings;
+extern uint16_t nummapthings;
+typedef uint16_t spawnpoint_t;
+#define spawnpoint_mapthing(s) mapthings[s]
+#define mobj_info(o) (&mobjinfo[(o)->type])
+#define mobj_sector(o) (&sectors[(o)->sector_num])
+#define mobj_state_num(o) ((o)->state_num)
+#define mobj_state(o) (&states[mobj_state_num(o)])
+#define mobj_sprite(o) (mobj_state(o)->sprite)
+#define mobj_frame(o) (mobj_state(o)->frame)
+#endif
+#define mobj_spawnpoint(o) spawnpoint_mapthing((o)->spawnpoint)
+#define mobj_snext(o) ((mobj_t *)shortptr_to_ptr((o)->sp_snext))
+#define mobj_sprev(o) ((mobj_t *)shortptr_to_ptr((o)->sp_sprev))
+#define mobj_bnext(o) ((mobj_t *)shortptr_to_ptr((o)->sp_bnext))
+#define mobj_bprev(o) ((mobj_t *)shortptr_to_ptr((o)->sp_bprev))
 
 // Map Object definition.
 typedef struct mobj_s
@@ -203,33 +229,111 @@ typedef struct mobj_s
     // List: thinker links.
     thinker_t		thinker;
 
+#if DEBUG_MOBJ
+    int debug_id;
+    int think_count;
+#endif
+#if !SHRINK_MOBJ
+    int			tics;	// state tic counter
+#else
+    int8_t tics;
+#endif
+
+#if !SHRINK_MOBJ
+    spritenum_t		sprite;	// used to find patch_t and flip value
+    int		frame;	// might be ORed with FF_FULLBRIGHT
+#endif
+
+    mobjtype_t		type;
+#if !SHRINK_MOBJ
+    const mobjinfo_t*		info;	// &mobjinfo[mobj->type]
+#endif
+
+#if !SHRINK_MOBJ
+    should_be_const state_t*		state;
+#else
+    statenum_t state_num; // probably only 10 bits
+#endif
+
+    // ===== 16 bit fields (when SHRUNK) todo collapse furher once we know everything======
+#if !SHRINK_MOBJ
+    subsector_t*	subsector;
+#else
+    uint16_t sector_num;
+#endif
+
+    spawnpoint_t spawnpoint;
+
     // Info for drawing: position.
-    fixed_t		x;
-    fixed_t		y;
+    xy_positioned_t xy;
     fixed_t		z;
 
-    // More list: links in sector (if needed)
-    struct mobj_s*	snext;
-    struct mobj_s*	sprev;
+    int			flags;
 
-    //More drawing info: to determine current sprite.
-    angle_t		angle;	// orientation
-    spritenum_t		sprite;	// used to find patch_t and flip value
-    int			frame;	// might be ORed with FF_FULLBRIGHT
+    // More list: links in sector (if needed)
+    shortptr_t/*struct mobj_s*/	sp_snext;
+#if !SHRINK_MOBJ
+    shortptr_t/*struct mobj_s*/	sp_sprev;
+#endif
 
     // Interaction info, by BLOCKMAP.
     // Links in blocks (if needed).
-    struct mobj_s*	bnext;
-    struct mobj_s*	bprev;
-    
-    struct subsector_s*	subsector;
+    shortptr_t/*struct mobj_s*/	sp_bnext;
+#if !SHRINK_MOBJ
+    shortptr_t/*struct mobj_s*/	sp_bprev;
+#endif
+
+} mobj_t;
+
+// ===== NON-STATIC object fields =====
+
+typedef struct mobjfull_s
+{
+    mobj_t core;
+
+    // Movement direction, movement generation (zig-zagging).
+    int8_t		movedir;	// 0-7
+
+#if !SHRINK_MOBJ
+    // Reaction time: if non 0, don't attack yet.
+    // Used by player to freeze a bit after teleporting.
+    int			reactiontime;
+#else
+    uint8_t reactiontime;
+#endif
+
+    // Player number last looked for.
+#if !SHRINK_MOBJ
+    int			lastlook;
+#else
+    int8_t			lastlook;
+#endif
+
+#if !SHRINK_MOBJ
+    // If >0, the target will be chased
+    // no matter what (even if shot)
+    int			threshold;
+#else
+    int8_t			threshold;
+#endif
+
+#if !SHRINK_MOBJ
+    int			health;
+#else
+    int16_t     health;
+#endif
+
+    int			movecount;	// when 0, select a new dir
+
+    //More drawing info: to determine current sprite.
+    angle_t		angle;	// orientation
 
     // The closest interval over all contacted Sectors.
     fixed_t		floorz;
     fixed_t		ceilingz;
 
     // For movement checking.
-    fixed_t		radius;
+    fixed_t		radius; // mostly readonly (set to 0 at some point)
     fixed_t		height;	
 
     // Momentums, used to update position.
@@ -238,46 +342,87 @@ typedef struct mobj_s
     fixed_t		momz;
 
     // If == validcount, already checked.
-    int			validcount;
-
-    mobjtype_t		type;
-    mobjinfo_t*		info;	// &mobjinfo[mobj->type]
-    
-    int			tics;	// state tic counter
-    state_t*		state;
-    int			flags;
-    int			health;
-
-    // Movement direction, movement generation (zig-zagging).
-    int			movedir;	// 0-7
-    int			movecount;	// when 0, select a new dir
+    //int			validcount;
 
     // Thing being chased/attacked (or NULL),
     // also the originator for missiles.
-    struct mobj_s*	target;
-
-    // Reaction time: if non 0, don't attack yet.
-    // Used by player to freeze a bit after teleporting.
-    int			reactiontime;   
-
-    // If >0, the target will be chased
-    // no matter what (even if shot)
-    int			threshold;
+    shortptr_t /*struct mobj_s*/	sp_target;
 
     // Additional info record for player avatars only.
     // Only valid if type == MT_PLAYER
-    struct player_s*	player;
-
-    // Player number last looked for.
-    int			lastlook;	
-
-    // For nightmare respawn.
-    mapthing_t		spawnpoint;	
+    shortptr_t /*struct player_s*/	sp_player;
 
     // Thing being chased/attacked for tracers.
-    struct mobj_s*	tracer;	
-    
-} mobj_t;
+    shortptr_t /*struct mobj_s*/	sp_tracer;
+
+} mobjfull_t;
+#define mobj_target(o) ((mobj_t *)shortptr_to_ptr(mobj_full(o)->sp_target))
+#define mobj_player(o) ((struct player_s *)shortptr_to_ptr(mobj_full(o)->sp_player))
+struct player_s;
+static inline shortptr_t player_to_shortptr(struct player_s *p) {
+    return ptr_to_shortptr(p);
+}
+#define mobj_tracer(o) ((mobj_t *)shortptr_to_ptr(mobj_full(o)->sp_tracer))
+static inline shortptr_t mobj_to_shortptr(mobj_t *o) {
+    return ptr_to_shortptr(o);
+}
+#define shortptr_to_mobj(s) ((mobj_t *)shortptr_to_ptr(s))
+
+#if !DOOM_SMALL
+#define mobj_flags_is_static(i) 0
+#else
+#define mobj_flags_is_static(i) ((i) & MF_STATIC)
+#endif
+#define mobj_is_static(o) (mobj_flags_is_static((o)->flags))
+
+static inline mobjfull_t *mobj_full(mobj_t *mobj) {
+    assert(!mobj_is_static(mobj));
+    return (mobjfull_t *)mobj;
+}
+
+static inline int mobj_radius(mobj_t *mobj) {
+    return mobj_is_static(mobj) ? mobj_info(mobj)->radius : mobj_full(mobj)->radius;
+}
+
+static inline int mobj_height(mobj_t *mobj) {
+    return mobj_is_static(mobj) ? mobj_info(mobj)->height : mobj_full(mobj)->height;
+}
+
+static inline int mobj_is_player(mobj_t *mobj) {
+    return !mobj_is_static(mobj) && mobj_full(mobj)->sp_player;
+}
+
+#if !DOOM_CONST
+#define mobj_speed(o) (mobj_info(o)->speed)
+#else
+int mobj_speed(mobj_t *mo);
+#endif
+
+// todo we assume static objects are not crossing sectors; is this true?
+#define mobj_floorz(mobj) (mobj_is_static(mobj) ? sector_floorheight(mobj_sector(mobj)) : mobj_full(mobj)->floorz)
+#define mobj_ceilingz(mobj) (mobj_is_static(mobj) ? sector_ceilingheight(mobj_sector(mobj)) : mobj_full(mobj)->ceilingz)
+//#define mobj_radius(o) mobj_radius(o)
+
+// there is a reaction time in the info struct, however I've not seen it used on a static object
+#define mobj_reactiontime(o) mobj_full(o)->reactiontime
+
+static inline angle_t mobj_angle(mobj_t *mobj) {
+    if (mobj_is_static(mobj)) {
+        return ANG45 * (spawnpoint_mapthing(mobj->spawnpoint).angle / 45);
+    } else {
+        return mobj_full(mobj)->angle;
+    }
+}
+#if PICO_BUILD && !DEBUG_MOBJ
+#include "pico.h"
+#include <assert.h>
+#if PICO_ON_DEVICE
+static_assert(sizeof(mobj_t)==0x20, "");
+static_assert(sizeof(mobjfull_t)==0x54, "");
+#else
+static_assert(sizeof(mobj_t)==0x38, "");
+#endif
+#endif
 
 
 

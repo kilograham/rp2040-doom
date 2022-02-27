@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,6 +25,7 @@
 #include "deh_main.h"
 #include "deh_misc.h"
 
+#if !NO_USE_DEH
 // Dehacked: "Initial Health" 
 // This is the initial health a player has when starting anew.
 // See G_PlayerReborn in g_game.c
@@ -226,3 +228,4 @@ deh_section_t deh_section_misc =
     DEH_MiscSHA1Sum,
 };
 
+#endif

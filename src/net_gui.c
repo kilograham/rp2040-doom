@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -37,6 +38,7 @@
 
 #include "textscreen.h"
 
+#if !NO_USE_NET
 static txt_window_t *window;
 static int old_max_players;
 static txt_label_t *player_labels[NET_MAXPLAYERS];
@@ -429,3 +431,4 @@ void NET_WaitForLaunch(void)
 
     TXT_Shutdown();
 }
+#endif

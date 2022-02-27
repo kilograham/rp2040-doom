@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -45,4 +46,7 @@ void WI_Start(wbstartstruct_t*	 wbstartstruct);
 // Shut down the intermission screen
 void WI_End(void);
 
+#if DOOM_TINY
+extern lumpindex_t wi_background_patch_num;
+#endif
 #endif

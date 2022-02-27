@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -60,7 +61,7 @@ static int OPL_OpenBSD_Init(unsigned int port_base)
 
     if (set_iopl(3) < 0)
     {
-        fprintf(stderr, "Failed to get raise I/O privilege level: "
+        stderr_print( "Failed to get raise I/O privilege level: "
                         "check that you are running as root.\n");
         return 0;
     }

@@ -1,6 +1,7 @@
  /*
 
  Copyright(C) 2005-2014 Simon Howard
+ Copyright(C) 2021-2022 Graham Sanderson
 
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
@@ -53,7 +54,7 @@ static const char *player_colors[] =
 static wbstartstruct_t captured_stats[MAX_CAPTURES];
 static int num_captured_stats = 0;
 
-static GameMission_t discovered_gamemission = none;
+static GameMission_t discovered_gamemission = mission_none;
 
 /* Try to work out whether this is a Doom 1 or Doom 2 game, by looking
  * at the episode and map, and the par times.  This is used to decide
@@ -66,7 +67,7 @@ static void DiscoverGamemode(wbstartstruct_t *stats, int num_stats)
     int level;
     int i;
 
-    if (discovered_gamemission != none)
+    if (discovered_gamemission != mission_none)
     {
         return;
     }
@@ -255,7 +256,7 @@ static void PrintLevelName(FILE *stream, int episode, int level)
             fprintf(stream, "MAP%02i\n", level + 1);
             break;
         default:
-        case none:
+        case mission_none:
             fprintf(stream, "E%iM%i / MAP%02i\n", 
                     episode + 1, level + 1, level + 1);
             break;
@@ -320,6 +321,7 @@ void StatDump(void)
     // from statdump.exe (see ctrlapi.zip in the /idgames archive).
     //
 
+#if !NO_USE_ARGS
     i = M_CheckParmWithArgs("-statdump", 1);
 
     if (i > 0)
@@ -352,5 +354,6 @@ void StatDump(void)
             fclose(dumpfile);
         }
     }
+#endif
 }
 

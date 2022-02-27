@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,6 +19,8 @@
 
 #include "config.h"
 
+// todo split this out into a separate file w_fiel type
+#if !PICO_ON_DEVICE
 #ifdef HAVE_MMAP
 
 #include <errno.h>
@@ -49,7 +52,11 @@ static void MapFile(posix_wad_file_t *wad, const char *filename)
     // change the WAD files after being read.  However, there may
     // be code lurking in the source that does.
 
+#if USE_READONLY_MMAP
+    protection = PROT_READ;
+#else
     protection = PROT_READ|PROT_WRITE;
+#endif
 
     // Writes to the mapped area result in private changes that are
     // *not* written to disk.
@@ -64,7 +71,7 @@ static void MapFile(posix_wad_file_t *wad, const char *filename)
 
     if (result == NULL)
     {
-        fprintf(stderr, "W_POSIX_OpenFile: Unable to mmap() %s - %s\n",
+        stderr_print( "W_POSIX_OpenFile: Unable to mmap() %s - %s\n",
                         filename, strerror(errno));
     }
 }
@@ -168,3 +175,46 @@ wad_file_class_t posix_wad_file =
 
 #endif /* #ifdef HAVE_MMAP */
 
+#else
+
+#include "pico.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+
+#include "m_misc.h"
+#include "w_file.h"
+#include "z_zone.h"
+
+typedef struct
+{
+    wad_file_t wad;
+    int handle;
+} posix_wad_file_t;
+
+extern wad_file_class_t posix_wad_file;
+
+static wad_file_t *W_POSIX_OpenFile(const char *path) {
+    return NULL;
+
+}
+
+static void W_POSIX_CloseFile(wad_file_t *wad) {
+
+}
+
+size_t W_POSIX_Read(wad_file_t *wad, unsigned int offset,
+                    void *buffer, size_t buffer_len) {
+    panic_unsupported();
+}
+
+wad_file_class_t posix_wad_file =
+        {
+                W_POSIX_OpenFile,
+                W_POSIX_CloseFile,
+                W_POSIX_Read,
+        };
+
+
+#endif

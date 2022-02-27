@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,6 +28,7 @@
 #include "deh_main.h"
 #include "deh_mapping.h"
 
+#if !NO_USE_DEH
 DEH_BEGIN_MAPPING(state_mapping, state_t)
   DEH_MAPPING("Sprite number",    sprite)
   DEH_MAPPING("Sprite subnumber", frame)
@@ -159,3 +161,4 @@ deh_section_t deh_section_frame =
     DEH_FrameSHA1Sum,
 };
 
+#endif

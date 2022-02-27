@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -51,9 +52,9 @@ int snd_samplerate = 44100;
 int opl_io_port = 0x388;
 int snd_cachesize = 64 * 1024 * 1024;
 int snd_maxslicetime_ms = 28;
-char *snd_musiccmd = "";
+const char *snd_musiccmd = "";
 int snd_pitchshift = 0;
-char *snd_dmxoption = "";
+const char *snd_dmxoption = "";
 
 static int numChannels = 8;
 static int sfxVolume = 8;
@@ -63,9 +64,9 @@ static int show_talk = 0;
 static int use_libsamplerate = 0;
 static float libsamplerate_scale = 0.65;
 
-static char *music_pack_path = NULL;
-static char *timidity_cfg_path = NULL;
-static char *gus_patch_path = NULL;
+static const char *music_pack_path = NULL;
+static const char *timidity_cfg_path = NULL;
+static const char *gus_patch_path = NULL;
 static int gus_ram_kb = 1024;
 
 // DOS specific variables: these are unused but should be maintained
@@ -181,7 +182,7 @@ void ConfigSound(TXT_UNCAST_ARG(widget), void *user_data)
                 TXT_NewStrut(4, 0),
                 TXT_NewLabel("Path to patch files: "),
                 TXT_NewStrut(4, 0),
-                TXT_NewFileSelector(&gus_patch_path, 34,
+                TXT_NewFileSelector((char **)&gus_patch_path, 34,
                                     "Select directory containing GUS patches",
                                     TXT_DIRECTORY),
                 NULL)),
@@ -192,7 +193,7 @@ void ConfigSound(TXT_UNCAST_ARG(widget), void *user_data)
                 TXT_NewStrut(4, 0),
                 TXT_NewLabel("Timidity configuration file: "),
                 TXT_NewStrut(4, 0),
-                TXT_NewFileSelector(&timidity_cfg_path, 34,
+                TXT_NewFileSelector((char **)&timidity_cfg_path, 34,
                                     "Select Timidity config file",
                                     cfg_extension),
                 NULL)),

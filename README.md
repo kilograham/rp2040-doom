@@ -1,104 +1,219 @@
-# Chocolate Doom
+# RP2040 Doom
 
-Chocolate Doom aims to accurately reproduce the original DOS version of
-Doom and other games based on the Doom engine in a form that can be
-run on modern computers.
+This is a port of Doom for RP2040 devices, derived from [Chocolate Doom](https://github.com/chocolate-doom/chocolate-doom).
 
-Originally, Chocolate Doom was only a Doom source port. The project
-now includes ports of Heretic and Hexen, and Strife.
+Significant changes have been made to support running on the RP2040 device, but particularly to support running the 
+entire shareware `DOOM1.WAD` which is 4M big on a Raspberry Pi Pico with only 2M flash!
 
-Chocolate Doom’s aims are:
+You can read many details on this port in the blog post [here](https://kilograham.github.io/rp2040-doom/).
 
- * To always be 100% Free and Open Source software.
- * Portability to as many different operating systems as possible.
- * Accurate reproduction of the original DOS versions of the games,
-   including bugs.
- * Compatibility with the DOS demo, configuration and savegame files.
- * To provide an accurate retro “feel” (display and input should
-   behave the same).
+Note that a hopefully-fully-functional `chocolate-doom` executable is buildable from this RP2040 code base as a 
+means of 
+verification that everything still works, but whilst they can still be built, Hexen, Strife and Heretic are almost 
+certainly broken, so are not built by default.
 
-More information about the philosophy and design behind Chocolate Doom
-can be found in the PHILOSOPHY file distributed with the source code.
+This chocolate-doom commit that the code is branched off can be found in the `upstream` branch.
 
-## Setting up gameplay
+The original Chocolate Doom README is [here](README-chocolate.md).
 
-For instructions on how to set up Chocolate Doom for play, see the
-INSTALL file.
+## Code State
 
-## Configuration File
+Thus far, the focus has been entirely on getting RP2040 Doom running. Not a lot of time has been 
+spent 
+cleaning 
+the code up. There are a bunch of defunct `#ifdefs` and other code that was useful at some point, 
+but no longer are, and indeed changing them may result in non-functional code. This is particularly 
+true of 
+the 
+`whd_gen` tool 
+used to 
+convert/compress WADs 
+who's code is 
+likely completely incomprehensible!  
 
-Chocolate Doom is compatible with the DOS Doom configuration file
-(normally named `default.cfg`). Existing configuration files for DOS
-Doom should therefore simply work out of the box. However, Chocolate
-Doom also provides some extra settings. These are stored in a
-separate file named `chocolate-doom.cfg`.
+## Artifacts
 
-The configuration can be edited using the chocolate-setup tool.
+You can find a RP2040 Doom UF2s based on the standard VGA/I2S pins in the 
+releases of this repository. There are also versions with the shareware DOOM1.WAD already embedded.
 
-## Command line options
+Note you can always use `picotool info -a <UF2 file>` to see the pins used by a particular build.
 
-Chocolate Doom supports a number of command line parameters, including
-some extras that were not originally suported by the DOS versions. For
-binary distributions, see the CMDLINE file included with your
-download; more information is also available on the Chocolate Doom
-website.
+## Goals
 
-## Playing TCs
+The main goals for this port were:
 
-With Vanilla Doom there is no way to include sprites in PWAD files.
-Chocolate Doom’s ‘-file’ command line option behaves exactly the same
-as Vanilla Doom, and trying to play TCs by adding the WAD files using
-‘-file’ will not work.
+1. Everything should match the original game experience, i.e. all the graphics at classic 320x200 resolution, stereo
+   sound,
+   OPL2 music, save/load, demo playback, cheats, network multiplayer... basically it should feel like the original game.
+2. `DOOM1.WAD` should run on a Raspberry Pi Pico. There was also to be no sneaky discarding of splash screens, altering of levels, down-sampling of
+   textures or whatever. RP2040 boards with 8M should be able to play at least the full *Ultimate Doom* and *DOOM II*
+   WADs.
+3. The RP2040 should output directly to VGA (16 color pins for RGB565 along with HSync/VSync) along with stereo sound.
 
-Many Total Conversions (TCs) are distributed as a PWAD file which must
-be merged into the main IWAD. Typically a copy of DEUSF.EXE is
-included which performs this merge. Chocolate Doom includes a new
-option, ‘-merge’, which will simulate this merge. Essentially, the
-WAD directory is merged in memory, removing the need to modify the
-IWAD on disk.
+## Results
 
-To play TCs using Chocolate Doom, run like this:
+[![RP2040 Doom on a Raspberry Pi Pico](https://img.youtube.com/vi/eDVazQVycP4/maxresdefault.jpg)](https://youtu.be/eDVazQVycP4)
 
+Features:
+
+* Full `DOOM1.WAD` playable on Raspberry Pi Pico with 2M flash.
+* *Ultimate Doom* and *Doom II* are playable on 8M devices.
+* 320x200x60 VGA output (really 1280x1024x60).
+* 9 Channel OPL2 Sound at 49716Hz.
+* 9 Channel Stereo Sound Effects.
+* I2C networking for up to 4 players.
+* Save/Load of games.
+* All cheats supported.
+* Demos from original WADs run correctly.
+* USB Keyboard Input support.
+* All end scenes, intermissions, help screens etc. supported.
+* Good frame rate; generally 30-35+ FPS.
+* Uses 270Mhz overclock (requires flash chip that will run at 135Mhz)
+
+# Building
+
+RP2040 Doom should build fine on Linux and macOS. The RP2040 targeting builds should also work on Windows, though I 
+haven't tried.
+
+The build uses `CMake`.
+
+## Regular chocolate-doom/native builds
+
+To build everything, assuming you have SDL2 dependencies installed, you can create a build directory:
+
+```bash
+mkdir build
+cd build
+cmake ..
 ```
-chocolate-doom -merge thetc.wad
+
+And then run `make` or `make -j<num_cpus>` from that directory. To build a particular target e.g. `chocolate-doom`, 
+do `make chocolate-doom`
+
+Note this is the way you build the `whd_gen` tool too.
+
+## RP2040 Doom builds
+
+You must have [pico-sdk](https://github.com/raspberrypi/pico-sdk) and 
+**the latest version of** [pico-extras](https://github.com/raspberrypi/pico-extras) installed, along with the regular 
+pico-sdk requisites (e.g.
+`arm-none-eabi-gcc`). If in doubt, see the Raspberry Pi
+[documentation](https://datasheets.raspberrypi.com/pico/getting-started-with-pico.pdf). I have been building against 
+the `develop` branch of `pico-sdk`, so I recommend that..
+
+For USB keyboard input support, RP2040 Doom currently uses a modified version of TinyUSB included as a submodule. 
+Make sure you have initialized this submodule via `git submodule update --init` 
+
+You can create a build directly like this:
+
+```bash
+mkdir rp2040-build
+cd rp2040-build
+cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DPICO_BOARD=vgaboard -DPICO_SDK_PATH=/path/to/pico-sdk -DPICO_EXTRAS_PATH=/path/to/pico-extras ..
 ```
 
-Here are some examples:
+Note that the `PICO_BOARD` setting is for the standard VGA demo board which has RGB on pins 0->15, sync pins on 16,17 
+and 
+I2S on 26,27,28.
 
+As before, use `make` or `make <target>` to build. 
+
+The RP2040 version has four targets, each of which create a similarly named `UF2` file (e.g. `doom_tiny_nh.uf2`). 
+These UF2 files contain the executable code/data, but they do not contain the WAD data which is converted into a 
+RP2040 Domom 
+specific WHD/WHX format by `whd_gen` (for more see below). The WHD/WHX file must also be loaded onto the device at a 
+specific address which varies by binary. 
+
+"super-tiny" refers to RP2040 Doom builds that use the more compressed WHX format, and 
+required for`DOOM1.
+WAD` to 
+run 
+on a 2M Raspberry Pi Pico. "Non super-tiny" refers to RP2040 Doom builds that use the WHD format which is larger, but 
+also is 
+required for *Ultimate Doom* and *Doom II* WADs. These binaries are distinct as supporting both formats in the same 
+binary would just have made things bigger and slower.
+
+
+* **doom_tiny_nh** This is a "super tiny" version with no USB keyboard support. You can use
+[SDL Event Forwarder](https://github.com/kilograham/sdl_event_forwarder) to tunnel keyboard input from your host 
+  computer over UART. The WHX file must be loaded at `0x10040000`. 
+* **doom_tiny_nh_cd** This is a "super tiny" version with additional USB keyboard support. Because of the extra USB 
+  code, the WHX file must be loaded at `0x10042000`. As you can see USB support via TinyUSB causes the binary to 
+  grow by 2K (hence the move of the WHX file address) leaving less space for saved games (which are also stored in 
+  flash).
+* **doom_tiny_nh_nost** This is a "non super tiny" version of `doom_tiny_nh` supporting larger WADs stored as WHD. The WHD 
+  file must be loaded at `0x10048000`
+* **doom_tiny_nh_nost_cd** This is a "non super tiny" version of `doom_tiny_nh_cd` supporting larger WADs stored as 
+  WHD. The WHD
+  file must be loaded at `0x10048000`
+
+You can load you WHD/WHX file using [picotool](https://github.com/raspberrypi/picotool). e.g.
+
+```bash
+picotool load -v -t bin doom1.whx -o 0x10042000.
 ```
-chocolate-doom -merge batman.wad -deh batman.deh vbatman.deh  (Batman Doom)
-chocolate-doom -merge aoddoom1.wad -deh aoddoom1.deh  (Army of Darkness Doom)
+
+See `whd_gen` further below for generating `WHX` or `WHD` files.
+
+#### USB keyboard support
+
+Note that TinyUSB host mode support for keyboard may not work with all keyboards especially since the RP2040 Doom 
+has been built with small limits for number/sizes of hubs etc. I know that Raspberry Pi keyboards work fine, as 
+did my ancient 
+Dell keyboard. Your keyboard may just do nothing, or may cause a crash. If so, for now, you are stuck forwarding 
+keys from another PC via sdl_event_forwarder.
+
+### RP2040 Doom builds not targeting an RP2040 device
+
+You can also build the RP2040 Doom to run on your host computer (Linux or macOS) by using
+[pico_host_sdl](https://github.com/raspberrypi/pico-host-sdl) which simulates RP2040 based video/audio output using SDL.
+
+This version currently embeds the WHD/WHX in `src/tiny.whd.h` so you must generate this file.
+
+You can do this via `./cup.sh <whd/whx_file>`
+
+```bash
+mkdir host-build
+cd host-build
+cmake -DPICO_PLATFORM=host -DPICO_SDK_PATH=/path/to/pico-sdk -DPICO_EXTRAS_PATH=/path/to/pico-extras -DPICO_SDK_PRE_LIST_DIRS=/path/to/pico_host_sdl ..
 ```
 
-## Other information
+... and then `make` as usual.
 
- * Chocolate Doom includes a number of different options for music
-   playback. See the README.Music file for more details.
+## whd_gen
 
- * More information, including information about how to play various
-   classic TCs, is available on the Chocolate Doom website:
+`doom1.whx` is includd in this repository, otherwise you need to build `whd_gen` using the regular native build 
+instructions above.
 
-     https://www.chocolate-doom.org/
+To generate a WHX file (you must use this to convert DOOM1.WAD to run on a 2M Raspberry Pi Pico)
 
-   You are encouraged to sign up and contribute any useful information
-   you may have regarding the port!
+```bash
+whd_gen <wad_file> <whx_file>
+```
 
- * Chocolate Doom is not perfect. Although it aims to accurately
-   emulate and reproduce the DOS executables, some behavior can be very
-   difficult to reproduce. Because of the nature of the project, you
-   may also encounter Vanilla Doom bugs; these are intentionally
-   present; see the NOT-BUGS file for more information.
+The larger WADs (e.g. *Ultimate Doom* or *Doom II* have levels which are too complex to convert into a super tiny 
+WHX file. These larger WADs are not going to fit in a 2M flash anywy, so the less compressed WHD format can be used 
+given that the device now probably has 8M of flash.
 
-   New bug reports can be submitted to the issue tracker on Github:
+```bash
+whd_gen <wad_file> <whd_file> -no-super-tiny
+```
 
-     https://github.com/chocolate-doom/chocolate-doom/issues
+Note that `whd_gen` has not been tested with a wide variety of WADs, so whilst it is possible that non Id WADs may 
+work, it is by no means guaranteed!
 
- * Source code patches are welcome, but please follow the style
-   guidelines - see the file named HACKING included with the source
-   distribution.
+NOTE: You should use a release build of `whd_gen` for the best sound effect fidelity, as the debug build 
+deliberately lowers the encoding quality for the sake of speed.
 
- * Chocolate Doom is distributed under the GNU GPL. See the COPYING
-   file for more information.
+# Future
 
- * Please send any feedback, questions or suggestions to
-   chocolate-doom-dev-list@chocolate-doom.org. Thanks!
+*Evilution* and *Plutonia* are not yet supported. There is an issue tracking it 
+[here](https://github.com/kilograham/rp2040-doom/issues/1).
+
+# RP2040 Doom Licenses
+
+* Any code derived from chocolate-doom matinains its existing license (generally GPLv2). 
+* New RP2040 Doom specific code not implementing existing chocolate-doom interfaces is licensed BSD-3.
+* ADPCM-XA is unmodified and is licensed BSD-3.
+* Modified emu8950 derived code retains its MIT license.
+

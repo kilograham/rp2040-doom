@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -30,6 +31,7 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
+#if !NO_USE_GUS
 #define MAX_INSTRUMENTS 256
 
 typedef struct
@@ -40,7 +42,7 @@ typedef struct
     unsigned int count;
 } gus_config_t;
 
-char *gus_patch_path = "";
+constcharstar gus_patch_path = "";
 int gus_ram_kb = 1024;
 
 static unsigned int MappingIndex(void)
@@ -217,7 +219,7 @@ static char *ReadDMXConfig(void)
     }
 
     len = W_LumpLength(lumpnum);
-    data = Z_Malloc(len + 1, PU_STATIC, NULL);
+    data = Z_Malloc(len + 1, PU_STATIC, 0);
     W_ReadLump(lumpnum, data);
 
     data[len] = '\0';
@@ -299,3 +301,4 @@ boolean GUS_WriteConfig(char *path)
     return result;
 }
 
+#endif

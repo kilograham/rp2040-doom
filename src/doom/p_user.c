@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -56,8 +57,8 @@ P_Thrust
 {
     angle >>= ANGLETOFINESHIFT;
     
-    player->mo->momx += FixedMul(move,finecosine[angle]); 
-    player->mo->momy += FixedMul(move,finesine[angle]);
+    mobj_full(player->mo)->momx += FixedMul(move,finecosine(angle));
+    mobj_full(player->mo)->momy += FixedMul(move,finesine(angle));
 }
 
 
@@ -79,8 +80,8 @@ void P_CalcHeight (player_t* player)
     // Note: a LUT allows for effects
     //  like a ramp with low health.
     player->bob =
-	FixedMul (player->mo->momx, player->mo->momx)
-	+ FixedMul (player->mo->momy,player->mo->momy);
+	FixedMul (mobj_full(player->mo)->momx, mobj_full(player->mo)->momx)
+	+ FixedMul (mobj_full(player->mo)->momy,mobj_full(player->mo)->momy);
     
     player->bob >>= 2;
 
@@ -91,15 +92,15 @@ void P_CalcHeight (player_t* player)
     {
 	player->viewz = player->mo->z + VIEWHEIGHT;
 
-	if (player->viewz > player->mo->ceilingz-4*FRACUNIT)
-	    player->viewz = player->mo->ceilingz-4*FRACUNIT;
+	if (player->viewz > mobj_full(player->mo)->ceilingz-4*FRACUNIT)
+	    player->viewz = mobj_full(player->mo)->ceilingz-4*FRACUNIT;
 
 	player->viewz = player->mo->z + player->viewheight;
 	return;
     }
 		
     angle = (FINEANGLES/20*leveltime)&FINEMASK;
-    bob = FixedMul ( player->bob/2, finesine[angle]);
+    bob = FixedMul ( player->bob/2, finesine(angle));
 
     
     // move viewheight
@@ -129,8 +130,8 @@ void P_CalcHeight (player_t* player)
     }
     player->viewz = player->mo->z + player->viewheight + bob;
 
-    if (player->viewz > player->mo->ceilingz-4*FRACUNIT)
-	player->viewz = player->mo->ceilingz-4*FRACUNIT;
+    if (player->viewz > mobj_full(player->mo)->ceilingz-4*FRACUNIT)
+	player->viewz = mobj_full(player->mo)->ceilingz-4*FRACUNIT;
 }
 
 
@@ -144,20 +145,20 @@ void P_MovePlayer (player_t* player)
 	
     cmd = &player->cmd;
 	
-    player->mo->angle += (cmd->angleturn<<FRACBITS);
+    mobj_full(player->mo)->angle += (cmd->angleturn<<FRACBITS);
 
     // Do not let the player control movement
     //  if not onground.
-    onground = (player->mo->z <= player->mo->floorz);
+    onground = (player->mo->z <= mobj_full(player->mo)->floorz);
 	
     if (cmd->forwardmove && onground)
-	P_Thrust (player, player->mo->angle, cmd->forwardmove*2048);
+	P_Thrust (player, mobj_full(player->mo)->angle, cmd->forwardmove*2048);
     
     if (cmd->sidemove && onground)
-	P_Thrust (player, player->mo->angle-ANG90, cmd->sidemove*2048);
+	P_Thrust (player, mobj_full(player->mo)->angle-ANG90, cmd->sidemove*2048);
 
     if ( (cmd->forwardmove || cmd->sidemove) 
-	 && player->mo->state == &states[S_PLAY] )
+	 && mobj_state_num(player->mo) == S_PLAY )
     {
 	P_SetMobjState (player->mo, S_PLAY_RUN1);
     }
@@ -187,31 +188,31 @@ void P_DeathThink (player_t* player)
 	player->viewheight = 6*FRACUNIT;
 
     player->deltaviewheight = 0;
-    onground = (player->mo->z <= player->mo->floorz);
+    onground = (player->mo->z <= mobj_full(player->mo)->floorz);
     P_CalcHeight (player);
 	
     if (player->attacker && player->attacker != player->mo)
     {
-	angle = R_PointToAngle2 (player->mo->x,
-				 player->mo->y,
-				 player->attacker->x,
-				 player->attacker->y);
+	angle = R_PointToAngle2 (player->mo->xy.x,
+				 player->mo->xy.y,
+				 player->attacker->xy.x,
+				 player->attacker->xy.y);
 	
-	delta = angle - player->mo->angle;
+	delta = angle - mobj_full(player->mo)->angle;
 	
 	if (delta < ANG5 || delta > (unsigned)-ANG5)
 	{
 	    // Looking at killer,
 	    //  so fade damage flash down.
-	    player->mo->angle = angle;
+	    mobj_full(player->mo)->angle = angle;
 
 	    if (player->damagecount)
 		player->damagecount--;
 	}
 	else if (delta < ANG180)
-	    player->mo->angle += ANG5;
+	    mobj_full(player->mo)->angle += ANG5;
 	else
-	    player->mo->angle -= ANG5;
+	    mobj_full(player->mo)->angle -= ANG5;
     }
     else if (player->damagecount)
 	player->damagecount--;
@@ -257,14 +258,14 @@ void P_PlayerThink (player_t* player)
     // Move around.
     // Reactiontime is used to prevent movement
     //  for a bit after a teleport.
-    if (player->mo->reactiontime)
-	player->mo->reactiontime--;
+    if (mobj_reactiontime(player->mo))
+        mobj_reactiontime(player->mo)--;
     else
 	P_MovePlayer (player);
     
     P_CalcHeight (player);
 
-    if (player->mo->subsector->sector->special)
+    if (mobj_sector(player->mo)->special)
 	P_PlayerInSpecialSector (player);
     
     // Check for weapon change.

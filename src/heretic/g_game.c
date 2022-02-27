@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -1270,7 +1271,7 @@ boolean G_CheckSpot(int playernum, mapthing_t * mthing)
     ss = R_PointInSubsector(x, y);
     an = ((unsigned) ANG45 * (mthing->angle / 45)) >> ANGLETOFINESHIFT;
 
-    mo = P_SpawnMobj(x + 20 * finecosine[an], y + 20 * finesine[an],
+    mo = P_SpawnMobj(x + 20 * finecosine(an), y + 20 * finesine(an),
                      ss->sector->floorheight + TELEFOGHEIGHT, MT_TFOG);
 
     if (players[consoleplayer].viewz != 1)

@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,7 +29,13 @@
 // The sky map is 256*128*4 maps.
 #define ANGLETOSKYSHIFT		22
 
-extern  int		skytexture;
+extern  texnum_t 		skytexture;
+#if USE_WHD
+extern framedrawable_t *skytexture_fd;
+#endif
+#if DOOM_TINY
+extern lumpindex_t   skytexture_patch;
+#endif
 extern int		skytexturemid;
 
 // Called whenever the view size changes.

@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -228,7 +229,7 @@ P_GiveBody
     player->health += num;
     if (player->health > MAXHEALTH)
 	player->health = MAXHEALTH;
-    player->mo->health = player->health;
+    mobj_full(player->mo)->health = player->health;
 	
     return true;
 }
@@ -339,7 +340,7 @@ P_TouchSpecialThing
 		
     delta = special->z - toucher->z;
 
-    if (delta > toucher->height
+    if (delta > mobj_height(toucher)
 	|| delta < -8*FRACUNIT)
     {
 	// out of reach
@@ -348,15 +349,15 @@ P_TouchSpecialThing
     
 	
     sound = sfx_itemup;	
-    player = toucher->player;
+    player = mobj_player(toucher);
 
     // Dead thing touching.
     // Can happen with a sliding player corpse.
-    if (toucher->health <= 0)
+    if (mobj_full(toucher)->health <= 0)
 	return;
 
     // Identify by sprite.
-    switch (special->sprite)
+    switch (mobj_sprite(special))
     {
 	// armor
       case SPR_ARM1:
@@ -376,7 +377,7 @@ P_TouchSpecialThing
 	player->health++;		// can go over 100%
 	if (player->health > deh_max_health)
 	    player->health = deh_max_health;
-	player->mo->health = player->health;
+	mobj_full(player->mo)->health = player->health;
 	player->message = DEH_String(GOTHTHBONUS);
 	break;
 	
@@ -395,7 +396,7 @@ P_TouchSpecialThing
 	player->health += deh_soulsphere_health;
 	if (player->health > deh_max_soulsphere)
 	    player->health = deh_max_soulsphere;
-	player->mo->health = player->health;
+	mobj_full(player->mo)->health = player->health;
 	player->message = DEH_String(GOTSUPER);
 	sound = sfx_getpow;
 	break;
@@ -404,7 +405,7 @@ P_TouchSpecialThing
 	if (gamemode != commercial)
 	    return;
 	player->health = deh_megasphere_health;
-	player->mo->health = player->health;
+	mobj_full(player->mo)->health = player->health;
         // We always give armor type 2 for the megasphere; dehacked only 
         // affects the MegaArmor.
 	P_GiveArmor (player, 2);
@@ -677,16 +678,16 @@ P_KillMobj
 	target->flags &= ~MF_NOGRAVITY;
 
     target->flags |= MF_CORPSE|MF_DROPOFF;
-    target->height >>= 2;
+    mobj_full(target)->height >>= 2;
 
-    if (source && source->player)
+    if (source && mobj_full(source)->sp_player)
     {
 	// count for intermission
 	if (target->flags & MF_COUNTKILL)
-	    source->player->killcount++;	
+	    mobj_player(source)->killcount++;
 
-	if (target->player)
-	    source->player->frags[target->player-players]++;
+	if (mobj_full(target)->sp_player)
+	    mobj_player(source)->frags[mobj_player(target)-players]++;
     }
     else if (!netgame && (target->flags & MF_COUNTKILL) )
     {
@@ -695,17 +696,17 @@ P_KillMobj
 	players[0].killcount++;
     }
     
-    if (target->player)
+    if (mobj_full(target)->sp_player)
     {
 	// count environment kills against you
 	if (!source)	
-	    target->player->frags[target->player-players]++;
+	    mobj_player(target)->frags[mobj_player(target)-players]++;
 			
 	target->flags &= ~MF_SOLID;
-	target->player->playerstate = PST_DEAD;
-	P_DropWeapon (target->player);
+	mobj_player(target)->playerstate = PST_DEAD;
+	P_DropWeapon (mobj_player(target));
 
-	if (target->player == &players[consoleplayer]
+	if (mobj_player(target) == &players[consoleplayer]
 	    && automapactive)
 	{
 	    // don't die in auto map,
@@ -715,13 +716,13 @@ P_KillMobj
 	
     }
 
-    if (target->health < -target->info->spawnhealth 
-	&& target->info->xdeathstate)
+    if (mobj_full(target)->health < -mobj_info(target)->spawnhealth
+	&& mobj_info(target)->xdeathstate)
     {
-	P_SetMobjState (target, target->info->xdeathstate);
+	P_SetMobjState (target, mobj_info(target)->xdeathstate);
     }
     else
-	P_SetMobjState (target, target->info->deathstate);
+	P_SetMobjState (target, mobj_info(target)->deathstate);
     target->tics -= P_Random()&3;
 
     if (target->tics < 1)
@@ -731,10 +732,12 @@ P_KillMobj
 
     // In Chex Quest, monsters don't drop items.
 
+#if !DOOM_ONLY
     if (gameversion == exe_chex)
     {
         return;
     }
+#endif
 
     // Drop stuff.
     // This determines the kind of object spawned
@@ -758,7 +761,7 @@ P_KillMobj
 	return;
     }
 
-    mo = P_SpawnMobj (target->x,target->y,ONFLOORZ, item);
+    mo = P_SpawnMobj (target->xy.x, target->xy.y, ONFLOORZ, item);
     mo->flags |= MF_DROPPED;	// special versions of items
 }
 
@@ -792,15 +795,15 @@ P_DamageMobj
     if ( !(target->flags & MF_SHOOTABLE) )
 	return;	// shouldn't happen...
 		
-    if (target->health <= 0)
+    if (mobj_full(target)->health <= 0)
 	return;
 
     if ( target->flags & MF_SKULLFLY )
     {
-	target->momx = target->momy = target->momz = 0;
+	mobj_full(target)->momx = mobj_full(target)->momy = mobj_full(target)->momz = 0;
     }
 	
-    player = target->player;
+    player = mobj_player(target);
     if (player && gameskill == sk_baby)
 	damage >>= 1; 	// take half damage in trainer mode
 		
@@ -811,19 +814,19 @@ P_DamageMobj
     if (inflictor
 	&& !(target->flags & MF_NOCLIP)
 	&& (!source
-	    || !source->player
-	    || source->player->readyweapon != wp_chainsaw))
+	    || !mobj_full(source)->sp_player
+	    || mobj_player(source)->readyweapon != wp_chainsaw))
     {
-	ang = R_PointToAngle2 ( inflictor->x,
-				inflictor->y,
-				target->x,
-				target->y);
+	ang = R_PointToAngle2 ( inflictor->xy.x,
+				inflictor->xy.y,
+				target->xy.x,
+				target->xy.y);
 		
-	thrust = damage*(FRACUNIT>>3)*100/target->info->mass;
+	thrust = damage*(FRACUNIT>>3)*100/mobj_info(target)->mass;
 
 	// make fall forwards sometimes
 	if ( damage < 40
-	     && damage > target->health
+	     && damage > mobj_full(target)->health
 	     && target->z - inflictor->z > 64*FRACUNIT
 	     && (P_Random ()&1) )
 	{
@@ -832,18 +835,18 @@ P_DamageMobj
 	}
 		
 	ang >>= ANGLETOFINESHIFT;
-	target->momx += FixedMul (thrust, finecosine[ang]);
-	target->momy += FixedMul (thrust, finesine[ang]);
+	mobj_full(target)->momx += FixedMul (thrust, finecosine(ang));
+	mobj_full(target)->momy += FixedMul (thrust, finesine(ang));
     }
     
     // player specific
     if (player)
     {
 	// end of game hell hack
-	if (target->subsector->sector->special == 11
-	    && damage >= target->health)
+	if (mobj_sector(target)->special == 11
+	    && damage >= mobj_full(target)->health)
 	{
-	    damage = target->health - 1;
+	    damage = mobj_full(target)->health - 1;
 	}
 	
 
@@ -889,34 +892,34 @@ P_DamageMobj
     }
     
     // do the damage	
-    target->health -= damage;	
-    if (target->health <= 0)
+    mobj_full(target)->health -= damage;
+    if (mobj_full(target)->health <= 0)
     {
 	P_KillMobj (source, target);
 	return;
     }
 
-    if ( (P_Random () < target->info->painchance)
+    if ( (P_Random () < mobj_info(target)->painchance)
 	 && !(target->flags&MF_SKULLFLY) )
     {
 	target->flags |= MF_JUSTHIT;	// fight back!
 	
-	P_SetMobjState (target, target->info->painstate);
+	P_SetMobjState (target, mobj_info(target)->painstate);
     }
 			
-    target->reactiontime = 0;		// we're awake now...	
+    mobj_reactiontime(target) = 0;		// we're awake now...
 
-    if ( (!target->threshold || target->type == MT_VILE)
+    if ( (!mobj_full(target)->threshold || target->type == MT_VILE)
 	 && source && source != target
 	 && source->type != MT_VILE)
     {
 	// if not intent on another player,
 	// chase after this one
-	target->target = source;
-	target->threshold = BASETHRESHOLD;
-	if (target->state == &states[target->info->spawnstate]
-	    && target->info->seestate != S_NULL)
-	    P_SetMobjState (target, target->info->seestate);
+	mobj_full(target)->sp_target = mobj_to_shortptr(source);
+	mobj_full(target)->threshold = BASETHRESHOLD;
+	if (mobj_state_num(target) == mobj_info(target)->spawnstate
+	    && mobj_info(target)->seestate != S_NULL)
+	    P_SetMobjState (target, mobj_info(target)->seestate);
     }
 			
 }

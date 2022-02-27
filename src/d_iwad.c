@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -38,16 +39,20 @@ static const iwad_t iwads[] =
     { "tnt.wad",      pack_tnt,  commercial, "Final Doom: TNT: Evilution" },
     { "doom.wad",     doom,      retail,     "Doom" },
     { "doom1.wad",    doom,      shareware,  "Doom Shareware" },
+#if !DOOM_ONLY
     { "chex.wad",     pack_chex, retail,     "Chex Quest" },
     { "hacx.wad",     pack_hacx, commercial, "Hacx" },
+#endif
     { "freedm.wad",   doom2,     commercial, "FreeDM" },
     { "freedoom2.wad", doom2,    commercial, "Freedoom: Phase 2" },
     { "freedoom1.wad", doom,     retail,     "Freedoom: Phase 1" },
+#if !DOOM_ONLY
     { "heretic.wad",  heretic,   retail,     "Heretic" },
     { "heretic1.wad", heretic,   shareware,  "Heretic Shareware" },
     { "hexen.wad",    hexen,     commercial, "Hexen" },
     //{ "strife0.wad",  strife,    commercial, "Strife" }, // haleyjd: STRIFE-FIXME
     { "strife1.wad",  strife,    commercial, "Strife" },
+#endif
 };
 
 // Array of locations to search for IWAD files
@@ -442,6 +447,7 @@ static void CheckDOSDefaults(void)
 
 #endif
 
+#if !DOOM_TINY
 // Returns true if the specified path is a path to a file
 // of the specified name.
 
@@ -529,7 +535,7 @@ static GameMission_t IdentifyIWADByName(const char *name, int mask)
     GameMission_t mission;
 
     name = M_BaseName(name);
-    mission = none;
+    mission = mission_none;
 
     for (i=0; i<arrlen(iwads); ++i)
     {
@@ -696,9 +702,11 @@ static void BuildIWADDirList(void)
     // Look in the current directory.  Doom always does this.
     AddIWADDir(".");
 
+#if !NO_USE_ARGS
     // Next check the directory where the executable is located. This might
     // be different from the current directory.
     AddIWADDir(M_DirName(myargv[0]));
+#endif
 
     // Add DOOMWADDIR if it is in the environment
     env = getenv("DOOMWADDIR");
@@ -835,7 +843,10 @@ char *D_FindIWAD(int mask, GameMission_t *mission)
     //
     // @arg <file>
     //
-
+#if USE_MEMORY_WAD
+    return "<memory>.wad";
+#else
+#if !NO_USE_ARGS
     iwadparm = M_CheckParmWithArgs("-iwad", 1);
 
     if (iwadparm)
@@ -854,6 +865,7 @@ char *D_FindIWAD(int mask, GameMission_t *mission)
         *mission = IdentifyIWADByName(result, mask);
     }
     else
+#endif
     {
         // Search through the list and look for an IWAD
 
@@ -866,6 +878,7 @@ char *D_FindIWAD(int mask, GameMission_t *mission)
             result = SearchDirectoryForIWAD(iwad_dirs[i], mask, mission);
         }
     }
+#endif
 
     return result;
 }
@@ -950,6 +963,9 @@ const char *D_SuggestIWADName(GameMission_t mission, GameMode_t mode)
     return "unknown.wad";
 }
 
+
+#endif
+
 const char *D_SuggestGameName(GameMission_t mission, GameMode_t mode)
 {
     int i;
@@ -957,7 +973,7 @@ const char *D_SuggestGameName(GameMission_t mission, GameMode_t mode)
     for (i = 0; i < arrlen(iwads); ++i)
     {
         if (iwads[i].mission == mission
-         && (mode == indetermined || iwads[i].mode == mode))
+        && (mode == indetermined || iwads[i].mode == mode))
         {
             return iwads[i].description;
         }
@@ -966,3 +982,21 @@ const char *D_SuggestGameName(GameMission_t mission, GameMode_t mode)
     return "Unknown game?";
 }
 
+#if DOOM_TINY
+GameMission_t IdentifyIWADByName(const char *name) {
+    size_t i;
+    GameMission_t mission;
+    mission = mission_none;
+
+    for (i=0; i<arrlen(iwads); ++i)
+    {
+        if (!strcasecmp(name, iwads[i].name))
+        {
+            mission = iwads[i].mission;
+            break;
+        }
+    }
+    return mission;
+
+}
+#endif

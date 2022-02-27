@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -23,26 +24,30 @@
 // Valid game mode/mission combinations, with the number of
 // episodes/maps for each.
 
-static struct
+static const struct
 {
     GameMission_t mission;
     GameMode_t mode;
-    int episode;
-    int map;
+    isb_int8_t episode;
+    isb_int8_t map;
 } valid_modes[] = {
+#if !DOOM_ONLY
     { pack_chex, retail,     1, 5 },
+#endif
     { doom,      shareware,  1, 9 },
     { doom,      registered, 3, 9 },
     { doom,      retail,     4, 9 },
     { doom2,     commercial, 1, 32 },
     { pack_tnt,  commercial, 1, 32 },
     { pack_plut, commercial, 1, 32 },
+#if !DOOM_ONLY
     { pack_hacx, commercial, 1, 32 },
     { heretic,   shareware,  1, 9 },
     { heretic,   registered, 3, 9 },
     { heretic,   retail,     5, 9 },
     { hexen,     commercial, 1, 60 },
     { strife,    commercial, 1, 34 },
+#endif
 };
 
 // Check that a gamemode+gamemission received over the network is valid.
@@ -69,7 +74,7 @@ boolean D_ValidEpisodeMap(GameMission_t mission, GameMode_t mode,
 
     // Hacks for Heretic secret episodes
 
-    if (mission == heretic)
+    if (gamemission_is_heretic(mission))
     {
         if (mode == retail && episode == 6)
         {
@@ -120,20 +125,26 @@ static struct {
     GameMission_t mission;
     GameVersion_t version;
 } valid_versions[] = {
+#if !DOOM_TINY
     { doom,     exe_doom_1_2 },
     { doom,     exe_doom_1_666 },
     { doom,     exe_doom_1_7 },
     { doom,     exe_doom_1_8 },
+#endif
     { doom,     exe_doom_1_9 },
+#if !DOOM_ONLY
     { doom,     exe_hacx },
+#endif
     { doom,     exe_ultimate },
     { doom,     exe_final },
     { doom,     exe_final2 },
+#if !DOOM_ONLY
     { doom,     exe_chex },
     { heretic,  exe_heretic_1_3 },
     { hexen,    exe_hexen_1_1 },
     { strife,   exe_strife_1_2 },
     { strife,   exe_strife_1_31 },
+#endif
 };
 
 boolean D_ValidGameVersion(GameMission_t mission, GameVersion_t version)
@@ -143,7 +154,7 @@ boolean D_ValidGameVersion(GameMission_t mission, GameVersion_t version)
     // All Doom variants can use the Doom versions.
 
     if (mission == doom2 || mission == pack_plut || mission == pack_tnt
-     || mission == pack_hacx || mission == pack_chex)
+     || gamemission_is_hacx(mission) || gamemission_is_chex(mission))
     {
         mission = doom;
     }
@@ -167,17 +178,21 @@ boolean D_IsEpisodeMap(GameMission_t mission)
     switch (mission)
     {
         case doom:
+#if !DOOM_ONLY
         case heretic:
         case pack_chex:
+#endif
             return true;
 
-        case none:
-        case hexen:
+        case mission_none:
         case doom2:
-        case pack_hacx:
         case pack_tnt:
         case pack_plut:
+#if !DOOM_ONLY
+        case hexen:
+        case pack_hacx:
         case strife:
+#endif
         default:
             return false;
     }
@@ -187,7 +202,7 @@ const char *D_GameMissionString(GameMission_t mission)
 {
     switch (mission)
     {
-        case none:
+        case mission_none:
         default:
             return "none";
         case doom:
@@ -198,6 +213,7 @@ const char *D_GameMissionString(GameMission_t mission)
             return "tnt";
         case pack_plut:
             return "plutonia";
+#if !DOOM_ONLY
         case pack_hacx:
             return "hacx";
         case pack_chex:
@@ -208,6 +224,7 @@ const char *D_GameMissionString(GameMission_t mission)
             return "hexen";
         case strife:
             return "strife";
+#endif
     }
 }
 

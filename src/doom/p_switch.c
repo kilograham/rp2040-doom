@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -39,58 +40,59 @@
 //
 // CHANGE THE TEXTURE OF A WALL SWITCH TO ITS OPPOSITE
 //
-switchlist_t alphSwitchList[] =
+const switchlist_t alphSwitchList[] =
 {
     // Doom shareware episode 1 switches
-    {"SW1BRCOM",	"SW2BRCOM",	1},
-    {"SW1BRN1",	"SW2BRN1",	1},
-    {"SW1BRN2",	"SW2BRN2",	1},
-    {"SW1BRNGN",	"SW2BRNGN",	1},
-    {"SW1BROWN",	"SW2BROWN",	1},
-    {"SW1COMM",	"SW2COMM",	1},
-    {"SW1COMP",	"SW2COMP",	1},
-    {"SW1DIRT",	"SW2DIRT",	1},
-    {"SW1EXIT",	"SW2EXIT",	1},
-    {"SW1GRAY",	"SW2GRAY",	1},
-    {"SW1GRAY1",	"SW2GRAY1",	1},
-    {"SW1METAL",	"SW2METAL",	1},
-    {"SW1PIPE",	"SW2PIPE",	1},
-    {"SW1SLAD",	"SW2SLAD",	1},
-    {"SW1STARG",	"SW2STARG",	1},
-    {"SW1STON1",	"SW2STON1",	1},
-    {"SW1STON2",	"SW2STON2",	1},
-    {"SW1STONE",	"SW2STONE",	1},
-    {"SW1STRTN",	"SW2STRTN",	1},
+    {TEXTURE_NAME(SW1BRCOM),	TEXTURE_NAME(SW2BRCOM),	1},
+    {TEXTURE_NAME(SW1BRN1),	TEXTURE_NAME(SW2BRN1),	1},
+    {TEXTURE_NAME(SW1BRN2),	TEXTURE_NAME(SW2BRN2),	1},
+    {TEXTURE_NAME(SW1BRNGN),	TEXTURE_NAME(SW2BRNGN),	1},
+    {TEXTURE_NAME(SW1BROWN),	TEXTURE_NAME(SW2BROWN),	1},
+    {TEXTURE_NAME(SW1COMM),	TEXTURE_NAME(SW2COMM),	1},
+    {TEXTURE_NAME(SW1COMP),	TEXTURE_NAME(SW2COMP),	1},
+    {TEXTURE_NAME(SW1DIRT),	TEXTURE_NAME(SW2DIRT),	1},
+    {TEXTURE_NAME(SW1EXIT),	TEXTURE_NAME(SW2EXIT),	1},
+    {TEXTURE_NAME(SW1GRAY),	TEXTURE_NAME(SW2GRAY),	1},
+    {TEXTURE_NAME(SW1GRAY1),	TEXTURE_NAME(SW2GRAY1),	1},
+    {TEXTURE_NAME(SW1METAL),	TEXTURE_NAME(SW2METAL),	1},
+    {TEXTURE_NAME(SW1PIPE),	TEXTURE_NAME(SW2PIPE),	1},
+    {TEXTURE_NAME(SW1SLAD),	TEXTURE_NAME(SW2SLAD),	1},
+    {TEXTURE_NAME(SW1STARG),	TEXTURE_NAME(SW2STARG),	1},
+    {TEXTURE_NAME(SW1STON1),	TEXTURE_NAME(SW2STON1),	1},
+    {TEXTURE_NAME(SW1STON2),	TEXTURE_NAME(SW2STON2),	1},
+    {TEXTURE_NAME(SW1STONE),	TEXTURE_NAME(SW2STONE),	1},
+    {TEXTURE_NAME(SW1STRTN),	TEXTURE_NAME(SW2STRTN),	1},
 
     // Doom registered episodes 2&3 switches
-    {"SW1BLUE",	"SW2BLUE",	2},
-    {"SW1CMT",		"SW2CMT",	2},
-    {"SW1GARG",	"SW2GARG",	2},
-    {"SW1GSTON",	"SW2GSTON",	2},
-    {"SW1HOT",		"SW2HOT",	2},
-    {"SW1LION",	"SW2LION",	2},
-    {"SW1SATYR",	"SW2SATYR",	2},
-    {"SW1SKIN",	"SW2SKIN",	2},
-    {"SW1VINE",	"SW2VINE",	2},
-    {"SW1WOOD",	"SW2WOOD",	2},
+    {TEXTURE_NAME(SW1BLUE),	TEXTURE_NAME(SW2BLUE),	2},
+    {TEXTURE_NAME(SW1CMT),		TEXTURE_NAME(SW2CMT),	2},
+    {TEXTURE_NAME(SW1GARG),	TEXTURE_NAME(SW2GARG),	2},
+    {TEXTURE_NAME(SW1GSTON),	TEXTURE_NAME(SW2GSTON),	2},
+    {TEXTURE_NAME(SW1HOT),		TEXTURE_NAME(SW2HOT),	2},
+    {TEXTURE_NAME(SW1LION),	TEXTURE_NAME(SW2LION),	2},
+    {TEXTURE_NAME(SW1SATYR),	TEXTURE_NAME(SW2SATYR),	2},
+    {TEXTURE_NAME(SW1SKIN),	TEXTURE_NAME(SW2SKIN),	2},
+    {TEXTURE_NAME(SW1VINE),	TEXTURE_NAME(SW2VINE),	2},
+    {TEXTURE_NAME(SW1WOOD),	TEXTURE_NAME(SW2WOOD),	2},
 
     // Doom II switches
-    {"SW1PANEL",	"SW2PANEL",	3},
-    {"SW1ROCK",	"SW2ROCK",	3},
-    {"SW1MET2",	"SW2MET2",	3},
-    {"SW1WDMET",	"SW2WDMET",	3},
-    {"SW1BRIK",	"SW2BRIK",	3},
-    {"SW1MOD1",	"SW2MOD1",	3},
-    {"SW1ZIM",		"SW2ZIM",	3},
-    {"SW1STON6",	"SW2STON6",	3},
-    {"SW1TEK",		"SW2TEK",	3},
-    {"SW1MARB",	"SW2MARB",	3},
-    {"SW1SKULL",	"SW2SKULL",	3},
+    {TEXTURE_NAME(SW1PANEL),	TEXTURE_NAME(SW2PANEL),	3},
+    {TEXTURE_NAME(SW1ROCK),	TEXTURE_NAME(SW2ROCK),	3},
+    {TEXTURE_NAME(SW1MET2),	TEXTURE_NAME(SW2MET2),	3},
+    {TEXTURE_NAME(SW1WDMET),	TEXTURE_NAME(SW2WDMET),	3},
+    {TEXTURE_NAME(SW1BRIK),	TEXTURE_NAME(SW2BRIK),	3},
+    {TEXTURE_NAME(SW1MOD1),	TEXTURE_NAME(SW2MOD1),	3},
+    {TEXTURE_NAME(SW1ZIM),		TEXTURE_NAME(SW2ZIM),	3},
+    {TEXTURE_NAME(SW1STON6),	TEXTURE_NAME(SW2STON6),	3},
+    {TEXTURE_NAME(SW1TEK),		TEXTURE_NAME(SW2TEK),	3},
+    {TEXTURE_NAME(SW1MARB),	TEXTURE_NAME(SW2MARB),	3},
+    {TEXTURE_NAME(SW1SKULL),	TEXTURE_NAME(SW2SKULL),	3},
 };
 
-int		switchlist[MAXSWITCHES * 2];
-int		numswitches;
-button_t        buttonlist[MAXBUTTONS];
+// todo graham can go in the WHD, but then again pretty small
+lumpindex_t 	switchlist[MAXSWITCHES * 2];
+uint8_t		numswitches;
+button_t     buttonlist[MAXBUTTONS];
 
 //
 // P_InitSwitchList
@@ -124,9 +126,9 @@ void P_InitSwitchList(void)
 	if (alphSwitchList[i].episode <= episode)
 	{
 	    switchlist[slindex++] =
-                R_TextureNumForName(DEH_String(alphSwitchList[i].name1));
+                R_TextureNumForName(DEH_TextureName(alphSwitchList[i].name1));
 	    switchlist[slindex++] =
-                R_TextureNumForName(DEH_String(alphSwitchList[i].name2));
+                R_TextureNumForName(DEH_TextureName(alphSwitchList[i].name2));
 	}
     }
 
@@ -158,7 +160,9 @@ P_StartButton
 	}
     }
     
-
+#if DOOM_SMALL
+    assert(time < 256);
+#endif
     
     for (i = 0;i < MAXBUTTONS;i++)
     {
@@ -168,7 +172,7 @@ P_StartButton
 	    buttonlist[i].where = w;
 	    buttonlist[i].btexture = texture;
 	    buttonlist[i].btimer = time;
-	    buttonlist[i].soundorg = &line->frontsector->soundorg;
+	    buttonlist[i].soundorg = &line_frontsector(line)->soundorg;
 	    return;
 	}
     }
@@ -194,18 +198,19 @@ P_ChangeSwitchTexture
     int     texBot;
     int     i;
     int     sound;
-	
-    if (!useAgain)
-	line->special = 0;
 
-    texTop = sides[line->sidenum[0]].toptexture;
-    texMid = sides[line->sidenum[0]].midtexture;
-    texBot = sides[line->sidenum[0]].bottomtexture;
+    if (!useAgain)
+        clear_line_special(line);
+
+    side_t *side = sidenum_to_side(line_sidenum(line, 0));
+    texTop = side_toptexture(side);
+    texMid = side_midtexture(side);
+    texBot = side_bottomtexture(side);
 	
     sound = sfx_swtchn;
 
     // EXIT SWITCH?
-    if (line->special == 11)                
+    if (line_special(line) == 11)                
 	sound = sfx_swtchx;
 	
     for (i = 0;i < numswitches*2;i++)
@@ -213,7 +218,7 @@ P_ChangeSwitchTexture
 	if (switchlist[i] == texTop)
 	{
 	    S_StartSound(buttonlist->soundorg,sound);
-	    sides[line->sidenum[0]].toptexture = switchlist[i^1];
+	    side_settoptexture(side, switchlist[i^1]);
 
 	    if (useAgain)
 		P_StartButton(line,top,switchlist[i],BUTTONTIME);
@@ -225,7 +230,7 @@ P_ChangeSwitchTexture
 	    if (switchlist[i] == texMid)
 	    {
 		S_StartSound(buttonlist->soundorg,sound);
-		sides[line->sidenum[0]].midtexture = switchlist[i^1];
+		side_setmidtexture(side, switchlist[i^1]);
 
 		if (useAgain)
 		    P_StartButton(line, middle,switchlist[i],BUTTONTIME);
@@ -237,8 +242,7 @@ P_ChangeSwitchTexture
 		if (switchlist[i] == texBot)
 		{
 		    S_StartSound(buttonlist->soundorg,sound);
-		    sides[line->sidenum[0]].bottomtexture = switchlist[i^1];
-
+		    side_setbottomtexture(side, switchlist[i^1]);
 		    if (useAgain)
 			P_StartButton(line, bottom,switchlist[i],BUTTONTIME);
 
@@ -270,7 +274,7 @@ P_UseSpecialLine
     // Use the back sides of VERY SPECIAL lines...
     if (side)
     {
-	switch(line->special)
+	switch(line_special(line))
 	{
 	  case 124:
 	    // Sliding door open&close
@@ -285,13 +289,13 @@ P_UseSpecialLine
 
     
     // Switches that other things can activate.
-    if (!thing->player)
+    if (!mobj_full(thing)->sp_player)
     {
 	// never open secret doors
-	if (line->flags & ML_SECRET)
+	if (line_flags(line) & ML_SECRET)
 	    return false;
 	
-	switch(line->special)
+	switch(line_special(line))
 	{
 	  case 1: 	// MANUAL DOOR RAISE
 	  case 32:	// MANUAL BLUE
@@ -307,7 +311,7 @@ P_UseSpecialLine
 
     
     // do something  
-    switch (line->special)
+    switch (line_special(line))
     {
 	// MANUALS
       case 1:		// Vertical Door

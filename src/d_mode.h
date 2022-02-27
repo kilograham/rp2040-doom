@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -30,14 +31,25 @@ typedef enum
     doom2,           // Doom 2
     pack_tnt,        // Final Doom: TNT: Evilution
     pack_plut,       // Final Doom: The Plutonia Experiment
+#if !DOOM_ONLY
     pack_chex,       // Chex Quest (modded doom)
     pack_hacx,       // Hacx (modded doom2)
     heretic,         // Heretic
     hexen,           // Hexen
     strife,          // Strife
+#endif
 
-    none
+    mission_none
 } GameMission_t;
+#if !DOOM_ONLY
+#define gamemission_is_chex(m) ((m) == pack_chex)
+#define gamemission_is_hacx(m) ((m) == pack_hacx)
+#define gamemission_is_heretic(m) ((m) == heretic)
+#else
+#define gamemission_is_chex(m) 0
+#define gamemission_is_hacx(m) 0
+#define gamemission_is_heretic(m) 0
+#endif
 
 // The "mode" allows more accurate specification of the game mode we are
 // in: eg. shareware vs. registered.  So doom1.wad and doom.wad are the
@@ -61,10 +73,13 @@ typedef enum
     exe_doom_1_7,    // Doom 1.7/1.7a: "
     exe_doom_1_8,    // Doom 1.8: "
     exe_doom_1_9,    // Doom 1.9: "
+#if !DOOM_ONLY
     exe_hacx,        // Hacx
+#endif
     exe_ultimate,    // Ultimate Doom (retail)
     exe_final,       // Final Doom
     exe_final2,      // Final Doom (alternate exe)
+#if !DOOM_ONLY
     exe_chex,        // Chex Quest executable (based on Final Doom)
 
     exe_heretic_1_3, // Heretic 1.3
@@ -72,7 +87,13 @@ typedef enum
     exe_hexen_1_1,   // Hexen 1.1
     exe_strife_1_2,  // Strife v1.2
     exe_strife_1_31  // Strife v1.31
+#endif
 } GameVersion_t;
+#if !DOOM_ONLY
+#define gameversion_is_chex(v) ((v) == exe_chex)
+#else
+#define gameversion_is_chex(v) 0
+#endif
 
 // What IWAD variant are we using?
 

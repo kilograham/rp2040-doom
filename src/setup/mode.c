@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -107,9 +108,9 @@ static int detailLevel = 0;
 static char *savedir = NULL;
 static char *executable = NULL;
 static const char *game_title = "Doom";
-static char *back_flat = "F_PAVE01";
+static const char *back_flat = "F_PAVE01";
 static int comport = 0;
-static char *nickname = NULL;
+static const char *nickname = NULL;
 
 static void BindMiscVariables(void)
 {
@@ -121,7 +122,7 @@ static void BindMiscVariables(void)
 
     if (gamemission == hexen)
     {
-        M_BindStringVariable("savedir", &savedir);
+        M_BindStringVariable("savedir", (constcharstar *)&savedir);
         M_BindIntVariable("messageson", &showMessages);
 
         // Hexen has a variable to control the savegame directory

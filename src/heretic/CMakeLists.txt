@@ -1,4 +1,6 @@
-add_library(heretic STATIC
+cmake_policy(SET CMP0076 NEW)
+add_library(heretic INTERFACE)
+target_sources(heretic INTERFACE
             am_data.h
             am_map.c            am_map.h
             ct_chat.c           ct_chat.h
@@ -53,5 +55,5 @@ add_library(heretic STATIC
             sounds.c            sounds.h
             s_sound.c           s_sound.h)
 
-target_include_directories(heretic PRIVATE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
-target_link_libraries(heretic textscreen SDL2::SDL2 SDL2::mixer SDL2::net)
+target_include_directories(heretic INTERFACE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
+target_link_libraries(heretic INTERFACE textscreen SDL2::SDL2 SDL2::mixer SDL2::net)

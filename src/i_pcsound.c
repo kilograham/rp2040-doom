@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,8 +36,8 @@ static boolean pcs_initialized = false;
 static SDL_mutex *sound_lock;
 static boolean use_sfx_prefix;
 
-static uint8_t *current_sound_lump = NULL;
-static uint8_t *current_sound_pos = NULL;
+static should_be_const uint8_t *current_sound_lump = NULL;
+static should_be_const uint8_t *current_sound_pos = NULL;
 static unsigned int current_sound_remaining = 0;
 static int current_sound_handle = 0;
 static int current_sound_lump_num = -1;
@@ -103,7 +104,7 @@ static void PCSCallbackFunc(int *duration, int *freq)
     SDL_UnlockMutex(sound_lock);
 }
 
-static boolean CachePCSLump(sfxinfo_t *sfxinfo)
+static boolean CachePCSLump(should_be_const sfxinfo_t *sfxinfo)
 {
     int lumplen;
     int headerlen;
@@ -118,8 +119,8 @@ static boolean CachePCSLump(sfxinfo_t *sfxinfo)
 
     // Load from WAD
 
-    current_sound_lump = W_CacheLumpNum(sfxinfo->lumpnum, PU_STATIC);
-    lumplen = W_LumpLength(sfxinfo->lumpnum);
+    current_sound_lump = W_CacheLumpNum(sfx_mut(sfxinfo)->lumpnum, PU_STATIC);
+    lumplen = W_LumpLength(sfx_mut(sfxinfo)->lumpnum);
 
     // Read header
   
@@ -139,7 +140,7 @@ static boolean CachePCSLump(sfxinfo_t *sfxinfo)
 
     current_sound_remaining = headerlen;
     current_sound_pos = current_sound_lump + 4;
-    current_sound_lump_num = sfxinfo->lumpnum;
+    current_sound_lump_num = sfx_mut(sfxinfo)->lumpnum;
 
     return true;
 }
@@ -148,7 +149,7 @@ static boolean CachePCSLump(sfxinfo_t *sfxinfo)
 // Heretic source code, where there are remnants of this left over
 // from Doom.
 
-static boolean IsDisabledSound(sfxinfo_t *sfxinfo)
+static boolean IsDisabledSound(should_be_const sfxinfo_t *sfxinfo)
 {
     int i;
     const char *disabled_sounds[] = {
@@ -171,7 +172,7 @@ static boolean IsDisabledSound(sfxinfo_t *sfxinfo)
     return false;
 }
 
-static int I_PCS_StartSound(sfxinfo_t *sfxinfo,
+static int I_PCS_StartSound(should_be_const sfxinfo_t *sfxinfo,
                             int channel,
                             int vol,
                             int sep,
@@ -240,7 +241,7 @@ static void I_PCS_StopSound(int handle)
 //  for a given SFX name.
 //
 
-static int I_PCS_GetSfxLumpNum(sfxinfo_t* sfx)
+static int I_PCS_GetSfxLumpNum(should_be_const sfxinfo_t* sfx)
 {
     char namebuf[9];
 

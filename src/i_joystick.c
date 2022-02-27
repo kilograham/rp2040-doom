@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -31,6 +32,7 @@
 #include "m_config.h"
 #include "m_misc.h"
 
+#if !NO_USE_JOYSTICK
 // When an axis is within the dead zone, it is set to zero.
 // This is 5% of the full range:
 
@@ -45,7 +47,7 @@ static SDL_Joystick *joystick = NULL;
 static int usejoystick = 0;
 
 // SDL GUID and index of the joystick to use.
-static char *joystick_guid = "";
+static const char *joystick_guid = "";
 static int joystick_index = -1;
 
 // Which joystick axis to use for horizontal movement, and whether to
@@ -401,3 +403,4 @@ void I_BindJoystickVariables(void)
     }
 }
 
+#endif

@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -32,6 +33,7 @@
 #include "net_structrw.h"
 #include "net_sdl.h"
 
+#if !NO_USE_NET
 // DNS address of the Internet master server.
 
 #define MASTER_SERVER_ADDRESS "master.chocolate-doom.org:2342"
@@ -678,6 +680,7 @@ static const char *GameDescription(GameMode_t mode, GameMission_t mission)
             return "tnt";
         case pack_plut:
             return "plutonia";
+#if !DOOM_ONLY
         case pack_chex:
             return "chex";
         case pack_hacx:
@@ -688,6 +691,7 @@ static const char *GameDescription(GameMode_t mode, GameMission_t mission)
             return "hexen";
         case strife:
             return "strife";
+#endif
         default:
             return "?";
     }
@@ -951,3 +955,4 @@ char *NET_EndSecureDemo(sha1_digest_t demo_hash)
     return signature;
 }
 
+#endif

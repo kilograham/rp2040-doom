@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -969,8 +970,8 @@ void P_MinotaurSlam(mobj_t * source, mobj_t * target)
     angle = R_PointToAngle2(source->x, source->y, target->x, target->y);
     angle >>= ANGLETOFINESHIFT;
     thrust = 16 * FRACUNIT + (P_Random() << 10);
-    target->momx += FixedMul(thrust, finecosine[angle]);
-    target->momy += FixedMul(thrust, finesine[angle]);
+    target->momx += FixedMul(thrust, finecosine(angle));
+    target->momy += FixedMul(thrust, finesine(angle));
     P_DamageMobj(target, NULL, NULL, HITDICE(6));
     if (target->player)
     {
@@ -1365,8 +1366,8 @@ void P_DamageMobj
             && source->player->readyweapon == wp_staff)
         {
             // Staff power level 2
-            target->momx += FixedMul(10 * FRACUNIT, finecosine[ang]);
-            target->momy += FixedMul(10 * FRACUNIT, finesine[ang]);
+            target->momx += FixedMul(10 * FRACUNIT, finecosine(ang));
+            target->momy += FixedMul(10 * FRACUNIT, finesine(ang));
             if (!(target->flags & MF_NOGRAVITY))
             {
                 target->momz += 5 * FRACUNIT;
@@ -1374,8 +1375,8 @@ void P_DamageMobj
         }
         else
         {
-            target->momx += FixedMul(thrust, finecosine[ang]);
-            target->momy += FixedMul(thrust, finesine[ang]);
+            target->momx += FixedMul(thrust, finecosine(ang));
+            target->momy += FixedMul(thrust, finesine(ang));
         }
     }
 

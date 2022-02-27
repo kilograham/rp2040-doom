@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -1321,8 +1322,8 @@ void A_SentinelAttack(mobj_t* actor)
     {
         for(i = 8; i > 1; i--)
         {
-            x = mo->x + FixedMul(mobjinfo[MT_L_LASER].radius * i, finecosine[an]);
-            y = mo->y + FixedMul(mobjinfo[MT_L_LASER].radius * i, finesine[an]);
+            x = mo->x + FixedMul(mobjinfo[MT_L_LASER].radius * i, finecosine(an));
+            y = mo->y + FixedMul(mobjinfo[MT_L_LASER].radius * i, finesine(an));
             z = mo->z + i * (mo->momz >> 2);
             mo2 = P_SpawnMobj(x, y, z, MT_R_LASER);
             mo2->target = actor;
@@ -1680,8 +1681,8 @@ void A_InqTakeOff(mobj_t* actor)
 
     an = actor->angle >> ANGLETOFINESHIFT;
 
-    actor->momx = FixedMul(finecosine[an], speed);
-    actor->momy = FixedMul(finesine[an],   speed);
+    actor->momx = FixedMul(finecosine(an), speed);
+    actor->momy = FixedMul(finesine(an),   speed);
 
     dist = P_AproxDistance(actor->target->x - actor->x,
                            actor->target->y - actor->y);
@@ -2175,8 +2176,8 @@ void A_Tracer (mobj_t* actor)
     }
 
     exact = actor->angle>>ANGLETOFINESHIFT;
-    actor->momx = FixedMul (actor->info->speed, finecosine[exact]);
-    actor->momy = FixedMul (actor->info->speed, finesine[exact]);
+    actor->momx = FixedMul (actor->info->speed, finecosine(exact));
+    actor->momy = FixedMul (actor->info->speed, finesine(exact));
 
     // change slope
     dist = P_AproxDistance (dest->x - actor->x,
@@ -2520,8 +2521,8 @@ void A_SpawnEntity(mobj_t* actor)
 void P_ThrustMobj(mobj_t *actor, angle_t angle, fixed_t force)
 {
     angle_t an = angle >> ANGLETOFINESHIFT;
-    actor->momx += FixedMul(finecosine[an], force);
-    actor->momy += FixedMul(finesine[an],   force);
+    actor->momx += FixedMul(finecosine(an), force);
+    actor->momy += FixedMul(finesine(an),   force);
 }
 
 //
@@ -2542,8 +2543,8 @@ void A_EntityDeath(mobj_t* actor)
 
     // Subentity One
     an = actor->angle >> ANGLETOFINESHIFT;
-    subentity = P_SpawnMobj(FixedMul(finecosine[an], dist) + entity_pos_x,
-                            FixedMul(finesine[an],   dist) + entity_pos_y,
+    subentity = P_SpawnMobj(FixedMul(finecosine(an), dist) + entity_pos_x,
+                            FixedMul(finesine(an),   dist) + entity_pos_y,
                             entity_pos_z, MT_SUBENTITY);
     subentity->target = actor->target;
     A_FaceTarget(subentity);
@@ -2551,8 +2552,8 @@ void A_EntityDeath(mobj_t* actor)
 
     // Subentity Two
     an = (actor->angle + ANG90) >> ANGLETOFINESHIFT;
-    subentity = P_SpawnMobj(FixedMul(finecosine[an], dist) + entity_pos_x, 
-                            FixedMul(finesine[an],   dist) + entity_pos_y,
+    subentity = P_SpawnMobj(FixedMul(finecosine(an), dist) + entity_pos_x,
+                            FixedMul(finesine(an),   dist) + entity_pos_y,
                             entity_pos_z, MT_SUBENTITY);
     subentity->target = actor->target;
     P_ThrustMobj(subentity, actor->angle + ANG90, 4);
@@ -2560,8 +2561,8 @@ void A_EntityDeath(mobj_t* actor)
 
     // Subentity Three
     an = (actor->angle - ANG90) >> ANGLETOFINESHIFT;
-    subentity = P_SpawnMobj(FixedMul(finecosine[an], dist) + entity_pos_x, 
-                            FixedMul(finesine[an],   dist) + entity_pos_y,
+    subentity = P_SpawnMobj(FixedMul(finecosine(an), dist) + entity_pos_x,
+                            FixedMul(finesine(an),   dist) + entity_pos_y,
                             entity_pos_z, MT_SUBENTITY);
     subentity->target = actor->target;
     P_ThrustMobj(subentity, actor->angle - ANG90, 4);
@@ -3200,8 +3201,8 @@ void A_TeleportBeacon(mobj_t* actor)
     P_SetMobjState(mobj, mobj->info->seestate);
     mobj->angle = actor->angle;
 
-    fog_x = mobj->x + FixedMul(20*FRACUNIT, finecosine[actor->angle>>ANGLETOFINESHIFT]);
-    fog_y = mobj->y + FixedMul(20*FRACUNIT, finesine[actor->angle>>ANGLETOFINESHIFT]);
+    fog_x = mobj->x + FixedMul(20*FRACUNIT, finecosine(actor->angle>>ANGLETOFINESHIFT));
+    fog_y = mobj->y + FixedMul(20*FRACUNIT, finesine(actor->angle>>ANGLETOFINESHIFT));
 
     fog = P_SpawnMobj(fog_x, fog_y, mobj->z, MT_TFOG);
     S_StartSound(fog, sfx_telept);
@@ -3234,8 +3235,8 @@ void A_BodyParts(mobj_t* actor)
     an = (P_Random() << 13) / 255;
     mo->angle = an << ANGLETOFINESHIFT;
 
-    mo->momx = FixedMul(finecosine[an], (P_Random() & 0x0f) << FRACBITS);
-    mo->momy = FixedMul(finesine[an], (P_Random() & 0x0f) << FRACBITS);
+    mo->momx = FixedMul(finecosine(an), (P_Random() & 0x0f) << FRACBITS);
+    mo->momy = FixedMul(finesine(an), (P_Random() & 0x0f) << FRACBITS);
     mo->momz = (P_Random() & 0x0f) << FRACBITS;
 }
 

@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -17,6 +18,7 @@
 //    Configuration file interface.
 //
 
+#if !NO_USE_BOUND_CONFIG
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +27,9 @@
 #include <errno.h>
 #include <assert.h>
 
+#if !PICO_ON_DEVICE
 #include "SDL_filesystem.h"
+#endif
 
 #include "config.h"
 
@@ -47,7 +51,7 @@
 
 const char *configdir;
 
-static char *autoload_path = "";
+static const char *autoload_path = "";
 
 // Default filenames for configuration files.
 
@@ -61,6 +65,8 @@ typedef enum
     DEFAULT_STRING,
     DEFAULT_FLOAT,
     DEFAULT_KEY,
+    DEFAULT_MOUSEB,
+    DEFAULT_INT_ISB8,
 } default_type_t;
 
 typedef struct
@@ -71,8 +77,11 @@ typedef struct
     // Pointer to the location in memory of the variable
     union {
         int *i;
-        char **s;
+        isb_int8_t *isb8;
+        constcharstar *s;
         float *f;
+        key_type_t *key;
+        mouseb_type_t *mouseb;
     } location;
 
     // Type of the variable
@@ -106,6 +115,8 @@ typedef struct
 
 #define CONFIG_VARIABLE_KEY(name) \
     CONFIG_VARIABLE_GENERIC(name, DEFAULT_KEY)
+#define CONFIG_VARIABLE_MOUSEB(name) \
+    CONFIG_VARIABLE_GENERIC(name, DEFAULT_MOUSEB)
 #define CONFIG_VARIABLE_INT(name) \
     CONFIG_VARIABLE_GENERIC(name, DEFAULT_INT)
 #define CONFIG_VARIABLE_INT_HEX(name) \
@@ -114,6 +125,8 @@ typedef struct
     CONFIG_VARIABLE_GENERIC(name, DEFAULT_FLOAT)
 #define CONFIG_VARIABLE_STRING(name) \
     CONFIG_VARIABLE_GENERIC(name, DEFAULT_STRING)
+#define CONFIG_VARIABLE_INT_ISB8(name) \
+    CONFIG_VARIABLE_GENERIC(name, DEFAULT_INT_ISB8)
 
 //! @begin_config_file default
 
@@ -128,7 +141,7 @@ static default_t	doom_defaults_list[] =
     // the game to crash when entering the options menu.
     //
 
-    CONFIG_VARIABLE_INT(mouse_sensitivity),
+    CONFIG_VARIABLE_INT_ISB8(mouse_sensitivity),
 
     //!
     // Volume of sound effects, range 0-15.
@@ -167,7 +180,7 @@ static default_t	doom_defaults_list[] =
     // are not displayed.
     //
 
-    CONFIG_VARIABLE_INT(show_messages),
+    CONFIG_VARIABLE_INT_ISB8(show_messages),
 
     //!
     // Keyboard key to turn right.
@@ -426,20 +439,20 @@ static default_t	doom_defaults_list[] =
     // Mouse button to fire the currently selected weapon.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_fire),
+    CONFIG_VARIABLE_MOUSEB(mouseb_fire),
 
     //!
     // Mouse button to turn on strafing.  When held down, the player
     // will strafe left and right instead of turning left and right.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_strafe),
+    CONFIG_VARIABLE_MOUSEB(mouseb_strafe),
 
     //!
     // Mouse button to move forward.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_forward),
+    CONFIG_VARIABLE_MOUSEB(mouseb_forward),
 
     //!
     // @game hexen strife
@@ -447,7 +460,7 @@ static default_t	doom_defaults_list[] =
     // Mouse button to jump.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_jump),
+    CONFIG_VARIABLE_MOUSEB(mouseb_jump),
 
     //!
     // If non-zero, joystick input is enabled.
@@ -502,7 +515,7 @@ static default_t	doom_defaults_list[] =
     // status bar displayed.
     //
 
-    CONFIG_VARIABLE_INT(screenblocks),
+    CONFIG_VARIABLE_INT_ISB8(screenblocks),
 
     //!
     // @game strife
@@ -523,7 +536,7 @@ static default_t	doom_defaults_list[] =
     // a non-zero value gives "low detail" mode.
     //
 
-    CONFIG_VARIABLE_INT(detaillevel),
+    CONFIG_VARIABLE_INT_ISB8(detaillevel),
 
     //!
     // Number of sounds that will be played simultaneously.
@@ -810,7 +823,7 @@ static default_t extra_defaults_list[] =
     // game. If zero, the ENDOOM screen is not displayed.
     //
 
-    CONFIG_VARIABLE_INT(show_endoom),
+    CONFIG_VARIABLE_INT_ISB8(show_endoom),
 
     //!
     // @game doom strife
@@ -960,7 +973,7 @@ static default_t extra_defaults_list[] =
     // the size of savegames.
     //
 
-    CONFIG_VARIABLE_INT(vanilla_savegame_limit),
+    CONFIG_VARIABLE_INT_ISB8(vanilla_savegame_limit),
 
     //!
     // @game doom strife
@@ -971,7 +984,7 @@ static default_t extra_defaults_list[] =
     // limit to the size of demos.
     //
 
-    CONFIG_VARIABLE_INT(vanilla_demo_limit),
+    CONFIG_VARIABLE_INT_ISB8(vanilla_demo_limit),
 
     //!
     // If non-zero, the game behaves like Vanilla Doom, always assuming
@@ -1024,37 +1037,37 @@ static default_t extra_defaults_list[] =
     // Mouse button to strafe left.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_strafeleft),
+    CONFIG_VARIABLE_MOUSEB(mouseb_strafeleft),
 
     //!
     // Mouse button to strafe right.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_straferight),
+    CONFIG_VARIABLE_MOUSEB(mouseb_straferight),
 
     //!
     // Mouse button to "use" an object, eg. a door or switch.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_use),
+    CONFIG_VARIABLE_MOUSEB(mouseb_use),
 
     //!
     // Mouse button to move backwards.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_backward),
+    CONFIG_VARIABLE_MOUSEB(mouseb_backward),
 
     //!
     // Mouse button to cycle to the previous weapon.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_prevweapon),
+    CONFIG_VARIABLE_MOUSEB(mouseb_prevweapon),
 
     //!
     // Mouse button to cycle to the next weapon.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_nextweapon),
+    CONFIG_VARIABLE_MOUSEB(mouseb_nextweapon),
 
     //!
     // If non-zero, double-clicking a mouse button acts like pressing
@@ -1719,6 +1732,7 @@ static const int scantokey[128] =
 
 static void SaveDefaultCollection(default_collection_t *collection)
 {
+#if !NO_USE_SAVE_CONFIG
     default_t *defaults;
     int i, v;
     FILE *f;
@@ -1757,7 +1771,7 @@ static void SaveDefaultCollection(default_collection_t *collection)
                 // the possibility of screwing up the user's config
                 // file
                 
-                v = *defaults[i].location.i;
+                v = *defaults[i].location.key;
 
                 if (v == KEY_RSHIFT)
                 {
@@ -1801,6 +1815,14 @@ static void SaveDefaultCollection(default_collection_t *collection)
 	        fprintf(f, "%i", *defaults[i].location.i);
                 break;
 
+            case DEFAULT_INT_ISB8:
+                fprintf(f, "%i", *defaults[i].location.isb8);
+                break;
+
+            case DEFAULT_MOUSEB:
+                fprintf(f, "%i", *defaults[i].location.mouseb);
+                break;
+
             case DEFAULT_INT_HEX:
 	        fprintf(f, "0x%x", *defaults[i].location.i);
                 break;
@@ -1818,6 +1840,7 @@ static void SaveDefaultCollection(default_collection_t *collection)
     }
 
     fclose (f);
+#endif
 }
 
 // Parses integer values in the configuration file
@@ -1850,6 +1873,12 @@ static void SetVariable(default_t *def, const char *value)
         case DEFAULT_INT_HEX:
             *def->location.i = ParseIntParameter(value);
             break;
+        case DEFAULT_INT_ISB8:
+            *def->location.isb8 = ParseIntParameter(value);
+            break;
+        case DEFAULT_MOUSEB:
+            *def->location.mouseb = ParseIntParameter(value);
+            break;
 
         case DEFAULT_KEY:
 
@@ -1868,7 +1897,7 @@ static void SetVariable(default_t *def, const char *value)
             }
 
             def->original_translated = intparm;
-            *def->location.i = intparm;
+            *def->location.key = intparm;
             break;
 
         case DEFAULT_FLOAT:
@@ -1879,6 +1908,7 @@ static void SetVariable(default_t *def, const char *value)
 
 static void LoadDefaultCollection(default_collection_t *collection)
 {
+#if !NO_FILE_ACCESS
     FILE *f;
     default_t *def;
     char defname[80];
@@ -1919,7 +1949,7 @@ static void LoadDefaultCollection(default_collection_t *collection)
         // Strip off trailing non-printable characters (\r characters
         // from DOS text files)
 
-        while (strlen(strparm) > 0 && !isprint(strparm[strlen(strparm)-1]))
+        while (strlen(strparm) > 0 && !isprint((uint)strparm[strlen(strparm)-1]))
         {
             strparm[strlen(strparm)-1] = '\0';
         }
@@ -1936,6 +1966,7 @@ static void LoadDefaultCollection(default_collection_t *collection)
     }
 
     fclose (f);
+#endif
 }
 
 // Set the default filenames to use for configuration files.
@@ -1952,14 +1983,17 @@ void M_SetConfigFilenames(const char *main_config, const char *extra_config)
 
 void M_SaveDefaults (void)
 {
+#if !NO_USE_BOUND_CONFIG
     SaveDefaultCollection(&doom_defaults);
     SaveDefaultCollection(&extra_defaults);
+#endif
 }
 
 //
 // Save defaults to alternate filenames
 //
 
+#if !NO_USE_BOUND_CONFIG
 void M_SaveDefaultsAlternate(const char *main, const char *extra)
 {
     const char *orig_main;
@@ -1980,6 +2014,7 @@ void M_SaveDefaultsAlternate(const char *main, const char *extra)
     doom_defaults.filename = orig_main;
     extra_defaults.filename = orig_extra;
 }
+#endif
 
 //
 // M_LoadDefaults
@@ -2002,6 +2037,8 @@ void M_LoadDefaults (void)
     // default.
     //
 
+#if !NO_USE_BOUND_CONFIG
+#if !NO_USE_ARGS
     i = M_CheckParmWithArgs("-config", 1);
 
     if (i)
@@ -2010,12 +2047,13 @@ void M_LoadDefaults (void)
 	printf ("	default file: %s\n",doom_defaults.filename);
     }
     else
+#endif
     {
         doom_defaults.filename
             = M_StringJoin(configdir, default_main_config, NULL);
     }
 
-    printf("saving config in %s\n", doom_defaults.filename);
+//    printf("saving config in %s\n", doom_defaults.filename);
 
     //!
     // @arg <file>
@@ -2024,6 +2062,7 @@ void M_LoadDefaults (void)
     // the default.
     //
 
+#if !NO_USE_ARGS
     i = M_CheckParmWithArgs("-extraconfig", 1);
 
     if (i)
@@ -2033,6 +2072,7 @@ void M_LoadDefaults (void)
                extra_defaults.filename);
     }
     else
+#endif
     {
         extra_defaults.filename
             = M_StringJoin(configdir, default_extra_config, NULL);
@@ -2040,8 +2080,10 @@ void M_LoadDefaults (void)
 
     LoadDefaultCollection(&doom_defaults);
     LoadDefaultCollection(&extra_defaults);
+#endif
 }
 
+#if !NO_USE_BOUND_CONFIG
 // Get a configuration file variable by its name
 
 static default_t *GetDefaultForName(const char *name)
@@ -2078,11 +2120,46 @@ void M_BindIntVariable(const char *name, int *location)
     variable = GetDefaultForName(name);
     assert(variable->type == DEFAULT_INT
         || variable->type == DEFAULT_INT_HEX
+        || variable->type == DEFAULT_INT_ISB8
         || variable->type == DEFAULT_KEY);
 
     variable->location.i = location;
     variable->bound = true;
 }
+
+void M_BindIntISB8Variable(const char *name, isb_int8_t *location)
+{
+    default_t *variable;
+
+    variable = GetDefaultForName(name);
+    assert(variable->type == DEFAULT_INT_ISB8);
+
+    variable->location.isb8 = location;
+    variable->bound = true;
+}
+
+
+void M_BindKeyVariable(const char *name, key_type_t *location)
+{
+    default_t *variable;
+
+    variable = GetDefaultForName(name);
+    assert(variable->type == DEFAULT_KEY);
+
+    variable->location.key = location;
+    variable->bound = true;
+}
+
+void M_BindMouseBVariable(const char *name, mouseb_type_t *location)
+{
+    default_t *variable;
+
+    variable = GetDefaultForName(name);
+    assert(variable->type == DEFAULT_MOUSEB);
+    variable->location.mouseb = location;
+    variable->bound = true;
+}
+
 
 void M_BindFloatVariable(const char *name, float *location)
 {
@@ -2095,7 +2172,7 @@ void M_BindFloatVariable(const char *name, float *location)
     variable->bound = true;
 }
 
-void M_BindStringVariable(const char *name, char **location)
+void M_BindStringVariable(const char *name, constcharstar *location)
 {
     default_t *variable;
 
@@ -2171,12 +2248,14 @@ float M_GetFloatVariable(const char *name)
 
     return *variable->location.f;
 }
+#endif
 
 // Get the path to the default configuration dir to use, if NULL
 // is passed to M_SetConfigDir.
 
 static char *GetDefaultConfigDir(void)
 {
+#if !PICO_ON_DEVICE
 #if !defined(_WIN32) || defined(_WIN32_WCE)
 
     // Configuration settings are stored in an OS-appropriate path
@@ -2192,16 +2271,16 @@ static char *GetDefaultConfigDir(void)
         return result;
     }
 #endif /* #ifndef _WIN32 */
+#endif
     return M_StringDuplicate("");
 }
 
-// 
+//
 // SetConfigDir:
 //
 // Sets the location of the configuration directory, where configuration
 // files are stored - default.cfg, chocolate-doom.cfg, savegames, etc.
 //
-
 void M_SetConfigDir(const char *dir)
 {
     // Use the directory that was passed, or find the default.
@@ -2221,9 +2300,11 @@ void M_SetConfigDir(const char *dir)
     }
 
     // Make the directory if it doesn't already exist:
-
+#if !NO_FILE_ACCESS
     M_MakeDirectory(configdir);
+#endif
 }
+#if !NO_FILE_ACCESS
 
 #define MUSIC_PACK_README \
 "Extract music packs into this directory in .flac or .ogg format;\n"   \
@@ -2236,6 +2317,7 @@ void M_SetConfigDir(const char *dir)
 // the directory if necessary.
 void M_SetMusicPackDir(void)
 {
+#if !NO_USE_MUSIC_PACKS
     const char *current_path;
     char *prefdir, *music_pack_path, *readme_path;
 
@@ -2262,6 +2344,7 @@ void M_SetMusicPackDir(void)
     free(readme_path);
     free(music_pack_path);
     free(prefdir);
+#endif
 }
 
 //
@@ -2282,6 +2365,7 @@ char *M_GetSaveGameDir(const char *iwadname)
     // does not exist then it will automatically be created.
     //
 
+#if !NO_USE_SAVE
     p = M_CheckParmWithArgs("-savedir", 1);
     if (p)
     {
@@ -2327,10 +2411,12 @@ char *M_GetSaveGameDir(const char *iwadname)
 
         free(topdir);
     }
+#endif
 
     return savegamedir;
 }
 
+#if !DOOM_TINY
 //
 // Calculate the path to the directory for autoloaded WADs/DEHs.
 // Creates the directory as necessary.
@@ -2357,3 +2443,6 @@ char *M_GetAutoloadDir(const char *iwadname)
     return result;
 }
 
+#endif
+#endif
+#endif

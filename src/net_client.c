@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -40,6 +41,11 @@
 #include "w_checksum.h"
 #include "w_wad.h"
 
+// Connected but not participating in the game (observer)
+
+boolean drone = false;
+
+#if !NO_USE_NET
 extern void D_ReceiveTic(ticcmd_t *ticcmds, boolean *playeringame);
 
 typedef enum
@@ -124,11 +130,7 @@ boolean net_waiting_for_launch = false;
 
 // Name that we send to the server
 
-char *net_player_name = NULL;
-
-// Connected but not participating in the game (observer)
-
-boolean drone = false;
+const char *net_player_name = NULL;
 
 // The last ticcmd constructed
 
@@ -1202,3 +1204,4 @@ void NET_BindVariables(void)
 {
     M_BindStringVariable("player_name", &net_player_name);
 }
+#endif

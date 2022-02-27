@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -33,17 +34,27 @@ extern wad_file_class_t win32_wad_file;
 
 #ifdef HAVE_MMAP
 extern wad_file_class_t posix_wad_file;
-#endif 
+#endif
+
+#if USE_MEMORY_WAD
+extern wad_file_class_t memory_wad_file;
+#endif
 
 static wad_file_class_t *wad_file_classes[] = 
 {
+#if USE_MEMORY_WAD
+    &memory_wad_file,
+#else
 #ifdef _WIN32
     &win32_wad_file,
 #endif
 #ifdef HAVE_MMAP
     &posix_wad_file,
 #endif
+#if !USE_MEMMAP_ONLY
     &stdc_wad_file,
+#endif
+#endif
 };
 
 wad_file_t *W_OpenFile(const char *path)
@@ -58,10 +69,12 @@ wad_file_t *W_OpenFile(const char *path)
     // directly into memory.
     //
 
+#if !USE_MEMMAP_ONLY
     if (!M_CheckParm("-mmap"))
     {
         return stdc_wad_file.OpenFile(path);
     }
+#endif
 
     // Try all classes in order until we find one that works
 

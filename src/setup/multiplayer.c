@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -119,8 +120,8 @@ static const char *strife_gamemodes[] =
     "Items respawn", // (altdeath)
 };
 
-static char *net_player_name;
-static char *chat_macros[10];
+static const char *net_player_name;
+static const char *chat_macros[10];
 
 static char *wads[NUM_WADS];
 static char *extra_params[NUM_EXTRA_PARAMS];
@@ -1135,7 +1136,7 @@ void MultiplayerConfig(TXT_UNCAST_ARG(widget), void *user_data)
     TXT_AddWidgets(window,
                    TXT_NewStrut(0, 1),
                    TXT_NewHorizBox(TXT_NewLabel("Player name:  "),
-                                   TXT_NewInputBox(&net_player_name, 25),
+                                   TXT_NewInputBox((char **)&net_player_name, 25),
                                    NULL),
                    TXT_NewStrut(0, 1),
                    TXT_NewSeparator("Chat macros"),
@@ -1152,7 +1153,7 @@ void MultiplayerConfig(TXT_UNCAST_ARG(widget), void *user_data)
 
         TXT_AddWidgets(table,
                        label,
-                       TXT_NewInputBox(&chat_macros[(i + 1) % 10], 40),
+                       TXT_NewInputBox((char **)&chat_macros[(i + 1) % 10], 40),
                        NULL);
     }
 

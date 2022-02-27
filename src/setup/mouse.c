@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -36,7 +37,7 @@ static int grabmouse = 1;
 
 int novert = 0;
 
-static int *all_mouse_buttons[] = {
+static mouseb_type_t *all_mouse_buttons[] = {
     &mousebfire,
     &mousebstrafe,
     &mousebforward,
@@ -67,7 +68,7 @@ static void MouseSetCallback(TXT_UNCAST_ARG(widget), TXT_UNCAST_ARG(variable))
     }
 }
 
-static void AddMouseControl(TXT_UNCAST_ARG(table), const char *label, int *var)
+static void AddMouseControl(TXT_UNCAST_ARG(table), const char *label, mouseb_type_t *var)
 {
     TXT_CAST_ARG(txt_table_t, table);
     txt_mouse_input_t *mouse_input;

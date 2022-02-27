@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -31,6 +32,7 @@
 #include "deh_io.h"
 #include "deh_main.h"
 
+#if !NO_USE_DEH
 extern deh_section_t *deh_section_types[];
 extern const char *deh_signatures[];
 
@@ -487,6 +489,7 @@ int DEH_LoadLumpByName(const char *name, boolean allow_long, boolean allow_error
 // Check the command line for -deh argument, and others.
 void DEH_ParseCommandLine(void)
 {
+#if !NO_USE_ARGS
     char *filename;
     int p;
 
@@ -511,5 +514,7 @@ void DEH_ParseCommandLine(void)
             ++p;
         }
     }
+#endif
 }
 
+#endif

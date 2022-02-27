@@ -2,6 +2,7 @@
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -366,8 +367,8 @@ void GenerateOrbitTable(void)
 
 	for (angle=0; angle<256; angle++)
 	{
-		orbitTableX[angle] = FixedMul(ORBIT_RADIUS, finecosine[angle<<5]);
-		orbitTableY[angle] = FixedMul(ORBIT_RADIUS, finesine[angle<<5]);
+		orbitTableX[angle] = FixedMul(ORBIT_RADIUS, finecosine(angle<<5));
+		orbitTableY[angle] = FixedMul(ORBIT_RADIUS, finesine(angle<<5));
 	}
 
 	printf("int orbitTableX[256]=\n{\n");
@@ -738,8 +739,8 @@ void A_FogMove(mobj_t * actor)
     }
 
     angle = actor->angle >> ANGLETOFINESHIFT;
-    actor->momx = FixedMul(speed, finecosine[angle]);
-    actor->momy = FixedMul(speed, finesine[angle]);
+    actor->momx = FixedMul(speed, finecosine(angle));
+    actor->momy = FixedMul(speed, finesine(angle));
 }
 
 //===========================================================================
@@ -1038,8 +1039,8 @@ void P_SpawnDirt(mobj_t * actor, fixed_t radius)
     angle_t angle;
 
     angle = P_Random() << 5;    // <<24 >>19
-    x = actor->x + FixedMul(radius, finecosine[angle]);
-    y = actor->y + FixedMul(radius, finesine[angle]);
+    x = actor->x + FixedMul(radius, finecosine(angle));
+    y = actor->y + FixedMul(radius, finesine(angle));
 //      x = actor->x + (P_SubRandom()%radius)<<FRACBITS;
 //      y = actor->y + ((P_SubRandom()<<FRACBITS)%radius);
     z = actor->z + (P_Random() << 9) + FRACUNIT;
@@ -1308,8 +1309,8 @@ void A_BatMove(mobj_t * actor)
     // Adjust momentum vector to new direction
     newangle >>= ANGLETOFINESHIFT;
     speed = FixedMul(actor->info->speed, P_Random() << 10);
-    actor->momx = FixedMul(speed, finecosine[newangle]);
-    actor->momy = FixedMul(speed, finesine[newangle]);
+    actor->momx = FixedMul(speed, finecosine(newangle));
+    actor->momy = FixedMul(speed, finesine(newangle));
 
     if (P_Random() < 15)
         S_StartSound(actor, SFX_BAT_SCREAM);

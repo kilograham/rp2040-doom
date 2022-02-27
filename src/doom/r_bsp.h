@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -39,8 +40,10 @@ extern boolean		markceiling;
 
 extern boolean		skymap;
 
+#if !NO_DRAWSEGS
 extern drawseg_t	drawsegs[MAXDRAWSEGS];
 extern drawseg_t*	ds_p;
+#endif
 
 extern lighttable_t**	hscalelight;
 extern lighttable_t**	vscalelight;
@@ -54,8 +57,11 @@ typedef void (*drawfunc_t) (int start, int stop);
 void R_ClearClipSegs (void);
 void R_ClearDrawSegs (void);
 
-
+#if !USE_WHD
 void R_RenderBSPNode (int bspnum);
+#else
+void R_RenderBSPNode (int bspnum, node_coord_t *bbox);
+#endif
 
 
 #endif

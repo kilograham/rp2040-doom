@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -38,5 +39,10 @@ void I_StartTextInput(int x1, int y1, int x2, int y2);
 // I_StopTextInput finishes text input, deactivating the on-screen keyboard
 // (if one is used).
 void I_StopTextInput(void);
+#if DOOM_TINY
+void I_GetEvent(void);
+void I_GetEventTimeout(int);
+int GetTypedChar(int scancode, boolean shiftdown);
+#endif
 
 #endif

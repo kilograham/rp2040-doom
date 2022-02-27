@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -20,7 +21,7 @@
 
 #include "doomtype.h"
 
-extern char *gus_patch_path;
+extern constcharstar gus_patch_path;
 extern int gus_ram_kb;
 
 boolean GUS_WriteConfig(char *path);

@@ -1,0 +1,3 @@
+[submodule "3rdparty/tinyusb"]
+	path = 3rdparty/tinyusb
+	url = git@github.com:liamfraser/tinyusb.git

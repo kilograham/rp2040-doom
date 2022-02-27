@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,6 +19,8 @@
 #include <stdlib.h>
 #include "deh_defs.h"
 #include "deh_main.h"
+
+#if !NO_USE_DEH
 
 const char *deh_signatures[] =
 {
@@ -66,3 +69,4 @@ deh_section_t *deh_section_types[] =
     NULL
 };
 
+#endif

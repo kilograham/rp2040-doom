@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,6 +25,7 @@
 #include "deh_mapping.h"
 #include "sounds.h"
 
+#if !NO_USE_DEH
 DEH_BEGIN_MAPPING(sound_mapping, sfxinfo_t)
     DEH_UNSUPPORTED_MAPPING("Offset")
     DEH_UNSUPPORTED_MAPPING("Zero/One")
@@ -100,3 +102,4 @@ deh_section_t deh_section_sound =
     NULL,
 };
 
+#endif

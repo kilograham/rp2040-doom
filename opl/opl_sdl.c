@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,8 +25,15 @@
 
 #include "SDL.h"
 #include "SDL_mixer.h"
+#include "doomtype.h"
 
+#if USE_WOODY_OPL
+#include "woody_opl.h"
+#elif USE_EMU8950_OPL
+#include "emu8950.h"
+#else
 #include "opl3.h"
+#endif
 
 #include "opl.h"
 #include "opl_internal.h"
@@ -70,8 +78,16 @@ static uint64_t pause_offset;
 
 // OPL software emulator structure.
 
+#if USE_WOODY_OPL
+// todo configure this based on woody build flag
+#define opl_op3mode 0
+#elif USE_EMU8950_OPL
+#define opl_op3mode 0
+static OPL *emu8950_opl;
+#else
 static opl3_chip opl_chip;
 static int opl_opl3mode;
+#endif
 
 // Temporary mixing buffer used by the mixing callback.
 
@@ -164,7 +180,20 @@ static void FillBuffer(uint8_t *buffer, unsigned int nsamples)
 
     // OPL output is generated into temporary buffer and then mixed
     // (to avoid overflows etc.)
+#if USE_WOODY_OPL
+    Bit16s *mb16 = (Bit16s *) mix_buffer;
+    adlib_getsample(mb16, nsamples);
+    for(int i=nsamples-1; i>=0; i--) {
+        mb16[i*2] = mb16[i*2 + 1] = mb16[i];
+    }
+#elif USE_EMU8950_OPL
+    int16_t *buf = (int16_t *) mix_buffer;
+    for(int i=0;i<nsamples;i++) {
+        buf[i*2] = buf[i*2+1] = OPL_calc(emu8950_opl);
+    }
+#else
     OPL3_GenerateStream(&opl_chip, (Bit16s *) mix_buffer, nsamples);
+#endif
     SDL_MixAudioFormat(buffer, mix_buffer, AUDIO_S16SYS, nsamples * 4,
                        SDL_MIX_MAXVOLUME);
 }
@@ -288,13 +317,13 @@ static int OPL_SDL_Init(unsigned int port_base)
     {
         if (SDL_Init(SDL_INIT_AUDIO) < 0)
         {
-            fprintf(stderr, "Unable to set up sound.\n");
+            stderr_print( "Unable to set up sound.\n");
             return 0;
         }
 
         if (Mix_OpenAudio(opl_sample_rate, AUDIO_S16SYS, 2, GetSliceSize()) < 0)
         {
-            fprintf(stderr, "Error initialising SDL_mixer: %s\n", Mix_GetError());
+            stderr_print( "Error initialising SDL_mixer: %s\n", Mix_GetError());
 
             SDL_QuitSubSystem(SDL_INIT_AUDIO);
             return 0;
@@ -328,7 +357,7 @@ static int OPL_SDL_Init(unsigned int port_base)
 
     if (mixing_format != AUDIO_S16SYS || mixing_channels != 2)
     {
-        fprintf(stderr, 
+        stderr_print(
                 "OPL_SDL only supports native signed 16-bit LSB, "
                 "stereo format!\n");
 
@@ -341,8 +370,14 @@ static int OPL_SDL_Init(unsigned int port_base)
 
     // Create the emulator structure:
 
+#if USE_WOODY_OPL
+    adlib_init(mixing_freq);
+#elif USE_EMU8950_OPL
+    emu8950_opl = OPL_new(3579552, mixing_freq); // todo check rate
+#else
     OPL3_Reset(&opl_chip, mixing_freq);
     opl_opl3mode = 0;
+#endif
 
     callback_mutex = SDL_CreateMutex();
     callback_queue_mutex = SDL_CreateMutex();
@@ -432,10 +467,17 @@ static void WriteRegister(unsigned int reg_num, unsigned int value)
             break;
 
         case OPL_REG_NEW:
+#if !USE_WOODY_OPL && !USE_EMU8950_OPL
             opl_opl3mode = value & 0x01;
-
+#endif
         default:
+#if USE_WOODY_OPL
+            adlib_write(reg_num, value);
+#elif USE_EMU8950_OPL
+            OPL_writeReg(emu8950_opl, reg_num, value);
+#else
             OPL3_WriteRegBuffered(&opl_chip, reg_num, value);
+#endif
             break;
     }
 }
@@ -487,10 +529,10 @@ static void OPL_SDL_SetPaused(int paused)
     opl_sdl_paused = paused;
 }
 
-static void OPL_SDL_AdjustCallbacks(float factor)
+static void OPL_SDL_AdjustCallbacks(unsigned int old_tempo, unsigned int new_tempo)
 {
     SDL_LockMutex(callback_queue_mutex);
-    OPL_Queue_AdjustCallbacks(callback_queue, current_time, factor);
+    OPL_Queue_AdjustCallbacks(callback_queue, current_time, old_tempo, new_tempo);
     SDL_UnlockMutex(callback_queue_mutex);
 }
 

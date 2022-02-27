@@ -1,5 +1,6 @@
 //
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -28,6 +29,7 @@
 #include "deh_defs.h"
 #include "deh_io.h"
 
+#if !NO_USE_DEH
 typedef enum
 {
     DEH_INPUT_FILE,
@@ -66,12 +68,12 @@ static deh_context_t *DEH_NewContext(void)
 {
     deh_context_t *context;
 
-    context = Z_Malloc(sizeof(*context), PU_STATIC, NULL);
+    context = Z_Malloc(sizeof(*context), PU_STATIC, 0);
 
     // Initial read buffer size of 128 bytes
 
     context->readbuffer_size = 128;
-    context->readbuffer = Z_Malloc(context->readbuffer_size, PU_STATIC, NULL);
+    context->readbuffer = Z_Malloc(context->readbuffer_size, PU_STATIC, 0);
     context->linenum = 0;
     context->last_was_newline = true;
 
@@ -120,7 +122,11 @@ deh_context_t *DEH_OpenLump(int lumpnum)
     context->input_buffer_pos = 0;
 
     context->filename = malloc(9);
+#if !USE_MEMMAP_ONLY
     M_StringCopy(context->filename, lumpinfo[lumpnum]->name, 9);
+#else
+    M_StringCopy(context->filename, "<unknown>", 9);
+#endif
 
     return context;
 }
@@ -213,7 +219,7 @@ static void IncreaseReadBuffer(deh_context_t *context)
     int newbuffer_size;
 
     newbuffer_size = context->readbuffer_size * 2;
-    newbuffer = Z_Malloc(newbuffer_size, PU_STATIC, NULL);
+    newbuffer = Z_Malloc(newbuffer_size, PU_STATIC, 0);
 
     memcpy(newbuffer, context->readbuffer, context->readbuffer_size);
 
@@ -335,3 +341,4 @@ boolean DEH_HadError(deh_context_t *context)
     return context->had_error;
 }
 
+#endif

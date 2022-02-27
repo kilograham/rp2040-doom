@@ -1,6 +1,7 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
 // Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2021-2022 Graham Sanderson
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -22,8 +23,7 @@
 
 #include "w_wad.h"
 
-
-extern lumpinfo_t *maplumpinfo;
+extern should_be_const lumpinfo_t *maplumpinfo;
 
 // NOT called by W_Ticker. Fixme.
 void
