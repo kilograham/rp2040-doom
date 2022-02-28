@@ -1,0 +1,42 @@
+---
+---
+
+$large-breakpoint: 70em !default;
+@import "{{ site.theme }}";
+.main-content {
+  @include large {
+    max-width: 72rem;
+  }
+}
+
+.project-tagline {
+  margin-bottom: 2rem;
+  font-weight: normal;
+  opacity: 0.7;
+
+  @include large {
+    font-size: 2.25rem;
+  }
+
+  @include medium {
+    font-size: 1.75rem;
+  }
+
+  @include small {
+    font-size: 1.15rem;
+  }
+}
+
+.page-header {
+  @include large {
+    padding: 3rem 4rem;
+  }
+
+  @include medium {
+    padding: 2rem 1rem;
+  }
+
+  @include small {
+    padding: 1rem 2rem;
+  }
+}
