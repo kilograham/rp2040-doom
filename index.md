@@ -73,15 +73,12 @@ This all immediately presented some fairly obvious problems:
 Here is a video of the Doom shareware version (`DOOM1.WAD`) running on a Raspberry Pi Pico with VGA and sound 
 hooked up via fly-wires:
 
-<svg width="840" height="472" xmlns="http://www.w3.org/2000/svg">
-<foreignObject width="840" height="472">
-    <div xmlns="http://www.w3.org/1999/xhtml">
-<iframe width="840" height="472" src="https://www.youtube.com/embed/eDVazQVycP4" title="RP2040 Doom on a Raspberry 
+<div style="position: relative; padding-bottom: 56.19%; clip-path: inset(2px 2px)">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute;"
+ src="https://www.youtube.com/embed/eDVazQVycP4" title="RP2040 Doom on a Raspberry 
 Pi Pico" 
 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-    </div>
-</foreignObject>
-</svg>
+</div>
 
 See [here](https://www.youtube.com/playlist?list=PL-_wCtHUfdDPi7i-4OIy5iQjQ3QSqq1Mh) for more videos including some 
 direct video/audio captures.

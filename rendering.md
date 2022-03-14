@@ -92,14 +92,11 @@ basically halves the available RAM.
 I made the following prototype of this on the fly 60fps rendering, running off canned display-lists. It is running 
 concurrently with the music and the game loop:
 
-<svg width="640" height="360" xmlns="http://www.w3.org/2000/svg">
-<foreignObject width="640" height="360">
-    <div xmlns="http://www.w3.org/1999/xhtml">
-<iframe width="640" height="360" src="https://www.youtube.com/embed/cG7bsLvQKjM" title="Rendering Prototype Video" 
+<div style="position: relative; padding-bottom: 56.25%; clip-path: inset(2px 2px)">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute;"
+src="https://www.youtube.com/embed/cG7bsLvQKjM" title="Rendering Prototype Video" 
 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
-</foreignObject>
-</svg>
 
 As promising as this looks, it is using a full 100% of one core for the rendering, and I realized 
 i'd probably actually made some mistakes with my numbers meaning that my column caches might not fit, that the 
@@ -240,29 +237,24 @@ true even if they were
 clipped by walls closer to the viewer, as vanilla Doom keeps the expensive `drawseg` structure to record which parts 
 of which sprites are clipped.
 
-<svg width="960" height="632" xmlns="http://www.w3.org/2000/svg">
-<foreignObject width="960" height="632">
-    <div xmlns="http://www.w3.org/1999/xhtml">
-<iframe width="960" height="632" src="https://www.youtube.com/embed/20bBYqDNqVs?playlist=20bBYqDNqVs&loop=1" 
+<div style="position: relative; padding-bottom: 65.83%; clip-path: inset(2px 2px)">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute;"
+src="https://www.youtube.com/embed/20bBYqDNqVs?playlist=20bBYqDNqVs&loop=1" 
 title="Vanilla Doom Rendering Video" 
 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-    </div>
-</foreignObject>
-</svg>
+</div>
 
 This is a movie of RP2040 Doom rendering of the same scene. This simple scene does not include any fuzzy columns, so
 these are the pertinent steps:
 
 ![render_steps.png](render_steps.png)
 
-<svg width="960" height="632" xmlns="http://www.w3.org/2000/svg">
-<foreignObject width="960" height="632">
-    <div xmlns="http://www.w3.org/1999/xhtml">
-<iframe width="960" height="632" src="https://www.youtube.com/embed/2OIo32F2eKY?
+<div style="position: relative; padding-bottom: 65.83%; clip-path: inset(2px 2px)">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute;"
+ src="https://www.youtube.com/embed/2OIo32F2eKY?
 playlist=2OIo32F2eKY&loop=1" title="3D Rendering Video" 
 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
-</foreignObject>
 </svg>
 
 # Generating the rest of the display
@@ -322,15 +314,12 @@ frame-buffer, but the status bar is drawn in the overlay. In this example each D
 of two (60fps) display frames although in practice it often only takes one. Note that the overlay display-lists are 
 double-buffered too.
 
-<svg width="960" height="452" xmlns="http://www.w3.org/2000/svg">
-<foreignObject width="960" height="452">
-    <div xmlns="http://www.w3.org/1999/xhtml">
-<iframe width="960" height="452" src="https://www.youtube.com/embed/ZG-Ejzd9VlU?
+<div style="position: relative; padding-bottom: 47.08%; clip-path: inset(2px 2px)">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute;"
+ src="https://www.youtube.com/embed/ZG-Ejzd9VlU?
 playlist=ZG-Ejzd9VlU&loop=1" title="Double-Buffered Mode Video" 
 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
-</foreignObject>
-</svg>
 
 Note that the pause after the display is refreshed every 1/60th of a second represents the vertical retrace/blanking 
 time.
@@ -355,15 +344,12 @@ their content may need to change, but there is also no off-screen frame-buffer o
 The follow movie shows an intermission screen with all the foreground changeable content, drawn as overlays via 
 V-Patch display-lists:
 
-<svg width="960" height="452" xmlns="http://www.w3.org/2000/svg">
-<foreignObject width="960" height="452">
-    <div xmlns="http://www.w3.org/1999/xhtml">
-<iframe width="960" height="452" src="https://www.youtube.com/embed/XXmrbuuv5FE?
+<div style="position: relative; padding-bottom: 47.08%;  clip-path: inset(2px 2px) clip-path: inset(2px 2px)">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute;"
+ src="https://www.youtube.com/embed/XXmrbuuv5FE?
 playlist=XXmrbuuv5FE&loop=1" title="Single-Buffered Mode Video" 
 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
-</foreignObject>
-</svg>
 
 ## Wipe Effect
 
@@ -414,30 +400,24 @@ transitioning from one *Game A* (e.g. demo playback), to a new *Game B*.
    displayed as an 
    overlay.
 
-<svg width="960" height="452" xmlns="http://www.w3.org/2000/svg">
-<foreignObject width="960" height="452">
-    <div xmlns="http://www.w3.org/1999/xhtml">
-<iframe width="960" height="452" src="https://www.youtube.com/embed/eGUleOBiWZU?
+<div style="position: relative; padding-bottom: 47.08%;">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute; clip-path: inset(2px 2px)"
+ src="https://www.youtube.com/embed/eGUleOBiWZU?
 playlist=eGUleOBiWZU&loop=1" title="Wipe Effect Video" 
 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
-</foreignObject>
-</svg>
 
 Note that the overlay display-lists are mostly empty in this sequence, but would contain V-Patches for the menu if 
 it was displayed during the wipe.
 
 Here is a sped-up version of the above:
 
-<svg width="960" height="452" xmlns="http://www.w3.org/2000/svg">
-<foreignObject width="960" height="452">
-    <div xmlns="http://www.w3.org/1999/xhtml">
-<iframe width="960" height="452" src="https://www.youtube.com/embed/BXDIc_z6pFI?
+<div style="position: relative; padding-bottom: 47.08%;">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute; clip-path: inset(2px 2px)"
+ src="https://www.youtube.com/embed/BXDIc_z6pFI?
 playlist=BXDIc_z6pFI&loop=1" title="Wipe Effect Video" 
 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
-</foreignObject>
-</svg>
 
 ## Text Mode
 
@@ -505,14 +485,11 @@ scanline buffer.
 In practice, there are actually two pixel wide strip buffers, because any time data is passed to the display 
 code which is asynchronous with the rest of the game code, double-buffering of some sort must be used.
 
-<svg width="640" height="360" xmlns="http://www.w3.org/2000/svg">
-<foreignObject width="640" height="360">
-    <div xmlns="http://www.w3.org/1999/xhtml">
-<iframe width="640" height="360" src="https://www.youtube.com/embed/eveHe0MR1hY" title="Bunny Sequence Video" 
+<div style="position: relative; padding-bottom: 56.25%; clip-path: inset(2px 2px)">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute;" src="https://www.youtube.
+com/embed/eveHe0MR1hY" title="Bunny Sequence Video" 
 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
-</foreignObject>
-</svg>
  
 Note the frame rate indicator in the top right; this is available/toggled in RP2040 Doom by pressing the `\` key. 
 The "THE END" graphics are rendered as V-Patch overlays.
@@ -546,15 +523,11 @@ in the game.
 The good news is that, whilst simple, this all works like a charm!
 
 
-<svg width="640" height="512" xmlns="http://www.w3.org/2000/svg">
-<foreignObject width="640" height="512">
-    <div xmlns="http://www.w3.org/1999/xhtml">
-<iframe width="640" height="512" src="https://www.youtube.com/embed/Nkeqa40ci8I" title="Cast End Screen Video" 
+<div style="position: relative; padding-bottom: 80%; clip-path: inset(2px 2px)">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute;" src="https://www.youtube.com/embed/Nkeqa40ci8I" title="Cast End Screen Video" 
 frameborder="0" 
 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
-</foreignObject>
-</svg>
 
 # Miscellaneous
 

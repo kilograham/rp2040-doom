@@ -5,7 +5,9 @@ $large-breakpoint: 70em !default;
 @import "{{ site.theme }}";
 .main-content {
   @include large {
-    max-width: 72rem;
+    max-width: 1008px;
+    padding-left: 24px;
+    padding-right: 24px;
   }
 }
 
