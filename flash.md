@@ -3,7 +3,7 @@ title: RP2040 Doom
 description: Making It All Fit In Flash
 ---
 
-This is the part of the series behind the scenes of RP2040 Doom:
+This is part of the series behind the scenes of RP2040 Doom:
 
 * [Introduction](index.md)
 * [Rendering And Display Composition](rendering.md)

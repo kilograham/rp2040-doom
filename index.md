@@ -3,7 +3,7 @@ title: RP2040 Doom
 description: The Making of RP2040 Doom
 ---
 
-This is the part of the series behind the scenes of RP2040 Doom:
+This is part of the series behind the scenes of RP2040 Doom:
 
 * Introduction **<- this part**
 * [Rendering And Display Composition](rendering.md) 

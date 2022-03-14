@@ -3,7 +3,7 @@ title: RP2040 Doom
 description: Rendering And Display Composition
 ---
 
-This is the part of the series behind the scenes of RP2040 Doom:
+This is part of the series behind the scenes of RP2040 Doom:
 
 * [Introduction](index.md)
 * Rendering And Display Composition **<- this part**
