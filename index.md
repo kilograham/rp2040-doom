@@ -177,8 +177,7 @@ microcontroller at all is non-trivial.
 This is even more of a challenge if you want it to consume only a *small* 
 fraction of your CPU time, and also use very little RAM. 
 
-This is discussed, along with brief details of the sampled sound effect generation, in the sound section [here](sound.
-md).
+This is discussed, along with brief details of the sampled sound effect generation, in the sound section [here](sound.md).
 
 ## Network Games
 Microcontrollers have GPIOs, and you can connect them together with wires, so it seemed rude not to implement some 
