@@ -118,7 +118,7 @@ I2S on 26,27,28.
 
 As before, use `make` or `make <target>` to build. 
 
-The RP2040 version has four targets, each of which create a similarly named `UF2` file (e.g. `doom_tiny_nh.uf2`). 
+The RP2040 version has four targets, each of which create a similarly named `UF2` file (e.g. `doom_tiny.uf2`). 
 These UF2 files contain the executable code/data, but they do not contain the WAD data which is converted into a 
 RP2040 Domom 
 specific WHD/WHX format by `whd_gen` (for more see below). The WHD/WHX file must also be loaded onto the device at a 
@@ -134,16 +134,16 @@ required for *Ultimate Doom* and *Doom II* WADs. These binaries are distinct as 
 binary would just have made things bigger and slower.
 
 
-* **doom_tiny_nh** This is a "super tiny" version with no USB keyboard support. You can use
+* **doom_tiny** This is a "super tiny" version with no USB keyboard support. You can use
 [SDL Event Forwarder](https://github.com/kilograham/sdl_event_forwarder) to tunnel keyboard input from your host 
   computer over UART. The WHX file must be loaded at `0x10040000`. 
-* **doom_tiny_nh_cd** This is a "super tiny" version with additional USB keyboard support. Because of the extra USB 
+* **doom_tiny_usb** This is a "super tiny" version with additional USB keyboard support. Because of the extra USB 
   code, the WHX file must be loaded at `0x10042000`. As you can see USB support via TinyUSB causes the binary to 
   grow by 2K (hence the move of the WHX file address) leaving less space for saved games (which are also stored in 
   flash).
-* **doom_tiny_nh_nost** This is a "non super tiny" version of `doom_tiny_nh` supporting larger WADs stored as WHD. The WHD 
+* **doom_tiny_nost** This is a "non super tiny" version of `doom_tiny` supporting larger WADs stored as WHD. The WHD 
   file must be loaded at `0x10048000`
-* **doom_tiny_nh_nost_cd** This is a "non super tiny" version of `doom_tiny_nh_cd` supporting larger WADs stored as 
+* **doom_tiny_nost_usb** This is a "non super tiny" version of `doom_tiny_usb` supporting larger WADs stored as 
   WHD. The WHD
   file must be loaded at `0x10048000`
 
