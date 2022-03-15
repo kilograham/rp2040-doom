@@ -187,7 +187,7 @@ space. Not all names can be removed as some are referenced explicitly by the Doo
 
 The remainder of the space-saving comes from actually compressing the lumps within the WAD.
 
-You can refer to [Doom Wiki - WAD section](https://doom.fandom.com/wiki/WAD) to get a bit more detail about the 
+You can refer to [Doom Wiki - WAD section](https://doomwiki.org/wiki/WAD) to get a bit more detail about the 
 types of lumps mentioned below. 
 
 This section uses the shareware `DOOM1.WAD` as an example, as this is the target needed to be fit in the 2M flash on
