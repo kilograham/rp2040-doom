@@ -101,7 +101,7 @@ pico-sdk requisites (e.g.
 [documentation](https://datasheets.raspberrypi.com/pico/getting-started-with-pico.pdf). I have been building against 
 the `develop` branch of `pico-sdk`, so I recommend that..
 
-**NOTE: I was building with arm-none-eabi-gcc 9.3.1 .. it seems like other versions may cause problems with binary 
+**NOTE: I was building with arm-none-eabi-gcc 9.2.1 .. it seems like other versions may cause problems with binary 
 size, so stick with that for now.** 
 
 For USB keyboard input support, RP2040 Doom currently uses a modified version of TinyUSB included as a submodule. 
