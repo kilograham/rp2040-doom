@@ -208,6 +208,34 @@ work, it is by no means guaranteed!
 NOTE: You should use a release build of `whd_gen` for the best sound effect fidelity, as the debug build 
 deliberately lowers the encoding quality for the sake of speed.
 
+# Running the RP2040 version
+
+The releases here use pins as defined when building with `PICO_BOARD=vgaboard`:
+
+```
+ 0-4:    Red 0-5
+ 6-10:   Green 0-5
+ 11-15:  Blue 0-5
+ 16:     HSync
+ 17:     VSync
+ 18:     I2C1 SDA
+ 19:     I2C1 SCL
+ 20:     UART1 TX
+ 21:     UART1 RX
+ 26:     I2S DIN
+ 27:     I2S BCK
+ 28:     I2S LRCK
+```
+You can always find these from your ELF or UF2 with 
+
+```
+picotool info -a <filename>
+``` 
+
+These match for example the Pimoroni Pico VGA Demo Base which itself is based on the suggested 
+Raspberry Pi Documentation [here](https://datasheets.raspberrypi.com/rp2040/hardware-design-with-rp2040.pdf)
+and the design files zipped [here](https://datasheets.raspberrypi.com/rp2040/VGA-KiCAD.zip).
+
 # Future
 
 *Evilution* and *Plutonia* are not yet supported. There is an issue tracking it 
