@@ -16,6 +16,8 @@ This is part of the series behind the scenes of RP2040 Doom:
 See [here](https://www.youtube.com/playlist?list=PL-_wCtHUfdDPi7i-4OIy5iQjQ3QSqq1Mh) for some nice videos of
 RP2040 Doom in action, including the sound.
 
+Find me on [twitter](https://twitter.com/kilograham5).
+
 # Sound Introduction
 
 RP2040 Doom attempts to recreate the sound feel of the original Doom game in the '90s.  

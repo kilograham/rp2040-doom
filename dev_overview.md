@@ -16,6 +16,8 @@ This is part of the series behind the scenes of RP2040 Doom:
 See [here](https://www.youtube.com/playlist?list=PL-_wCtHUfdDPi7i-4OIy5iQjQ3QSqq1Mh) for some nice videos of
 RP2040 Doom in action. The code is [here](https://github.com/kilograham/rp2040-doom).
 
+Find me on [twitter](https://twitter.com/kilograham5).
+
 ## Overview
 
 The following is a brief high level overview of the development steps, with some details of things that aren't 

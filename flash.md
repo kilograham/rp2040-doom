@@ -16,6 +16,8 @@ This is part of the series behind the scenes of RP2040 Doom:
 See [here](https://www.youtube.com/playlist?list=PL-_wCtHUfdDPi7i-4OIy5iQjQ3QSqq1Mh) for some nice videos of
 RP2040 Doom in action. The code is [here](https://github.com/kilograham/rp2040-doom).
 
+Find me on [twitter](https://twitter.com/kilograham5).
+
 # Compression Introduction
 
 As mentioned in the main introduction, everything in the WAD (level data, sound effects, music, graphics and textures) 
