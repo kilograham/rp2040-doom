@@ -16,8 +16,6 @@ This is part of the series behind the scenes of RP2040 Doom:
 See [here](https://www.youtube.com/playlist?list=PL-_wCtHUfdDPi7i-4OIy5iQjQ3QSqq1Mh) for some nice videos of
 RP2040 Doom in action. The code is [here](https://github.com/kilograham/rp2040-doom).
 
-Find me on [twitter](https://twitter.com/kilograham5).
-
 ## Networking Introduction
 
 The original Doom used IPX networking, whereas Chocolate Doom ditches this in favor of a full-on internet game 
@@ -162,3 +160,5 @@ network game as special types of "button press" which are already included in th
 ---
 
 Read the last section [Development Overview](dev_overview.md), or go back to the [Introduction](index.md).
+
+Find me on [twitter](https://twitter.com/kilograham5).

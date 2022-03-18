@@ -16,8 +16,6 @@ This is part of the series behind the scenes of RP2040 Doom:
 See [here](https://www.youtube.com/playlist?list=PL-_wCtHUfdDPi7i-4OIy5iQjQ3QSqq1Mh) for some nice videos of 
 RP2040 Doom in action. The code is [here](https://github.com/kilograham/rp2040-doom).
 
-Find me on [twitter](https://twitter.com/kilograham5).
-
 # Rendering Introduction
 
 I wanted to drive a VGA signal directly from the RP2040 since VGA is most in spirit with Doom and the '90s.
@@ -559,3 +557,5 @@ allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; pic
 ---
 
 Read the next section [Making It All Fit In Flash](flash.md), or go back to the [Introduction](index.md).
+
+Find me on [twitter](https://twitter.com/kilograham5).

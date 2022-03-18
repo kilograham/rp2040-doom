@@ -16,8 +16,6 @@ This is part of the series behind the scenes of RP2040 Doom:
 See [here](https://www.youtube.com/playlist?list=PL-_wCtHUfdDPi7i-4OIy5iQjQ3QSqq1Mh) for some nice videos of
 RP2040 Doom in action. The code is [here](https://github.com/kilograham/rp2040-doom).
 
-Find me on [twitter](https://twitter.com/kilograham5).
-
 # Overview
 
 Getting Doom to run in our 264K of RAM is hard work anyway, but there are trade-offs with speed to consider too:
@@ -475,3 +473,5 @@ scrutinized at all.
 ---
 
 Read the next section [Music And Sound](sound.md), or go back to the [Introduction](index.md).
+
+Find me on [twitter](https://twitter.com/kilograham5).

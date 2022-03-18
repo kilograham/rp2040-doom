@@ -16,8 +16,6 @@ This is part of the series behind the scenes of RP2040 Doom:
 See [here](https://www.youtube.com/playlist?list=PL-_wCtHUfdDPi7i-4OIy5iQjQ3QSqq1Mh) for some nice videos of
 RP2040 Doom in action. The code is [here](https://github.com/kilograham/rp2040-doom).
 
-Find me on [twitter](https://twitter.com/kilograham5).
-
 # The Challenge
 
 ![](rp2040.jpg)
@@ -211,3 +209,5 @@ which is itself based off the original Id Linux shareware [source code](https://
 ---
 
 Read the first section [Rendering And Display Composition](rendering.md) next.
+
+Find me on [twitter](https://twitter.com/kilograham5).
