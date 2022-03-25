@@ -66,7 +66,7 @@ just the level data though, as we have to move other lookup tables and game data
 to make enough space for definitely mutable data in our limited RAM.
 
 RP2040 Doom necessarily takes a performance hit for this, which it must make up in other places. Fortunately the CPU 
-clock frequency is high compared to the machiness of the day, so the net effect does not seem to be too bad as long 
+clock frequency is high compared to the machines of the day, so the net effect does not seem to be too bad as long 
 as these penalties are limited to code that does not run many thousands of time per frame.
 
 ### Compressed data has a decoding overhead
@@ -252,7 +252,7 @@ The majority, almost 180K, is related to the display, and the largest chunk of t
 allocation.
 
 The Doom "zone memory" and the regular `malloc` heap are combined into one region, as 
-maintaining too heaps with separate smaller free spaces and fragmentation is wasteful. The heap is actually 58K, but 
+maintaining too many heaps with separate smaller free spaces and fragmentation is wasteful. The heap is actually 58K, but 
 I showed it as 52K above, because I separated out the audio/scanline buffers that are `malloc`ed into separate line 
 items. The "zone memory" part which started at *700K* for our Chocolate Doom ancestor now only consumes up to about 
 *45K* 
@@ -304,7 +304,7 @@ changing between the builds.
   the arrays, and I replace such uses with an array index instead. Note, that if you read [the section on fitting 
   data in flash](flash.md)
   you'll discover that some compressed arrays use variably sized structs, but in those cases a byte offset
-  into the array can be use instead of an array index, and can still be 16-bit.
+  into the array can be used instead of an array index, and can still be 16-bit.
 
 * **Reorder structures so they pack correctly**. The C compiler orders structures in the same order you define them. 
   Generally RP2040 Doom doesn't use "packed" structures, as it is preferable to keep fields naturally aligned to 
