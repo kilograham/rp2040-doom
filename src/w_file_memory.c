@@ -28,7 +28,7 @@
 #include "w_wad.h"
 #if PICO_BUILD
 #include "pico.h"
-#include "pico.h"
+#include "pico/binary_info.h"
 #else
 #define panic I_Error
 #endif
@@ -38,6 +38,13 @@
 #error TINY_WAD_ADDR must be specified
 #endif
 #define wad_map_base ((const uint8_t *)TINY_WAD_ADDR)
+// simplest thing here is to use a feature, rather than a separate feature group
+#if WHD_SUPER_TINY
+#define ADDR_FNAME "WHX at " __XSTRING(TINY_WAD_ADDR)
+#else
+#define ADDR_FNAME "WHD at " __XSTRING(TINY_WAD_ADDR)
+#endif
+bi_decl(bi_program_feature(ADDR_FNAME));
 #endif
 
 #if !USE_WHD
