@@ -23,6 +23,9 @@
 #include "doomtype.h"
 #include "doom/p_saveg.h"
 #endif
+#if USB_SUPPORT
+#include "tusb.h"
+#endif
 extern void I_InputInit();
 
 #include <stdlib.h>
@@ -475,7 +478,6 @@ void __attribute((noreturn)) I_Quit (void)
         // no idea why the default timeout of 50 ms is NOT working here, hack hack hack away!
         I_GetEventTimeout(1000);
 #if USB_SUPPORT
-        extern void tuh_task();
         tuh_task();
 #endif
 #endif

@@ -81,6 +81,9 @@
 #include "d_main.h"
 #if PICO_BUILD
 #include "i_picosound.h"
+#if USB_SUPPORT
+#include "tusb.h"
+#endif
 #endif
 //
 // D-DoomLoop()
