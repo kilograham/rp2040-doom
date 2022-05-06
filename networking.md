@@ -159,6 +159,16 @@ network game as special types of "button press" which are already included in th
 
 ---
 
+Here is a video of an RP2040 Doom 3-player deathmatch with I2C connected on a breadboard:
+
+<div style="position: relative; padding-bottom: 56.19%; clip-path: inset(2px 2px)">
+<iframe style="border: 1; top: 0; left: 0; width: 100%; height: 100%; position: absolute;"
+ src="https://www.youtube.com/embed/ZsChClFI-oM" title="RP2040 Doom 3-player Deathmatch" 
+frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
+
+---
+
 Read the last section [Development Overview](dev_overview.md), or go back to the [Introduction](index.md).
 
 Find me on [twitter](https://twitter.com/kilograham5).
