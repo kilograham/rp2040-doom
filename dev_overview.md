@@ -129,8 +129,8 @@ makes some noise"*
 * Still, dealing with the music seemed like a less daunting starting point than either making all the level-data and 
   graphics fit, or properly hooking up the 3D rendering, so I decided to start with the music first.
 
-* More details can be found in the sound section [here](sound.md), however a considerable amount of effort went it 
-  to choosing, and then heavily rewriting an OPL2 emulator. Initially the overall methodology was changed and 
+* More details can be found in the sound section [here](sound.md), however a considerable amount of effort went into 
+  choosing, and then heavily rewriting an OPL2 emulator. Initially the overall methodology was changed and 
   the code was rewritten in C++. Subsequently, large parts of the code were rewritten in assembly. Overall a 
   speed-up 30x+ was realized.
   

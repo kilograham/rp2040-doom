@@ -412,7 +412,7 @@ facilitates drawing the V-patch incrementally, line-by-line, whilst maintaining 
 A *"texture"* in doom is used to cover the vertical walls (or parts of walls) in the 3D View. Each texture is "composed"
 by drawing one or more patches onto a logical canvas of a certain size. The use of patches, rather than 
 storing each texture as its very own bitmap, allows a much wider variety of textures to be created in a small mount of 
-space. The same small selection of say "stone-like" patches can be place next to, or over each other, creating set of 
+space. The same small selection of say "stone-like" patches can be placed next to, or over each other, creating set of 
 larger more 
 random diverse looking textures. Additionally, "decal" patches can be drawn on other patches to customize textures 
 as is often done for "switches" in Doom.
@@ -621,7 +621,7 @@ byte not two.
 Additionally though, each "sidedef" references three textures, a "top/upper", a "middle" 
 and a
 "bottom/lower".
-Space has already be saved by using 16 bit lump numbers rather than names for each of these textures, however 
+Space has already been saved by using 16 bit lump numbers rather than names for each of these textures, however 
 with 
 30000+ "sidedefs", storing 6 
 bytes
