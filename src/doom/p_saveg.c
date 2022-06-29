@@ -2766,7 +2766,7 @@ boolean __noinline P_SaveGameWriteFlashSlot(int slot, const uint8_t *buffer, uin
     pd_start_save_pause();
 //    printf("Need to add %p->%p (+%04x)\n", prev_slot_bottom - 4 - size, prev_slot_bottom, size + 8);
     if (last_slot > slot) {
-        assert(slots[last_slot.data]);
+        //assert(slots[last_slot.data]);
         const uint8_t *from_top = slots[slot].data ? slots[slot].data - 4 : prev_slot_bottom;
         const uint8_t *from_bottom = slots[last_slot].data - 4;
         const uint8_t *to_top = prev_slot_bottom;

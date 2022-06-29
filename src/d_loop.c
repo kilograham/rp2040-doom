@@ -703,8 +703,10 @@ void TryRunTics(void) {
                 lplayer_count += local_playeringame[j];
             }
             if (net_client_connected && lplayer_count < 2) {
+#if USE_PICO_NET
                 net_client_connected = false;
                 piconet_stop();
+#endif
             }
 #endif
 
