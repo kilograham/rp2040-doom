@@ -3926,8 +3926,8 @@ texture_index convert_textures(wad &wad) {
                 patch_for_each_pixel(patch, [&](uint8_t pixel) {
                     colorCounts[pixel]++;
                 });
-                bool patch_solid = true;
 #if TEXTURE_PIXEL_STATS
+                bool patch_solid = true;
                 // render every pixel
                 const patch_header *ph = (const patch_header *) patch.data.data();
                 for (int col = 0; col < ph->width; col++) {
@@ -3973,20 +3973,20 @@ texture_index convert_textures(wad &wad) {
                     }
                 }
                 if (patch_solid) solid_patches++;
-#endif
                 printf("  Patch %d (%d): %d at %d,%d %dx%d solid = %d\n", j, pname_lookup[mpatch.patch], mpatch.patch,
                        mpatch.originx, mpatch.originy, ph->width, ph->height, patch_solid);
+#endif
             } else {
                 // seems unlike!y!
                 fail("Patch %d missing\n", pname_lookup[j]);
             }
         }
+        bool had_transparent = false;
 #if TEXTURE_PIXEL_STATS
         for (int x = 0; x < tex_whd.width; x++) {
             texture_column_patches.record(column_usage[x]);
             texture_column_patches1.record(column_usage[x] == 1);
         }
-        bool had_transparent = false;
         for (auto &xx : pixel_usage) {
             if (!xx) {
                 had_transparent = true;
