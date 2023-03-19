@@ -91,9 +91,9 @@ extern "C" {
 void I_UpdateSound(void);
 }
 void draw_cast_sprite(int sprite_lump);
-#pragma GCC push_options
+GCC_Pragma("GCC push_options")
 #if PICO_ON_DEVICE
-#pragma GCC optimize("O3")
+GCC_Pragma("GCC optimize(\"O3\")")
 #endif
 
 wipestate_t wipestate;
@@ -1381,9 +1381,8 @@ static void flush_visplanes(int8_t *flatnum_next, int numvisplanes) {
                             // we are in reverse x order
                             delta = flat_runs[fr].x_start;// - last_x_end;
                         }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-
+GCC_Pragma("GCC diagnostic push")
+GCC_Pragma("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
 #if USE_INTERP
                         uint32_t position = ((yfrac << 10) & 0xffff0000)
                                             | ((xfrac >> 6) & 0x0000ffff);
@@ -1397,7 +1396,7 @@ static void flush_visplanes(int8_t *flatnum_next, int numvisplanes) {
                         step = ((ystep << 10) & 0xffff0000)
                                 | ((xstep >> 6) & 0x0000ffff);
 #endif
-#pragma GCC diagnostic pop
+GCC_Pragma("GCC diagnostic pop")
 #if USE_INTERP
                         span_interp->add_raw[0] = delta * span_interp->base[0];
 #else
@@ -1417,10 +1416,10 @@ static void flush_visplanes(int8_t *flatnum_next, int numvisplanes) {
                             position += step;
                             const uint8_t *texel = &flat_data[spot];
 #endif
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+GCC_Pragma("GCC diagnostic push")
+GCC_Pragma("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
                             *p++ = colormap[*texel];
-#pragma GCC diagnostic pop
+GCC_Pragma("GCC diagnostic pop")
                         }
 //                        last_x_end = flat_runs[fr].x_end;
                     }
@@ -2174,10 +2173,10 @@ static void draw_composite_columns(int texture_num, int tex_head) {
                                         lp[j] = th_decode_table_special(pdi.decoder, patch_decoder_table, &bi);
                                     }
                                 } else {
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+GCC_Pragma("GCC diagnostic push")
+GCC_Pragma("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
                                     uint8_t prev_pixel;
-    #pragma GCC diagnostic pop
+GCC_Pragma("GCC diagnostic pop")
                                     for (int j = 0; j < run.src_offset; j++) {
                                         //                    uint16_t p = th_decode_16(rp_decoder, &bi);
                                         uint16_t p = th_decode_table_special_16(pdi.decoder, patch_decoder_table, &bi);
@@ -2414,10 +2413,10 @@ static void draw_splash(int patch_num, int top, int bottom, uint8_t *dest, int s
         } else {
             int y;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+GCC_Pragma("GCC diagnostic push")
+GCC_Pragma("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
             uint8_t prev_pixel;
-#pragma GCC diagnostic pop
+GCC_Pragma("GCC diagnostic pop")
             for (y = 0; y < top; y++) {
                 uint16_t p = th_decode_table_special_16(pdi.decoder, patch_decoder_table, &bi);
                 if (p < 256) {
@@ -3013,7 +3012,7 @@ void pd_end_save_pause(void) {
 
 #endif
 
-#pragma GCC pop_options
+GCC_Pragma("GCC pop_options")
 
 void th_bit_overrun(th_bit_input *bi) {
     panic("BIT OVERRUN");

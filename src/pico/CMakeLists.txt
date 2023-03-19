@@ -11,6 +11,21 @@ target_sources(common_pico INTERFACE
         ${CMAKE_CURRENT_LIST_DIR}/i_picosound.c
 )
 if (PICO_ON_DEVICE)
+    if (PICO_C_COMPILER_IS_CLANG)
+        # Clang does not support optimize pragma
+#        set_source_files_properties(
+#                ${CMAKE_CURRENT_LIST_DIR}/i_video.c
+#                DIRECTORY ..
+#                PROPERTIES
+#                COMPILE_OPTIONS "-O3"
+#        )
+        set_source_files_properties(
+                ${PICO_EXTRAS_PATH}/src/rp2_common/pico_scanvideo_dpi/scanvideo.c
+                DIRECTORY ..
+                PROPERTIES
+                COMPILE_OPTIONS "-O3"
+        )
+    endif()
     target_sources(common_pico INTERFACE
             ${CMAKE_CURRENT_LIST_DIR}/blit.S
             ${CMAKE_CURRENT_LIST_DIR}/picoflash.c

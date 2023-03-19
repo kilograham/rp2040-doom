@@ -556,6 +556,9 @@ const fixed_t _finesine[10240] =
 // values are between -65535 and 65536 so we really only care about 16 bits since the sign is obvious based on the index
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverflow"
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wconstant-conversion"
+#endif
 const uint16_t _finesine[10240] =
 #endif
 {

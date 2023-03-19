@@ -9,9 +9,10 @@
 #define __not_in_flash_func(x) x
 #endif
 #include "image_decoder.h"
-#pragma GCC push_options
+
+GCC_Pragma("GCC push_options")
 #if PICO_ON_DEVICE
-#pragma GCC optimize("O3")
+GCC_Pragma("GCC optimize(\"O3\")")
 #endif
 
 uint16_t *__not_in_flash_func(read_raw_pixels_decoder)(th_bit_input *bi, uint16_t *buffer, uint buffer_size, uint8_t *tmp_buf, uint tmp_buf_size) {
@@ -86,7 +87,7 @@ uint16_t *__not_in_flash_func(read_raw_pixels_decoder_c3)(th_bit_input *bi, uint
     return th_create_decoder_16(buffer, tmp_buf, count, max_cl);
 }
 
-#pragma GCC pop_options
+GCC_Pragma("GCC pop_options")
 
 void decode_data(uint8_t *dest, uint len, th_bit_input *bi, uint16_t *buffer, uint buffer_size, uint8_t *tmp_buf, uint tmp_buf_size) {
     uint16_t *pos;

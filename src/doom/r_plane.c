@@ -101,7 +101,8 @@ fixed_t yslope[MAIN_VIEWHEIGHT];
 fixed_t _distscale[SCREENWIDTH];
 #else
 static_assert(SCREENWIDTH == 320, "");
-#define DC(x) ((((x)>>16)==1)?(x)&0xffffu:0xffffffff)
+//#define DC(x) ((((x)>>16)==1)?(x)&0xffffu:0xffffffff)
+#define DC(x) ((x) ^ 0x10000)
 const uint16_t _distscale[SCREENWIDTH] = {
         DC(0x00016a75), DC(0x00016912), DC(0x000167fa), DC(0x000166e4), DC(0x000165d0), DC(0x000164bf), DC(0x000163b0), DC(0x00016262), DC(0x00016158), DC(0x00016052), DC(0x00015f0b), DC(0x00015e0b), DC(0x00015d0b), DC(0x00015bce), DC(0x00015ad6), DC(0x0001599f),
         DC(0x000158ab), DC(0x0001577c), DC(0x0001568b), DC(0x00015561), DC(0x00015475), DC(0x00015353), DC(0x00015232), DC(0x0001514e), DC(0x00015034), DC(0x00014f1b), DC(0x00014e08), DC(0x00014d2d), DC(0x00014c1d), DC(0x00014b13), DC(0x00014a0a), DC(0x00014902),

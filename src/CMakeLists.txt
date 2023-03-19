@@ -462,6 +462,10 @@ target_compile_options(small_doom_common INTERFACE
         -Wno-unused-but-set-variable
         -Wno-unused-variable
         )
+if (PICO_C_COMPILER_IS_CLANG)
+    target_compile_options(small_doom_common INTERFACE
+        -Wno-microsoft-anon-tag)
+endif()
 
 if (TARGET chocolate-doom)
     target_compile_definitions(chocolate-doom PRIVATE
@@ -489,8 +493,10 @@ function(add_doom_tiny SUFFIX RENDER_LIB)
         pico_add_extra_outputs(doom_tiny${SUFFIX})
     endif()
 
-    target_compile_options(doom_tiny${SUFFIX} PRIVATE
-            -Wno-format-truncation)
+    if(CMAKE_C_COMPILER_ID STREQUAL "GNU") # use CMAKE_C_COMPILER_ID directly here for compatibility with older SDK
+        target_compile_options(doom_tiny${SUFFIX} PRIVATE
+                -Wno-format-truncation)
+    endif()
     target_compile_definitions(doom_tiny${SUFFIX} PRIVATE
         DOOM_TINY=1
         EMU8950_SLOT_RENDER=1
@@ -571,7 +577,11 @@ function(add_doom_tiny SUFFIX RENDER_LIB)
         NO_IERROR=1
     )
     if (PICO_ON_DEVICE)
-        target_compile_options(doom_tiny${SUFFIX} PRIVATE -fno-common -fdata-sections -Wl,--sort-section=alignment)
+        target_compile_options(doom_tiny${SUFFIX} PRIVATE -fno-common -fdata-sections)
+        if (PICO_C_COMPILER_IS_CLANG)
+            target_compile_options(doom_tiny${SUFFIX} PRIVATE -fomit-frame-pointer -Oz)
+        endif()
+        target_link_options(doom_tiny${SUFFIX} PRIVATE LINKER:--sort-section=alignment)
         target_compile_definitions(doom_tiny${SUFFIX} PRIVATE
                 NO_ZONE_DEBUG=1
                 )

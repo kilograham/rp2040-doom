@@ -24,7 +24,7 @@ palette8to16:
     push {r4, r5, lr}
     add r2, r1
     mov ip, r2
-    ldr r5, =#SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET
+    ldr r5, =SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET
 1:
     ldmia r1!, {r2}
     str r2, [r5, #INTERP_OFFSET0(SIO_INTERP0_ACCUM0_OFFSET)]
@@ -55,7 +55,7 @@ palette4to16:
     push {r4-r6, lr}
     add r2, r1
     mov ip, r2
-    ldr r5, =#SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET
+    ldr r5, =SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET
 1:
     ldmia r1!, {r6}
     str r6, [r5, #INTERP_OFFSET0(SIO_INTERP0_ACCUM0_OFFSET)]

@@ -264,9 +264,9 @@ const uint8_t reverse8[256] = {
         0x0f, 0x8f, 0x4f, 0xcf, 0x2f, 0xaf, 0x6f, 0xef, 0x1f, 0x9f, 0x5f, 0xdf, 0x3f, 0xbf, 0x7f, 0xff,
 };
 
-#pragma GCC push_options
+GCC_Pragma("push_options")
 #if PICO_ON_DEVICE
-#pragma GCC optimize("O3")
+GCC_Pragma("GCC optimize(\"O3\")")
 #endif
 
 int __not_in_flash_func(th_make_prefix_length_table)(th_decoder decoder, uint8_t *prefix_lengths) {
@@ -286,4 +286,4 @@ int __not_in_flash_func(th_make_prefix_length_table)(th_decoder decoder, uint8_t
     }
     return max_length;
 }
-#pragma GCC pop_options
+GCC_Pragma("GCC pop_options")
