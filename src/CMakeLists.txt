@@ -497,6 +497,15 @@ function(add_doom_tiny SUFFIX RENDER_LIB)
         target_compile_options(doom_tiny${SUFFIX} PRIVATE
                 -Wno-format-truncation)
     endif()
+    # temp hack
+    if (NOT SUFFIX STREQUAL "_unicorn")
+        target_compile_definitions(doom_tiny${SUFFIX} PRIVATE
+                # for vgaboard
+                PICO_DEFAULT_I2C=1
+                PICO_DEFAULT_I2C_SDA_PIN=18
+                PICO_DEFAULT_I2C_SCL_PIN=19
+        )
+    endif()
     target_compile_definitions(doom_tiny${SUFFIX} PRIVATE
         DOOM_TINY=1
         EMU8950_SLOT_RENDER=1
@@ -517,10 +526,6 @@ function(add_doom_tiny SUFFIX RENDER_LIB)
 
         NO_USE_NET=1 # standard networking
         USE_PICO_NET=1
-        # for vgaboard
-        PICO_DEFAULT_I2C=1
-        PICO_DEFAULT_I2C_SDA_PIN=18
-        PICO_DEFAULT_I2C_SCL_PIN=19
 
         #NO_USE_LOAD=1
         #NO_USE_SAVE=1
@@ -670,6 +675,18 @@ if (PICO_SDK)
                 TINY_WAD_ADDR=0x10048000
                 )
     endif()
+
+    add_doom_tiny("_unicorn" render_newhope)
+    target_compile_definitions(doom_tiny_unicorn PRIVATE
+            TINY_WAD_ADDR=0x10040000
+            NO_USE_UART=1
+            RENDER_COL_MAX=3000 # just try to make a little more space (don't think any visual artifacts will be the end of the world)
+            )
+    target_link_libraries(doom_tiny_unicorn PRIVATE tiny_settings)
+    pico_enable_stdio_uart(doom_tiny_unicorn 0)
+    # did support this, nut no longer room
+#    pico_enable_stdio_usb(doom_tiny_unicorn 1)
+
 endif()
 
 

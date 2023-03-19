@@ -58,3 +58,5 @@ add_library(pico_cd INTERFACE)
 if (TARGET tinyusb_host)
     target_link_libraries(pico_cd INTERFACE tinyusb_host)
 endif()
+
+pico_generate_pio_header(common_pico ${CMAKE_CURRENT_LIST_DIR}/cosmic_unicorn.pio)

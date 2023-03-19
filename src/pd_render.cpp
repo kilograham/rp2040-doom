@@ -317,7 +317,9 @@ const char *type_name(pd_column column) {
 #endif
 }
 
+#ifndef RENDER_COL_MAX
 #define RENDER_COL_MAX 3600
+#endif
 static uint8_t __aligned(4) list_buffer[RENDER_COL_MAX * sizeof(pd_column) + 64*64]; // extra 64*64 is for one flat
 static uint8_t *last_list_buffer_limit = list_buffer + sizeof(list_buffer);
 //static_assert(text_font_cpy > list_buffer, "");
@@ -2714,6 +2716,16 @@ void pd_end_frame(int wipe_start) {
             }
         }
     }
+#ifdef PIMORONI_COSMIC_UNICORN
+    if (wipestate != WIPESTATE_NONE) {
+        // little hack to stop wipe happening too fast
+        static absolute_time_t frame_time;
+        while (!time_reached(frame_time)) {
+            SafeUpdateSound();
+        }
+        frame_time = make_timeout_time_ms(20);
+    }
+#endif
     I_VideoBuffer = render_frame_buffer;
     if (wipestate) list_buffer_limit -= 4096;
     // we need to use the lower limit of this frame and the last since the final wipe frame may still be using the data

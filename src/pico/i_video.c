@@ -43,8 +43,92 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
+#ifndef PIMORONI_COSMIC_UNICORN
 #include "pico/scanvideo.h"
 #include "pico/scanvideo/composable_scanline.h"
+#else
+#include "cosmic_unicorn.pio.h"
+#define PICO_SCANVIDEO_PIXEL_FROM_RGB8(r,g,b) ((((b)>>3) << 11)|(((g)>>2) << 5)|((r)>>3))
+typedef struct {
+
+} scanvideo_scanline_buffer_t;
+#define WIDTH    32
+#define HEIGHT   32
+
+// pin assignments
+#define ROW_BYTES   BCD_FRAME_COUNT * BCD_FRAME_BYTES
+#define BITSTREAM_LENGTH   (ROW_COUNT * ROW_BYTES)
+
+uint8_t __aligned(4) bitstream[BITSTREAM_LENGTH];
+static const uint32_t bitstream_addr = (uintptr_t)bitstream;
+
+static const uint16_t gamma_lut[256] = {
+        0x0000, 0x0000, 0x0002, 0x0005, 0x0008, 0x000d, 0x0012, 0x0018, 0x001f, 0x0027, 0x002f, 0x0038, 0x0042, 0x004c, 0x0057, 0x0063,
+        0x006f, 0x007c, 0x008a, 0x0098, 0x00a7, 0x00b6, 0x00c6, 0x00d7, 0x00e8, 0x00fa, 0x010c, 0x011f, 0x0132, 0x0146, 0x015b, 0x0170,
+        0x0186, 0x019c, 0x01b3, 0x01ca, 0x01e2, 0x01fa, 0x0213, 0x022d, 0x0247, 0x0261, 0x027d, 0x0298, 0x02b4, 0x02d1, 0x02ee, 0x030c,
+        0x032a, 0x0348, 0x0368, 0x0387, 0x03a7, 0x03c8, 0x03e9, 0x040b, 0x042d, 0x0450, 0x0473, 0x0496, 0x04ba, 0x04df, 0x0504, 0x052a,
+        0x0550, 0x0576, 0x059d, 0x05c5, 0x05ed, 0x0615, 0x063e, 0x0667, 0x0691, 0x06bb, 0x06e6, 0x0711, 0x073d, 0x0769, 0x0796, 0x07c3,
+        0x07f0, 0x081e, 0x084d, 0x087c, 0x08ab, 0x08db, 0x090b, 0x093c, 0x096d, 0x099e, 0x09d1, 0x0a03, 0x0a36, 0x0a69, 0x0a9d, 0x0ad1,
+        0x0b06, 0x0b3b, 0x0b71, 0x0ba7, 0x0bdd, 0x0c14, 0x0c4c, 0x0c83, 0x0cbc, 0x0cf4, 0x0d2d, 0x0d67, 0x0da1, 0x0ddb, 0x0e16, 0x0e51,
+        0x0e8d, 0x0ec9, 0x0f06, 0x0f43, 0x0f80, 0x0fbe, 0x0ffc, 0x103b, 0x107a, 0x10b9, 0x10f9, 0x1139, 0x117a, 0x11bb, 0x11fd, 0x123f,
+        0x1281, 0x12c4, 0x1307, 0x134b, 0x138f, 0x13d4, 0x1419, 0x145e, 0x14a4, 0x14ea, 0x1530, 0x1577, 0x15bf, 0x1607, 0x164f, 0x1697,
+        0x16e0, 0x172a, 0x1774, 0x17be, 0x1808, 0x1853, 0x189f, 0x18eb, 0x1937, 0x1984, 0x19d1, 0x1a1e, 0x1a6c, 0x1aba, 0x1b09, 0x1b58,
+        0x1ba7, 0x1bf7, 0x1c48, 0x1c98, 0x1ce9, 0x1d3b, 0x1d8d, 0x1ddf, 0x1e31, 0x1e84, 0x1ed8, 0x1f2c, 0x1f80, 0x1fd4, 0x2029, 0x207f,
+        0x20d5, 0x212b, 0x2181, 0x21d8, 0x2230, 0x2287, 0x22df, 0x2338, 0x2391, 0x23ea, 0x2444, 0x249e, 0x24f8, 0x2553, 0x25ae, 0x260a,
+        0x2666, 0x26c2, 0x271f, 0x277c, 0x27da, 0x2837, 0x2896, 0x28f4, 0x2953, 0x29b3, 0x2a13, 0x2a73, 0x2ad3, 0x2b34, 0x2b96, 0x2bf7,
+        0x2c59, 0x2cbc, 0x2d1f, 0x2d82, 0x2de5, 0x2e49, 0x2eae, 0x2f12, 0x2f77, 0x2fdd, 0x3043, 0x30a9, 0x3110, 0x3176, 0x31de, 0x3246,
+        0x32ae, 0x3316, 0x337f, 0x33e8, 0x3452, 0x34bc, 0x3526, 0x3591, 0x35fc, 0x3667, 0x36d3, 0x373f, 0x37ab, 0x3818, 0x3886, 0x38f3,
+        0x3961, 0x39d0, 0x3a3e, 0x3aad, 0x3b1d, 0x3b8d, 0x3bfd, 0x3c6d, 0x3cde, 0x3d50, 0x3dc1, 0x3e33, 0x3ea6, 0x3f18, 0x3f8c, 0x3fff,
+};
+
+static void set_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+    x = (WIDTH - 1) - x;
+    y = (HEIGHT - 1) - y;
+
+    // map coordinates into display space
+    if(y < 16) {
+        // move to top half of display (which is actually the right half of the framebuffer)
+        x += 32;
+    }else{
+        // remap y coordinate
+        y -= 16;
+    }
+
+//    r = (r * this->brightness) >> 8;
+//    g = (g * this->brightness) >> 8;
+//    b = (b * this->brightness) >> 8;
+
+    uint16_t gamma_r = gamma_lut[r];
+    uint16_t gamma_g = gamma_lut[g];
+    uint16_t gamma_b = gamma_lut[b];
+
+    // for each row:
+    //   for each bcd frame:
+    //            0: 00111111                           // row pixel count (minus one)
+    //      1  - 64: xxxxxbgr, xxxxxbgr, xxxxxbgr, ...  // pixel data
+    //      65 - 67: xxxxxxxx, xxxxxxxx, xxxxxxxx       // dummy bytes to dword align
+    //           68: xxxxrrrr                           // row select bits
+    //      69 - 71: tttttttt, tttttttt, tttttttt       // bcd tick count (0-65536)
+    //
+    //  .. and back to the start
+
+    // set the appropriate bits in the separate bcd frames
+    for(uint8_t frame = 0; frame < BCD_FRAME_COUNT; frame++) {
+        uint8_t *p = &bitstream[y * ROW_BYTES + (BCD_FRAME_BYTES * frame) + 1 + x];
+
+        uint8_t red_bit = gamma_r & 0b1;
+        uint8_t green_bit = gamma_g & 0b1;
+        uint8_t blue_bit = gamma_b & 0b1;
+
+        *p = (blue_bit << 0) | (green_bit << 1) | (red_bit << 2);
+
+        gamma_r >>= 1;
+        gamma_g >>= 1;
+        gamma_b >>= 1;
+    }
+}
+
+#endif
 #include "pico/multicore.h"
 #include "pico/sync.h"
 #include "pico/time.h"
@@ -130,7 +214,11 @@ pixel_t *I_VideoBuffer; // todo can't have this
 
 uint8_t __aligned(4) frame_buffer[2][SCREENWIDTH*MAIN_VIEWHEIGHT];
 static uint16_t palette[256];
+#ifndef PIMORONI_COSMIC_UNICORN
 static uint16_t __scratch_x("shared_pal") shared_pal[NUM_SHARED_PALETTES][16];
+#else
+static uint8_t __scratch_x("shared_pal") shared_pal[NUM_SHARED_PALETTES][16];
+#endif
 static int8_t next_pal=-1;
 
 semaphore_t render_frame_ready, display_frame_freed;
@@ -141,6 +229,7 @@ static uint32_t *text_scanline_buffer_start;
 static uint8_t *text_screen_cpy;
 static uint8_t *text_font_cpy;
 
+#ifndef PIMORONI_COSMIC_UNICORN
 #if USE_1280x1024x60
 //static uint32_t missing_scanline_data[] = {
 //        video_doom_offset_raw_1p | (0 << 16u),
@@ -240,6 +329,7 @@ const scanvideo_mode_t vga_mode_320x200_60 =
         };
 
 #define VGA_MODE vga_mode_320x200_60
+#endif
 #endif
 
 #if USE_INTERP
@@ -343,6 +433,7 @@ uint32_t *saved_scanline_buffer_ptrs[PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT];
 #endif
 
 static inline void palette_convert_scanline(uint32_t *dest, const uint8_t *src) {
+#ifndef PIMORONI_COSMIC_UNICORN
 #if USE_INTERP
     if (interp_updated != 1) {
                 if (need_save) {
@@ -379,6 +470,7 @@ static inline void palette_convert_scanline(uint32_t *dest, const uint8_t *src) 
         *dest++ = val;
     }
 #endif
+#endif
 }
 static void scanline_func_none(uint32_t *dest, int scanline) {
     memset(dest, 0, SCREENWIDTH * 2);
@@ -387,6 +479,7 @@ static void scanline_func_none(uint32_t *dest, int scanline) {
 #if SUPPORT_TEXT
 void check_text_buffer(scanvideo_scanline_buffer_t *buffer) {
 #if PICO_ON_DEVICE
+#ifndef PIMORONI_COSMIC_UNICORN
     if (buffer->data < text_scanline_buffer_start || buffer->data >= text_scanline_buffer_start + TEXT_SCANLINE_BUFFER_TOTAL_WORDS) {
         // is an original scanvideo allocated buffer, we need to use a larger one
         int i;
@@ -398,9 +491,11 @@ void check_text_buffer(scanvideo_scanline_buffer_t *buffer) {
         buffer->data = text_scanline_buffer_start + i * TEXT_SCANLINE_BUFFER_WORDS;
     }
 #endif
+#endif
 }
 
 static void finish_text_buffer(scanvideo_scanline_buffer_t *buffer) {
+#ifndef PIMORONI_COSMIC_UNICORN
     uint16_t * p = (uint16_t *)buffer->data;
     p[0] = video_doom_offset_raw_run_half;
     p[1] = p[2];
@@ -408,9 +503,11 @@ static void finish_text_buffer(scanvideo_scanline_buffer_t *buffer) {
     buffer->data[SCREENWIDTH + 1] = video_doom_offset_raw_1p;
     buffer->data[SCREENWIDTH + 2] = video_doom_offset_end_of_scanline_skip_ALIGN;
     buffer->data_used = SCREENWIDTH + 3;
+#endif
 }
 
 static void __not_in_flash_func(render_text_mode_half_scanline)(scanvideo_scanline_buffer_t *buffer, const uint8_t *text_data, int yoffset) {
+#ifndef PIMORONI_COSMIC_UNICORN
     uint16_t * p = (uint16_t *)(buffer->data + 1);
 //    memset(buffer->data + 1, 0, 1280);
 //    uint x = scanline * 2 + yoffset;
@@ -512,9 +609,11 @@ static void __not_in_flash_func(render_text_mode_half_scanline)(scanvideo_scanli
         text_data+=2;
     }
 #endif
+#endif
 }
 
 static void __noinline render_text_mode_scanline(scanvideo_scanline_buffer_t *buffer, int scanline) {
+#ifndef PIMORONI_COSMIC_UNICORN
 #if 1
     const uint8_t *text_data = text_screen_data;
     assert(text_data);
@@ -550,6 +649,7 @@ static void __noinline render_text_mode_scanline(scanvideo_scanline_buffer_t *bu
     buffer->data[SCREENWIDTH / 2 + 1] = video_doom_offset_raw_1p;
     buffer->data[SCREENWIDTH / 2 + 2] = video_doom_offset_end_of_scanline_skip_ALIGN;
     buffer->data_used = SCREENWIDTH / 2 + 3;
+#endif
 #endif
 }
 #endif
@@ -622,6 +722,7 @@ static void scanline_func_wipe(uint32_t *dest, int scanline) {
     }
 }
 
+#ifndef PIMORONI_COSMIC_UNICORN
 static inline uint draw_vpatch(uint16_t *dest, patch_t *patch, vpatchlist_t *vp, uint off) {
     int repeat = vp->entry.repeat;
     dest += vp->entry.x;
@@ -845,6 +946,232 @@ static inline uint draw_vpatch(uint16_t *dest, patch_t *patch, vpatchlist_t *vp,
     }
     return data - data0;
 }
+#else
+// 8 bit version of the above
+static inline uint draw_vpatch(uint8_t *dest, patch_t *patch, vpatchlist_t *vp, uint off) {
+    int repeat = vp->entry.repeat;
+    dest += vp->entry.x;
+    int w = vpatch_width(patch);
+    const uint8_t *data0 = vpatch_data(patch);
+    const uint8_t *data = data0 + off;
+    if (!vpatch_has_shared_palette(patch)) {
+        const uint8_t *pal = vpatch_palette(patch);
+        switch (vpatch_type(patch)) {
+            case vp4_runs: {
+                uint8_t *p = dest;
+                uint8_t *pend = dest + w;
+                uint8_t gap;
+                while (0xff != (gap = *data++)) {
+                    p += gap;
+                    int len = *data++;
+                    for (int i = 1; i < len; i += 2) {
+                        uint v = *data++;
+                        *p++ = pal[v & 0xf];
+                        *p++ = pal[v >> 4];
+                    }
+                    if (len & 1) {
+                        *p++ = pal[(*data++) & 0xf];
+                    }
+                    assert(p <= pend);
+                    if (p == pend) break;
+                }
+                break;
+            }
+            case vp4_alpha: {
+                uint8_t *p = dest;
+                for (int i = 0; i < w / 2; i++) {
+                    uint v = *data++;
+                    if (v & 0xf) p[0] = pal[v & 0xf];
+                    if (v >> 4) p[1] = pal[v >> 4];
+                    p += 2;
+                }
+                if (w & 1) {
+                    uint v = *data++;
+                    if (v & 0xf) p[0] = pal[v & 0xf];
+                }
+                break;
+            }
+            case vp4_solid: {
+                uint8_t *p = dest;
+                for (int i = 0; i < w / 2; i++) {
+                    uint v = *data++;
+                    p[0] = pal[v & 0xf];
+                    p[1] = pal[v >> 4];
+                    p += 2;
+                }
+                if (w & 1) {
+                    uint v = *data++;
+                    p[0] = pal[v & 0xf];
+                }
+                break;
+            }
+            case vp6_runs: {
+                uint8_t *p = dest;
+                uint8_t *pend = dest + w;
+                uint8_t gap;
+                while (0xff != (gap = *data++)) {
+                    p += gap;
+                    int len = *data++;
+                    for (int i = 3; i < len; i += 4) {
+                        uint v = *data++;
+                        v |= (*data++) << 8;
+                        v |= (*data++) << 16;
+                        *p++ = pal[v & 0x3f];
+                        *p++ = pal[(v >> 6) & 0x3f];
+                        *p++ = pal[(v >> 12) & 0x3f];
+                        *p++ = pal[(v >> 18) & 0x3f];
+                    }
+                    len &= 3;
+                    if (len--) {
+                        uint v = *data++;
+                        *p++ = pal[v & 0x3f];
+                        if (len--) {
+                            v >>= 6;
+                            v |= (*data++) << 2;
+                            *p++ = pal[v & 0x3f];
+                            if (len--) {
+                                v >>= 6;
+                                v |= (*data++) << 4;
+                                *p++ = pal[v & 0x3f];
+                                assert(!len);
+                            }
+                        }
+                    }
+                    assert(p <= pend);
+                    if (p == pend) break;
+                }
+                break;
+            }
+            case vp8_runs: {
+                uint8_t *p = dest;
+                uint8_t *pend = dest + w;
+                uint8_t gap;
+                while (0xff != (gap = *data++)) {
+                    p += gap;
+                    int len = *data++;
+                    for (int i = 0; i < len; i++) {
+                        *p++ = pal[*data++];
+                    }
+                    assert(p <= pend);
+                    if (p == pend) break;
+                }
+                break;
+            }
+            case vp_border: {
+                dest[0] = *data++;
+                uint16_t col = *data++;
+                for (int i = 1; i < w - 1; i++) dest[i] = col;
+                dest[w-1] = *data++;
+                break;
+            }
+            default:
+                assert(false);
+                break;
+        }
+    } else {
+        uint sp = vpatch_shared_palette(patch);
+        uint8_t *pal8 = shared_pal[sp];
+        assert(sp < NUM_SHARED_PALETTES);
+        switch (vpatch_type(patch)) {
+            case vp4_solid: {
+#if PICO_ON_DEVICE
+                if (patch == stbar) {
+                    static const uint8_t *cached_data;
+                    static uint32_t __scratch_x("data_cache") data_cache[41];
+                    int i = 0;
+                    uint16_t *d = (uint16_t *) dest;
+#define DMA_CHANNEL 11
+                    if (cached_data == data) {
+                        const uint8_t *source = (const uint8_t *) data_cache;
+                        // we need to correct for the misalignment of data, because the XIP copy ignores the low 2 bits...
+                        // the raw bitmap data is always misaligned by 3 (the size of the header in the case of stbar)
+                        source += 3;
+                        for (; source < (const uint8_t *) dma_hw->ch[DMA_CHANNEL].al1_write_addr; source++) {
+                            uint32_t val = pal8[source[0] & 0xf];
+                            val |= (pal8[source[0] >> 4]) << 8;
+                            *d++ = val;
+                        }
+                        source -= 3;
+                        i = (source - (const uint8_t *) data_cache);
+                    }
+//                    if (true) {
+//                        //                        once = true;
+//                        xip_ctrl_hw->stream_ctr = 0;
+//                        // workaround yucky bug
+//                        (void) *(io_rw_32 *) XIP_NOCACHE_NOALLOC_BASE;
+//                        xip_ctrl_hw->stream_fifo;
+//                        dma_channel_abort(DMA_CHANNEL);
+//                        dma_channel_config c = dma_channel_get_default_config(DMA_CHANNEL);
+//                        channel_config_set_read_increment(&c, false);
+//                        channel_config_set_write_increment(&c, true);
+//                        channel_config_set_dreq(&c, DREQ_XIP_STREAM);
+//                        dma_channel_set_read_addr(DMA_CHANNEL, (void *) XIP_AUX_BASE, false);
+//                        dma_channel_set_config(DMA_CHANNEL, &c, false);
+//                        cached_data = data + SCREENWIDTH / 2;
+//                        xip_ctrl_hw->stream_addr = (uintptr_t) cached_data;
+//                        xip_ctrl_hw->stream_ctr = 41;
+//                        __compiler_memory_barrier();
+//                        dma_channel_transfer_to_buffer_now(DMA_CHANNEL, data_cache, 41);
+//                    }
+                    for (; i < SCREENWIDTH / 2; i++) {
+                        uint32_t val = pal8[data[i] & 0xf];
+                        val |= (pal8[data[i] >> 4]) << 8;
+                        *d++ = val;
+                    }
+                    data += SCREENWIDTH / 2;
+                    break; // early break from switch
+                }
+#endif
+                if (((uintptr_t)dest)&3) {
+                    uint8_t *p = dest;
+                    for (int i = 0; i < w / 2; i++) {
+                        uint v = *data++;
+                        p[0] = pal8[v & 0xf];
+                        p[1] = pal8[v >> 4];
+                        p += 2;
+                    }
+                } else {
+                    uint16_t *wide = (uint16_t *) dest;
+                    for (int i = 0; i < w / 2; i++) {
+                        uint v = *data++;
+                        wide[i] = pal8[v & 0xf] | (pal8[v >> 4] << 8);
+                    }
+                }
+                if (w & 1) {
+                    uint v = *data++;
+                    dest[w-1] = pal8[v & 0xf];
+                }
+                break;
+            }
+            case vp4_alpha: {
+                uint8_t *p = dest;
+                for (int i = 0; i < w / 2; i++) {
+                    uint v = *data++;
+                    if (v & 0xf) p[0] = pal8[v & 0xf];
+                    if (v >> 4) p[1] = pal8[v >> 4];
+                    p += 2;
+                }
+                if (w & 1) {
+                    uint v = *data++;
+                    if (v & 0xf) p[0] = pal8[v & 0xf];
+                }
+                break;
+            }
+            default:
+                assert(false);
+        }
+    }
+    if (repeat) {
+        // we need them to be solid... which they are, but if not you'll just get some visual funk
+        //assert(vpatch_type(patch) == vp4_solid);
+        if (vp->entry.patch_handle == VPATCH_M_THERMM) w--; // hackity hack
+        for(int i=0;i<repeat*w;i++) {
+            dest[w+i] = dest[i];
+        }
+    }
+    return data - data0;
+}
+#endif
 
 // this is not in flash as quite large and only once per frame
 void __noinline new_frame_init_overlays_palette_and_wipe() {
@@ -911,7 +1238,11 @@ void __noinline new_frame_init_overlays_palette_and_wipe() {
                 assert(vpatch_colorcount(patch) <= 16);
                 assert(vpatch_has_shared_palette(patch));
                 for (int j = 0; j < 16; j++) {
+#ifndef PIMORONI_COSMIC_UNICORN
                     shared_pal[i][j] = palette[vpatch_palette(patch)[j]];
+#else
+                    shared_pal[i][j] = vpatch_palette(patch)[j];
+#endif
                 }
             }
         }
@@ -936,7 +1267,11 @@ void __noinline new_frame_init_overlays_palette_and_wipe() {
                             v = wipe_yoffsets_raw[i];
                         }
                     }
+#ifndef PIMORONI_COSMIC_UNICORN
                     wipe_yoffsets[i] = v;
+#else
+                    wipe_yoffsets[i] = (v/6)*6;
+#endif
                     if (v < new_wipe_min) new_wipe_min = v;
                 }
                 assert(new_wipe_min >= wipe_min);
@@ -946,8 +1281,146 @@ void __noinline new_frame_init_overlays_palette_and_wipe() {
     }
 }
 
+#ifdef PIMORONI_COSMIC_UNICORN
+// Given 32x32 aliasing is a massive problem, so we do this:
+//
+// for each unicorn pixel we have a 10x6 input (which are palette indexes), and we sample
+// 8 pixels to make the division cheap.
+//
+// 0....1....
+// ..2.......
+// .......3..
+// 4....5....
+// ..6.......
+// .......7..
+//
+// We keep the samples for the 6 input rows in a single full size row (again 8 bit) as such
+//
+// unicorn pixel 1     : unicorn pixel 2     : ... : unicorn pixel 31
+// 0 1 2 3 4 5 6 7 x x : 0 1 2 3 4 5 6 7 x x : ... | 0 1 2 3 4 5 6 7 x x
+//
+// after sampling, we palette convert and just average the 8 samples (ignoring the two x values)
+//
+// this seems a little weird, however we also want to support "vpatch" overlays; rather than
+// adding a whole new type of drawing code with sub-sampling (or requiring 6 lines worth of buffer - and
+// we're short on RAM), we instead just convert the regular overlay rendering to use 8 bit rather than
+// 16 bit values.
+//
+// The key part then is that we can draw all 6 overlay lines over our sampled line, and get a very poor, but
+// acceptable for what we're trying to achieve estimate of the effect of the overlau on top of the samples
+// (it is poor because it oversamples non transparent parts of the overlay)
+
+static uint8_t sampled_pixels[320];
+
+static void __no_inline_not_in_flash_func(sample_pixels_normal)(const uint8_t *fb, uint y) {
+    fb += y * 6 * SCREENWIDTH;
+    for(uint i=0;i<320;i+=10) {
+        sampled_pixels[i] = fb[0];
+        sampled_pixels[i + 1] = fb[5];
+        sampled_pixels[i + 2] = fb[2 + SCREENWIDTH];
+        sampled_pixels[i + 3] = fb[7 + SCREENWIDTH * 2];
+        sampled_pixels[i + 4] = fb[0 + SCREENWIDTH * 3];
+        sampled_pixels[i + 5] = fb[5 + SCREENWIDTH * 3];
+        sampled_pixels[i + 6] = fb[2 + SCREENWIDTH * 4];
+        sampled_pixels[i + 7] = fb[7 + SCREENWIDTH * 5];
+        fb += 10;
+    }
+}
+
+static void __no_inline_not_in_flash_func(sample_pixels_wipe)(int y) {
+    int scanline = y * 6;
+
+    const uint8_t *src;
+    if (scanline < MAIN_VIEWHEIGHT) {
+        src = frame_buffer[display_frame_index];
+    } else {
+        src = frame_buffer[display_frame_index^1] - 32 * SCREENWIDTH;
+    }
+    assert(wipe_yoffsets && wipe_linelookup);
+    src += scanline * SCREENWIDTH;
+    for(uint x=0;x<320;x+=8) {
+        int rel = scanline - wipe_yoffsets[x];
+        const uint8_t *fb;
+        if (rel < 0) {
+            fb = src + x;
+        } else {
+            const uint8_t *flip;
+#if PICO_ON_DEVICE
+            flip = (const uint8_t *)wipe_linelookup[rel];
+#else
+            flip = &frame_buffer[0][0] + wipe_linelookup[rel];
+#endif
+            // todo better protection here
+            if (flip >= &frame_buffer[0][0] && flip < &frame_buffer[0][0] + 2 * SCREENWIDTH * MAIN_VIEWHEIGHT) {
+                fb = flip + x;
+            } else {
+                continue;
+            }
+        }
+        sampled_pixels[x] = fb[0];
+        sampled_pixels[x + 1] = fb[5];
+        sampled_pixels[x + 2] = fb[2 + SCREENWIDTH];
+        sampled_pixels[x + 3] = fb[7 + SCREENWIDTH * 2];
+        sampled_pixels[x + 4] = fb[0 + SCREENWIDTH * 3];
+        sampled_pixels[x + 5] = fb[5 + SCREENWIDTH * 3];
+        sampled_pixels[x + 6] = fb[2 + SCREENWIDTH * 4];
+        sampled_pixels[x + 7] = fb[7 + SCREENWIDTH * 5];
+    }
+}
+
+static void __no_inline_not_in_flash_func(do_overlay_line)(uint8_t *out, int scanline_from, int scanline_to) {
+    for (int scanline = scanline_from; scanline <= scanline_to; scanline++) {
+        assert(scanline < count_of(vpatchlists->vpatch_starters));
+        int prev = 0;
+        for (int vp = vpatchlists->vpatch_starters[scanline]; vp;) {
+            int next = vpatchlists->vpatch_next[vp];
+            while (vpatchlists->vpatch_next[prev] && vpatchlists->vpatch_next[prev] < vp) {
+                prev = vpatchlists->vpatch_next[prev];
+            }
+            assert(prev != vp);
+            assert(vpatchlists->vpatch_next[prev] != vp);
+            vpatchlists->vpatch_next[vp] = vpatchlists->vpatch_next[prev];
+            vpatchlists->vpatch_next[prev] = vp;
+            prev = vp;
+            vp = next;
+        }
+        vpatchlist_t *overlays = vpatchlists->overlays[display_overlay_index];
+        prev = 0;
+        for (int vp = vpatchlists->vpatch_next[prev]; vp; vp = vpatchlists->vpatch_next[prev]) {
+            patch_t *patch = resolve_vpatch_handle(overlays[vp].entry.patch_handle);
+            int yoff = scanline - overlays[vp].entry.y;
+            if (yoff < vpatch_height(patch)) {
+                vpatchlists->vpatch_doff[vp] = draw_vpatch(out, patch, &overlays[vp],
+                                                           vpatchlists->vpatch_doff[vp]);
+                prev = vp;
+            } else {
+                vpatchlists->vpatch_next[prev] = vpatchlists->vpatch_next[vp];
+            }
+        }
+    }
+}
+
+static void __no_inline_not_in_flash_func(update_pixels)(int y) {
+    for (int x = 0; x < 32; x++) {
+        uint r=0, g=0, b=0;
+        // average 8 pixel samples
+        for(int ix=0;ix<8;ix++) {
+            uint8_t p = sampled_pixels[x * 10 + ix];
+            uint16_t pix = palette[p];
+            r += (pix & 0x1f);
+            g += (pix & 0x7e0);
+            b += (pix & 0xf800);
+        }
+        // and update FB
+        set_pixel(x, y, r, g >> 6, b >> 11);
+    }
+}
+#endif
 // this method moved out of scratchx because we didn't have quite enough space for core1 stack
 void __no_inline_not_in_flash_func(new_frame_stuff)() {
+#ifdef PIMORONI_COSMIC_UNICORN
+    bool new_frame = false;
+#endif
     // this part of the per frame code is in RAM as it is needed during save
     if (sem_available(&render_frame_ready)) {
         sem_acquire_blocking(&render_frame_ready);
@@ -958,18 +1431,60 @@ void __no_inline_not_in_flash_func(new_frame_stuff)() {
         video_scroll = next_video_scroll; // todo does this waste too much space
 #endif
         sem_release(&display_frame_freed);
+#ifdef PIMORONI_COSMIC_UNICORN
+        new_frame = true;
+#endif
     } else {
 #if !DEMO1_ONLY
         video_scroll = NULL;
 #endif
     }
-    if (display_video_type != VIDEO_TYPE_SAVING) {
-        // this stuff is large (so in flash) and not needed in save move
-        new_frame_init_overlays_palette_and_wipe();
+#ifdef PIMORONI_COSMIC_UNICORN
+    // new_frame_stuff is called continuously on the unicorn when core 1 is not busy, so
+    // we want to check whether we actually have a new frame to copy to the unicorn display
+    if (new_frame) {
+#endif
+        if (display_video_type != VIDEO_TYPE_SAVING) {
+            // this stuff is large (so in flash) and not needed in save move
+            new_frame_init_overlays_palette_and_wipe();
+        }
+
+#ifdef PIMORONI_COSMIC_UNICORN
+        if (display_video_type == VIDEO_TYPE_SINGLE || display_video_type == VIDEO_TYPE_DOUBLE) {
+            for(int y=0;y<28;y++) {
+                sample_pixels_normal(frame_buffer[display_frame_index], y);
+                do_overlay_line(sampled_pixels, y * 6, y * 6 + 5); // do a poor man's overlay sample
+                update_pixels(y);
+            }
+            for (int y = 28; y < 32; y++) {
+                if (display_video_type == VIDEO_TYPE_SINGLE) {
+                    sample_pixels_normal(
+                            frame_buffer[display_frame_index ^ 1] + (MAIN_VIEWHEIGHT - 32) * SCREENWIDTH, y - 28);
+                    do_overlay_line(sampled_pixels, y * 6, y * 6 + 5); // do a poor man's overlay sample
+                } else {
+                    // this is solid status bar, so we'll draw it at the (now unused since we only display
+                    // a frame once for unicorn) top of the frame, then sample it properly
+                    for(int yy = 0; yy < 6; yy ++) {
+                        do_overlay_line(frame_buffer[display_frame_index] + yy * SCREENWIDTH, y*6 + yy, y*6 + yy);
+                    }
+                    sample_pixels_normal(frame_buffer[display_frame_index], 0);
+                }
+                // in case of double this is going to draw status bar
+                update_pixels(y);
+            }
+        } else if (display_video_type == VIDEO_TYPE_WIPE) {
+            for(int y=0;y<32;y++) {
+                sample_pixels_wipe(y);
+                do_overlay_line(sampled_pixels, y * 6, y * 6 + 5); // do a poor man's overlay sample
+                update_pixels(y);
+            }
+        }
     }
+#endif
 }
 
 void __scratch_x("scanlines") fill_scanlines() {
+#ifndef PIMORONI_COSMIC_UNICORN
 #if SUPPORT_TEXT
     struct scanvideo_scanline_buffer *buffer = scanvideo_begin_scanline_generation_linked(display_video_type == VIDEO_TYPE_TEXT ? 2 : 1, false);
 #else
@@ -1057,6 +1572,9 @@ void __scratch_x("scanlines") fill_scanlines() {
         interp_restore_static(interp1, &interp1_save);
     }
 #endif
+#else // cosmic unicorn
+    new_frame_stuff();
+#endif
 }
 #pragma GCC pop_options
 
@@ -1073,6 +1591,7 @@ static void __not_in_flash_func(free_buffer_callback)() {
 
 //static semaphore_t init_sem;
 static void core1() {
+#ifndef PIMORONI_COSMIC_UNICORN
 #if !PICO_ON_DEVICE
     void simulate_video_pio_video_doom(const uint32_t *dma_data, uint32_t dma_data_size,
                                        uint16_t *pixel_buffer, int32_t max_pixels, int32_t expected_width, bool overlay);
@@ -1089,9 +1608,193 @@ static void core1() {
 #if PICO_ON_DEVICE
     irq_set_pending(LOW_PRIO_IRQ);
 #endif
+#else
+    // stolen from the pimoroni-pico code
+    // for each row:
+    //   for each bcd frame:
+    //            0: 00111111                           // row pixel count (minus one)
+    //      1  - 64: xxxxxbgr, xxxxxbgr, xxxxxbgr, ...  // pixel data
+    //      65 - 67: xxxxxxxx, xxxxxxxx, xxxxxxxx       // dummy bytes to dword align
+    //           68: xxxrrrrr                           // row select bits
+    //      69 - 71: tttttttt, tttttttt, tttttttt       // bcd tick count (0-65536)
+    //
+    //  .. and back to the start
+
+
+    // initialise the bcd timing values and row selects in the bitstream
+    for(uint8_t row = 0; row < 16; row++) {
+        for(uint8_t frame = 0; frame < BCD_FRAME_COUNT; frame++) {
+            // find the offset of this row and frame in the bitstream
+            uint8_t *p = &bitstream[row * ROW_BYTES + (BCD_FRAME_BYTES * frame)];
+
+            p[ 0] = 64 - 1;               // row pixel count
+            p[68] = row;                  // row select
+
+            // set the number of bcd ticks for this frame
+            uint32_t bcd_ticks = (1 << frame);
+            p[69] = (bcd_ticks &     0xff) >>  0;
+            p[70] = (bcd_ticks &   0xff00) >>  8;
+            p[71] = (bcd_ticks & 0xff0000) >> 16;
+        }
+    }
+
+    gpio_init(COLUMN_CLOCK); gpio_set_dir(COLUMN_CLOCK, GPIO_OUT); gpio_put(COLUMN_CLOCK, false);
+    gpio_init(COLUMN_DATA); gpio_set_dir(COLUMN_DATA, GPIO_OUT); gpio_put(COLUMN_DATA, false);
+    gpio_init(COLUMN_LATCH); gpio_set_dir(COLUMN_LATCH, GPIO_OUT); gpio_put(COLUMN_LATCH, false);
+    gpio_init(COLUMN_BLANK); gpio_set_dir(COLUMN_BLANK, GPIO_OUT); gpio_put(COLUMN_BLANK, true);
+
+    // initialise the row select, and set them to a non-visible row to avoid flashes during setup
+    gpio_init(ROW_BIT_0); gpio_set_dir(ROW_BIT_0, GPIO_OUT); gpio_put(ROW_BIT_0, true);
+    gpio_init(ROW_BIT_1); gpio_set_dir(ROW_BIT_1, GPIO_OUT); gpio_put(ROW_BIT_1, true);
+    gpio_init(ROW_BIT_2); gpio_set_dir(ROW_BIT_2, GPIO_OUT); gpio_put(ROW_BIT_2, true);
+    gpio_init(ROW_BIT_3); gpio_set_dir(ROW_BIT_3, GPIO_OUT); gpio_put(ROW_BIT_3, true);
+
+    busy_wait_ms(100);
+
+    // configure full output current in register 2
+
+    uint16_t reg1 = 0b1111111111001110;
+
+    // clock the register value to the first 11 driver chips
+    for(int j = 0; j < 11; j++) {
+        for(int i = 0; i < 16; i++) {
+            if(reg1 & (1U << (15 - i))) {
+                gpio_put(COLUMN_DATA, true);
+            }else{
+                gpio_put(COLUMN_DATA, false);
+            }
+            busy_wait_us(10);
+            gpio_put(COLUMN_CLOCK, true);
+            busy_wait_us(10);
+            gpio_put(COLUMN_CLOCK, false);
+        }
+    }
+
+    // clock the last chip and latch the value
+    for(int i = 0; i < 16; i++) {
+        if(reg1 & (1U << (15 - i))) {
+            gpio_put(COLUMN_DATA, true);
+        }else{
+            gpio_put(COLUMN_DATA, false);
+        }
+
+        busy_wait_us(10);
+        gpio_put(COLUMN_CLOCK, true);
+        busy_wait_us(10);
+        gpio_put(COLUMN_CLOCK, false);
+
+        if(i == 4) {
+            gpio_put(COLUMN_LATCH, true);
+        }
+    }
+    gpio_put(COLUMN_LATCH, false);
+
+    // reapply the blank as the above seems to cause a slight glow.
+    // Note, this will produce a brief flash if a visible row is selected (which it shouldn't be)
+    gpio_put(COLUMN_BLANK, false);
+    busy_wait_us(10);
+    gpio_put(COLUMN_BLANK, true);
+
+    // setup button inputs
+    gpio_init(SWITCH_A); gpio_pull_up(SWITCH_A);
+    gpio_init(SWITCH_B); gpio_pull_up(SWITCH_B);
+    gpio_init(SWITCH_C); gpio_pull_up(SWITCH_C);
+    gpio_init(SWITCH_D); gpio_pull_up(SWITCH_D);
+
+    gpio_init(SWITCH_SLEEP); gpio_pull_up(SWITCH_SLEEP);
+
+    gpio_init(SWITCH_BRIGHTNESS_UP); gpio_pull_up(SWITCH_BRIGHTNESS_UP);
+    gpio_init(SWITCH_BRIGHTNESS_DOWN); gpio_pull_up(SWITCH_BRIGHTNESS_DOWN);
+
+    gpio_init(SWITCH_VOLUME_UP); gpio_pull_up(SWITCH_VOLUME_UP);
+    gpio_init(SWITCH_VOLUME_DOWN); gpio_pull_up(SWITCH_VOLUME_DOWN);
+
+    // setup the pio if it has not previously been set up
+    PIO bitstream_pio = pio0;
+    uint bitstream_sm = pio_claim_unused_sm(bitstream_pio, true);
+    uint bitstream_sm_offset = pio_add_program(bitstream_pio, &cosmic_unicorn_program);
+
+    pio_gpio_init(bitstream_pio, COLUMN_CLOCK);
+    pio_gpio_init(bitstream_pio, COLUMN_DATA);
+    pio_gpio_init(bitstream_pio, COLUMN_LATCH);
+    pio_gpio_init(bitstream_pio, COLUMN_BLANK);
+
+    pio_gpio_init(bitstream_pio, ROW_BIT_0);
+    pio_gpio_init(bitstream_pio, ROW_BIT_1);
+    pio_gpio_init(bitstream_pio, ROW_BIT_2);
+    pio_gpio_init(bitstream_pio, ROW_BIT_3);
+
+    // set the blank and row pins to be high, then set all led driving pins as outputs.
+    // This order is important to avoid a momentary flash
+    const uint pins_to_set = 1 << COLUMN_BLANK | 0b1111 << ROW_BIT_0;
+    pio_sm_set_pins_with_mask(bitstream_pio, bitstream_sm, pins_to_set, pins_to_set);
+    pio_sm_set_consecutive_pindirs(bitstream_pio, bitstream_sm, COLUMN_CLOCK, 8, true);
+
+    pio_sm_config c = cosmic_unicorn_program_get_default_config(bitstream_sm_offset);
+
+    sm_config_set_clkdiv(&c, 2);
+
+    // osr shifts right, autopull on, autopull threshold 8
+    sm_config_set_out_shift(&c, true, true, 32);
+
+    // configure out, set, and sideset pins
+    sm_config_set_out_pins(&c, ROW_BIT_0, 4);
+    sm_config_set_set_pins(&c, COLUMN_DATA, 3);
+    sm_config_set_sideset_pins(&c, COLUMN_CLOCK);
+
+    // join fifos as only tx needed (gives 8 deep fifo instead of 4)
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+
+    // setup dma transfer for pixel data to the pio
+    //if(unicorn == nullptr) {
+    uint dma_channel = dma_claim_unused_channel(true);
+    uint dma_ctrl_channel = dma_claim_unused_channel(true);
+
+    //}
+    dma_channel_config ctrl_config = dma_channel_get_default_config(dma_ctrl_channel);
+    channel_config_set_transfer_data_size(&ctrl_config, DMA_SIZE_32);
+    channel_config_set_read_increment(&ctrl_config, false);
+    channel_config_set_write_increment(&ctrl_config, false);
+    channel_config_set_chain_to(&ctrl_config, dma_channel);
+
+    dma_channel_configure(
+            dma_ctrl_channel,
+            &ctrl_config,
+            &dma_hw->ch[dma_channel].read_addr,
+            &bitstream_addr,
+            1,
+            false
+    );
+
+    dma_channel_config config = dma_channel_get_default_config(dma_channel);
+    channel_config_set_transfer_data_size(&config, DMA_SIZE_32);
+    channel_config_set_bswap(&config, false); // byte swap to reverse little endian
+    channel_config_set_dreq(&config, pio_get_dreq(bitstream_pio, bitstream_sm, true));
+    channel_config_set_chain_to(&config, dma_ctrl_channel);
+
+    dma_channel_configure(
+            dma_channel,
+            &config,
+            &bitstream_pio->txf[bitstream_sm],
+            NULL,
+            BITSTREAM_LENGTH / 4,
+            false);
+
+    pio_sm_init(bitstream_pio, bitstream_sm, bitstream_sm_offset, &c);
+
+    pio_sm_set_enabled(bitstream_pio, bitstream_sm, true);
+
+    // start the control channel
+    dma_start_channel_mask(1u << dma_ctrl_channel);
+#endif
     sem_release(&core1_launch);
     while (true) {
         pd_core1_loop();
+#ifdef PIMORONI_COSMIC_UNICORN
+        // todo actual wait
+        while (!sem_available(&render_frame_ready)) tight_loop_contents();
+        new_frame_stuff();
+#endif
 #if PICO_ON_DEVICE
         tight_loop_contents();
 #else
@@ -1363,6 +2066,7 @@ void I_DisplayFPSDots(boolean dots_on)
 {
 }
 
+#ifndef PIMORONI_COSMIC_UNICORN
 #if PICO_ON_DEVICE
 bool video_doom_adapt_for_mode(const struct scanvideo_pio_program *program, const struct scanvideo_mode *mode,
                                struct scanvideo_scanline_buffer *missing_scanvideo_scanline_buffer, uint16_t *modifiable_instructions) {
@@ -1493,5 +2197,5 @@ void simulate_video_pio_video_doom(const uint32_t *dma_data, uint32_t dma_data_s
     assert(last_was_black);
 }
 #endif
-
+#endif
 #endif

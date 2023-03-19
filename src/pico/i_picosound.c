@@ -423,6 +423,9 @@ static boolean I_Pico_InitSound(boolean _use_sfx_prefix)
     // todo this will likely need adjustment - maybe with IRQs/double buffer & pull from audio we can make it quite small
     producer_pool = audio_new_producer_pool(&producer_format, 2, 1024); // todo correct size
 
+#ifdef PIMORONI_COSMIC_UNICORN
+    gpio_init(MUTE); gpio_set_dir(MUTE, GPIO_OUT); gpio_put(MUTE, true); // why oh why was there no sound before?
+#endif
     struct audio_i2s_config config = {
             .data_pin = PICO_AUDIO_I2S_DATA_PIN,
             .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,

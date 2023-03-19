@@ -17,6 +17,7 @@ if (PICO_SDK_PATH)
     #set(PICO_TINYUSB_PATH ${CMAKE_CURRENT_LIST_DIR}/3rdparty/tinyusb)
     # this only affects device builds device, but we want to use zone for malloc in this case so we don't have two separate elastic spaces and can fit more in
     set(SKIP_PICO_MALLOC 1)
+    list(PREPEND PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/src/pico) # for our custom (for now) unicorn header
     pico_sdk_init()
     if (PICO_ON_DEVICE AND NOT CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
         message(WARNING "You should do a MinSizeRel build when targeting the RP2040

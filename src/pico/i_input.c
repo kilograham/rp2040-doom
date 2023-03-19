@@ -33,6 +33,10 @@
 #include "m_config.h"
 #include "hardware/uart.h"
 #include <stdlib.h>
+
+#ifdef PIMORONI_COSMIC_UNICORN
+#include "hardware/gpio.h"
+#endif
 #if USB_SUPPORT
 #include "pico/binary_info.h"
 #include "tusb.h"
@@ -528,8 +532,39 @@ void I_GetEvent() {
 #endif
     return I_GetEventTimeout(50);
 }
-
+#ifdef PIMORONI_COSMIC_UNICORN
+static void do_key(uint diff, uint now, uint bit, int scancode) {
+    bit = 1u << bit;
+    if (diff & bit) {
+        if (now & bit) {
+            pico_key_up(scancode, 0, 0);
+        } else {
+            pico_key_down(scancode, 0, 0);
+        }
+    }
+}
+#endif
 void I_GetEventTimeout(int key_timeout) {
+#ifdef PIMORONI_COSMIC_UNICORN
+#define COSMIC_SWITCHES ((1u<<SWITCH_A) | (1u<<SWITCH_B) | (1u<<SWITCH_C) | (1u<<SWITCH_D) | (1u<<SWITCH_SLEEP) | (1u<<SWITCH_VOLUME_UP) | (1u<<SWITCH_VOLUME_DOWN) | (1u<<SWITCH_BRIGHTNESS_UP) | (1u<<SWITCH_BRIGHTNESS_DOWN))
+    static uint last_gpio_state = COSMIC_SWITCHES;
+    uint gpio_state = gpio_get_all() & COSMIC_SWITCHES;
+    uint diff = last_gpio_state ^ gpio_state;
+    if (diff) {
+        do_key(diff, gpio_state, SWITCH_SLEEP, SDL_SCANCODE_LCTRL);
+        do_key(diff, gpio_state, SWITCH_SLEEP, 40); // ENTER (do enter as well for menus)
+        do_key(diff, gpio_state, SWITCH_VOLUME_UP, 82); // UP
+        do_key(diff, gpio_state, SWITCH_VOLUME_DOWN, 81); // DOWN
+        do_key(diff, gpio_state, SWITCH_BRIGHTNESS_UP, 42); // BACKSPACE
+        do_key(diff, gpio_state, SWITCH_BRIGHTNESS_DOWN, 41); // ESC
+        do_key(diff, gpio_state, SWITCH_B, 80); // LEFT
+        do_key(diff, gpio_state, SWITCH_A, 79); // RIGHT
+        do_key(diff, gpio_state, SWITCH_C, 44); // SPACE
+        do_key(diff, gpio_state, SWITCH_D, SDL_SCANCODE_LALT); // ALT for strage
+//        do_key(diff, gpio_state, SWITCH_D, 43); // tab for map
+    }
+    last_gpio_state = gpio_state;
+#endif
 #if PICO_ON_DEVICE && !NO_USE_UART
     if (uart_is_readable(uart_default)) {
         char c = uart_getc(uart_default);
