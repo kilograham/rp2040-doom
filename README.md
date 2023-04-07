@@ -213,9 +213,9 @@ deliberately lowers the encoding quality for the sake of speed.
 The releases here use pins as defined when building with `PICO_BOARD=vgaboard`:
 
 ```
- 0-4:    Red 0-5
- 6-10:   Green 0-5
- 11-15:  Blue 0-5
+ 0-4:    Red 0-4
+ 6-10:   Green 0-4
+ 11-15:  Blue 0-4
  16:     HSync
  17:     VSync
  18:     I2C1 SDA
