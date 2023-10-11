@@ -31,6 +31,7 @@
 #include "pico/multicore.h"
 #if PICO_ON_DEVICE
 #include "hardware/vreg.h"
+#include "hardware/clocks.h"
 #endif
 #endif
 #if USE_PICO_NET
@@ -62,8 +63,15 @@ int main(int argc, char **argv)
 #endif
 #if PICO_ON_DEVICE
     vreg_set_voltage(VREG_VOLTAGE_1_30);
-    // todo pause? is this the cause of the cold start isue?
-    set_sys_clock_khz(270000, true);
+#define PLL 270000
+    set_sys_clock_khz(PLL, true);
+    clock_configure(
+            clk_peri,
+            0,                                                // No glitchless mux
+            CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, // System PLL on AUX mux
+            PLL*1000,                               // Input frequency
+            PLL*1000                                // Output (must be same as no divider)
+        );
 #if !USE_PICO_NET
     // debug ?
 //    gpio_debug_pins_init();
