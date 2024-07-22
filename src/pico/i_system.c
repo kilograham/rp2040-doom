@@ -24,7 +24,7 @@
 #include "doom/p_saveg.h"
 #endif
 #if USB_SUPPORT
-#include "tusb.h"
+#include "host/usbh.h"
 #endif
 extern void I_InputInit();
 

@@ -82,7 +82,7 @@
 #if PICO_BUILD
 #include "i_picosound.h"
 #if USB_SUPPORT
-#include "tusb.h"
+#include "host/usbh.h"
 #endif
 #endif
 //

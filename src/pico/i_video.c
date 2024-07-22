@@ -1061,13 +1061,13 @@ void __scratch_x("scanlines") fill_scanlines() {
 #pragma GCC pop_options
 
 #if PICO_ON_DEVICE
-#define LOW_PRIO_IRQ 31
+static uint8_t low_priority_irq_num;
 #include "hardware/irq.h"
 
 static void __not_in_flash_func(free_buffer_callback)() {
 //    irq_set_pending(LOW_PRIO_IRQ);
     // ^ is in flash by default
-    *((io_rw_32 *) (PPB_BASE + M0PLUS_NVIC_ISPR_OFFSET)) = 1u << LOW_PRIO_IRQ;
+    *((io_rw_32 *) (PPB_BASE + M0PLUS_NVIC_ISPR_OFFSET)) = 1u << low_priority_irq_num;
 }
 #endif
 
@@ -1081,16 +1081,17 @@ static void core1() {
     scanvideo_setup(&VGA_MODE);
 //    sem_release(&init_sem);
 #if PICO_ON_DEVICE
-    irq_set_exclusive_handler(LOW_PRIO_IRQ, fill_scanlines);
-    irq_set_enabled(LOW_PRIO_IRQ, true);
+    low_priority_irq_num = (uint8_t) user_irq_claim_unused(true);
+    irq_set_exclusive_handler(low_priority_irq_num, fill_scanlines);
+    irq_set_enabled(low_priority_irq_num, true);
     scanvideo_set_scanline_release_fn(free_buffer_callback);
 #endif
     scanvideo_timing_enable(true);
-#if PICO_ON_DEVICE
-    irq_set_pending(LOW_PRIO_IRQ);
-#endif
     sem_release(&core1_launch);
     while (true) {
+#if PICO_ON_DEVICE
+        irq_set_pending(low_priority_irq_num); // trigger first scanline
+#endif
         pd_core1_loop();
 #if PICO_ON_DEVICE
         tight_loop_contents();
