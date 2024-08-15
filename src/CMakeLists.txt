@@ -643,6 +643,23 @@ if (PICO_SDK)
             TINY_WAD_ADDR=0x10040000
     )
     target_link_libraries(doom_tiny PRIVATE tiny_settings)
+    if (HACK_ENABLE_STDIO_USB)
+        # HACK in USB support - we can't be bothered to add our own CDC descriptor and use directly,
+        # so we need to enable the default stdio USB stuff in SDK which requires the default alarm pool
+        pico_enable_stdio_usb(doom_tiny 1)
+        target_compile_definitions(doom_tiny PRIVATE
+                PICO_STDIO_USB_CONNECT_WAIT_TIMEOUT_MS=-1 # wait for host usb connection at init
+        )
+        get_target_property(COMPILE_DEFS doom_tiny COMPILE_DEFINITIONS)
+        list(REMOVE_ITEM COMPILE_DEFS PICO_TIME_DEFAULT_ALARM_POOL_DISABLED=1)
+        set_property(TARGET doom_tiny PROPERTY COMPILE_DEFINITIONS ${COMPILE_DEFS})
+        # hack to save some space so we don't need to move the WAD addr
+        target_compile_definitions(doom_tiny PRIVATE
+            NO_USE_LOAD=1
+            NO_USE_SAVE=1
+        )
+
+    endif()
     add_doom_tiny(_nost render_newhope)
 
     target_compile_definitions(doom_tiny_nost PRIVATE
@@ -652,13 +669,15 @@ if (PICO_SDK)
     if (PICO_ON_DEVICE)
         suppress_tinyusb_warnings()
         add_doom_tiny(_usb render_newhope)
+        target_include_directories(doom_tiny_usb PRIVATE ${CMAKE_CURRENT_LIST_DIR}/tusb_config)
         target_link_libraries(doom_tiny_usb PRIVATE tiny_settings pico_cd)
         target_compile_definitions(doom_tiny_usb PRIVATE
                 USB_SUPPORT=1
                 TINY_WAD_ADDR=0x10042000 # ugh tinyusb is >8K currently!!
         )
         add_doom_tiny(_nost_usb render_newhope)
-        target_link_libraries(doom_tiny_nost_usb PRIVATE pico_cd)
+        target_include_directories(doom_tiny_nost_usb PRIVATE ${CMAKE_CURRENT_LIST_DIR}/tusb_config)
+        target_link_libraries(doom_tiny_nost_usb PRIVATE ${CMAKE_CURRENT_LIST_DIR}/tusb_config)
         target_compile_definitions(doom_tiny_nost_usb PRIVATE
                 USB_SUPPORT=1
                 TINY_WAD_ADDR=0x10048000

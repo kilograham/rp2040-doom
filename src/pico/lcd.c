@@ -415,7 +415,7 @@ void dispSetBrightness(uint_fast8_t bri) {
     pwmVal *= pwmVal;
     pwmVal += 61;
 
-    printf("bri %u -> %u\n", bri, pwmVal);
+//    printf("bri %u -> %u\n", bri, pwmVal);
     *(volatile uint16_t *) &pwm_hw->slice[BACKLITE_PWM_INDEX].cc = pwmVal;        //so backlight stays on
 }
 

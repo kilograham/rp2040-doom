@@ -696,7 +696,7 @@ void M_DrawLoad(void)
 
 #endif
 
-#if !NO_USE_LOAD || !NO_USE_SAVE
+#if !NO_USE_LOAD || !NO_USE_SAVE || USE_PICO_NET
 
 static char tempstring[90];
 
