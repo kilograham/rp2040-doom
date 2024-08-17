@@ -1355,6 +1355,7 @@ void M_NetName(int choice)
     M_StringCopy(stringEntryOldString, player_name, MAXPLAYERNAME);
     stringEntryMax = MAXPLAYERNAME;
     stringEntry = 1;
+    I_StartTextInput(0,0,0,0); // params are ignored
 }
 
 static bool M_CheckNetGame() {
