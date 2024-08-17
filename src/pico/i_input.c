@@ -573,19 +573,20 @@ void I_GetEvent() {
 
 #ifdef DEFCON32_BADGE
 static const uint8_t bdef[] = {
-        DEFCON32_BADGE_SW_FN_PIN, 0, 0,
-        DEFCON32_BADGE_SW_START_PIN, SDL_SCANCODE_ESCAPE, SDL_SCANCODE_ESCAPE,
-        DEFCON32_BADGE_SW_SELECT_PIN, SDL_SCANCODE_RETURN, SDL_SCANCODE_TAB,
-        DEFCON32_BADGE_SW_LEFT_PIN, SDL_SCANCODE_LEFT, SDL_SCANCODE_1,
+        DEFCON32_BADGE_SW_FN_PIN, SDL_SCANCODE_LALT, SDL_SCANCODE_LALT,
+        DEFCON32_BADGE_SW_START_PIN, SDL_SCANCODE_ESCAPE, SDL_SCANCODE_TAB,
+        DEFCON32_BADGE_SW_SELECT_PIN, SDL_SCANCODE_RETURN, SDL_SCANCODE_1,
+        DEFCON32_BADGE_SW_LEFT_PIN, SDL_SCANCODE_LEFT, SDL_SCANCODE_LEFT,
         DEFCON32_BADGE_SW_RIGHT_PIN, SDL_SCANCODE_RIGHT, SDL_SCANCODE_RIGHT,
-        DEFCON32_BADGE_SW_UP_PIN, SDL_SCANCODE_UP, SDL_SCANCODE_Y,
-        DEFCON32_BADGE_SW_DOWN_PIN, SDL_SCANCODE_DOWN, SDL_SCANCODE_N,
+        DEFCON32_BADGE_SW_UP_PIN, SDL_SCANCODE_UP, SDL_SCANCODE_UP,
+        DEFCON32_BADGE_SW_DOWN_PIN, SDL_SCANCODE_DOWN, SDL_SCANCODE_DOWN,
         DEFCON32_BADGE_SW_A_PIN, SDL_SCANCODE_SPACE, SDL_SCANCODE_SPACE,
         DEFCON32_BADGE_SW_B_PIN, SDL_SCANCODE_LCTRL, SDL_SCANCODE_LCTRL,
 };
 static uint8_t buttons[count_of(bdef)/3];
 static uint8_t keycodex[count_of(bdef)/3];
 #include "hardware/gpio.h"
+#include "doom/doomstat.h" // for menuactive
 #endif
 
 void I_GetEventTimeout(int key_timeout) {
@@ -612,6 +613,14 @@ void I_GetEventTimeout(int key_timeout) {
                 last_time = now_time;
                 keycodex[i/3] = SDL_SCANCODE_1 + weapon_base;
                 if (weapon_base != 7) weapon_base++;
+            }
+            if (menuactive) {
+                // map B to "Y" and A to "N"
+                if (keycodex[i/3] == SDL_SCANCODE_LCTRL) {
+                    keycodex[i/3] = SDL_SCANCODE_Y;
+                } else if (keycodex[i/3] == SDL_SCANCODE_SPACE) {
+                    keycodex[i/3] = SDL_SCANCODE_N;
+                }
             }
             pico_key_down(keycodex[i/3], 0, mods);
         } else if (!new_sel && last_sel)  {

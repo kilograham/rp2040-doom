@@ -45,12 +45,18 @@ B | Fire
 
 Button|Behavior
 --|---
-FN+Select | Show / Hide Map
-FN+Up | Y (for menus)
-FN+Down | N (for menus)
-FN+Left | Press Left in rapid succession with FN down to press 1 then 2 then 3 etc. to select weapons
+FN+Start | Show / Hide Map
+FN+Select | Press Select in rapid succession with FN down to press 1 then 2 then 3 etc. to select weapons
+FN+Left / Right / Up / Down / A / B | Strafe
 
 Note when FN is pressed, An FPS indicator is also shown
+
+### Button behavior in menus
+
+Button|Behavior
+--|---
+A | 'N' (No)
+B | 'Y' (Yes)
 
 ### Button behavior when typing
 
