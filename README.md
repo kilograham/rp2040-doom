@@ -41,7 +41,7 @@ Left / Right / Up / Down | Move
 A | Open Door
 B | Fire
 
-### Button behavior when pressing the FN (bottom right on the back)
+### Button behavior when pressing the FN (bottom right on the back) during game
 
 Button|Behavior
 --|---
@@ -55,8 +55,8 @@ Note when FN is pressed, An FPS indicator is also shown
 
 Button|Behavior
 --|---
-A | 'N' (No)
-B | 'Y' (Yes)
+A | Menu Back or 'N' (No)
+B | Menu Fowrard/Select or 'Y' (Yes)
 
 ### Button behavior when typing
 

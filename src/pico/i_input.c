@@ -622,6 +622,10 @@ void I_GetEventTimeout(int key_timeout) {
                     keycodex[i/3] = SDL_SCANCODE_N;
                 }
             }
+            if (keycodex[i/3] == SDL_SCANCODE_LALT && !usergame) {
+                // we only press strafe key when playing otherwise it pops up menus
+                keycodex[i/3] = 0;
+            }
             pico_key_down(keycodex[i/3], 0, mods);
         } else if (!new_sel && last_sel)  {
             if (bdef[i+1] == SDL_SCANCODE_RSHIFT) mods &= ~WITH_SHIFT;

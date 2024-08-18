@@ -2287,7 +2287,7 @@ boolean M_Responder (event_t* ev)
 	}
 	return true;
     }
-    else if (key == key_menu_forward)
+    else if (key == key_menu_forward || key == key_menu_confirm)
     {
         // Activate menu item
 
@@ -2317,7 +2317,7 @@ boolean M_Responder (event_t* ev)
 	S_StartUnpositionedSound( sfx_swtchx);
 	return true;
     }
-    else if (key == key_menu_back)
+    else if (key == key_menu_back || key == key_menu_abort)
     {
         // Go back to previous menu
 
