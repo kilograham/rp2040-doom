@@ -154,7 +154,7 @@ extern  boolean statusbaractive;
 extern  boolean automapactive;	// In AutoMap mode?
 extern  boolean	menuactive;	// Menu overlayed?
 extern  boolean	paused;		// Game Pause?
-
+extern isb_int8_t stringEntry; // doing text entry
 
 extern  boolean		viewactive;
 

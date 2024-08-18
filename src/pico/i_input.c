@@ -22,6 +22,7 @@
 //#include "SDL_keycode.h"
 #include <doom/sounds.h>
 #include <doom/s_sound.h>
+#include "doom/st_stuff.h"
 #include "pico.h"
 #include "doomkeys.h"
 #include "doomtype.h"
@@ -615,11 +616,12 @@ void I_GetEventTimeout(int key_timeout) {
                 if (weapon_base != 7) weapon_base++;
             }
             if (menuactive) {
-                // map B to "Y" and A to "N"
+                // map B to "Y" and A to "N" unless in string entry
+                // in which case we map them to RETURN/ESCAPE
                 if (keycodex[i/3] == SDL_SCANCODE_LCTRL) {
-                    keycodex[i/3] = SDL_SCANCODE_Y;
+                    keycodex[i/3] = stringEntry ? SDL_SCANCODE_RETURN : SDL_SCANCODE_Y;
                 } else if (keycodex[i/3] == SDL_SCANCODE_SPACE) {
-                    keycodex[i/3] = SDL_SCANCODE_N;
+                    keycodex[i/3] = stringEntry ? SDL_SCANCODE_ESCAPE : SDL_SCANCODE_N;
                 }
             }
             if (keycodex[i/3] == SDL_SCANCODE_LALT && !usergame) {
@@ -633,7 +635,6 @@ void I_GetEventTimeout(int key_timeout) {
         }
         buttons[i/3] = new_sel;
     }
-    extern boolean show_fps;
     show_fps = buttons[0];
 #endif
 #if PICO_ON_DEVICE && !NO_USE_UART
