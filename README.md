@@ -17,18 +17,17 @@ The regular build instructions should work with the latest [pico-sdk](https://gi
 - Playing a game
 - Completing levels
 - Save/Load game (note these are stored in flash, so will persist across badge power cycles)
+- Muliplayer via I2C (at least with 2 players, should work with up to 4) - see below for wiring
 
 ### Things that don't work:
 
 - "Quit Game" main menu item which is actually meant to quit to DOS (i removed the DOS mode because it uses 640x480 screen)
    - Note the menu to end an active game is actually under "Options/End Game", and does work
-- There is no button for strafe
 - There is no way to enter cheats
 
 ### Things that might work:
 
-- The end sequence
-- Multiplayer; rp2040-doom does support I2C networked games
+- The end sequence (easier to test when i have cheats)
 
 ## Controller Input:
 
@@ -68,8 +67,13 @@ Right | Select letter
 
 Note that typing does not seem to work in any dialogs except save game.
 
-# Original rp2040-doom README...
+## Multiplayer Wiring
 
+![I2C wiring with two badges](/badge_wiring.jpg)
+
+The wires are I2C and Ground (green), so you should be able to add more badges (up to 4 total) by combining like pins from each badge.
+
+# Original rp2040-doom README...
 
 This is a port of Doom for RP2040 / RP2350 devices, derived from [Chocolate Doom](https://github.com/chocolate-doom/chocolate-doom).
 
