@@ -511,10 +511,10 @@ function(add_doom_tiny SUFFIX RENDER_LIB)
 
         NO_USE_NET=1 # standard networking
         USE_PICO_NET=1
-        # for vgaboard
-        PICO_DEFAULT_I2C=1
-        PICO_DEFAULT_I2C_SDA_PIN=18
-        PICO_DEFAULT_I2C_SCL_PIN=19
+        # for defcon32 badge - use user pins
+        PICO_DEFAULT_I2C=0
+        PICO_DEFAULT_I2C_SDA_PIN=28
+        PICO_DEFAULT_I2C_SCL_PIN=29
 
         #NO_USE_LOAD=1
         #NO_USE_SAVE=1
