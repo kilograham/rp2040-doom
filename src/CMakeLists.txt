@@ -666,7 +666,7 @@ if (PICO_SDK)
             # NO_USE_FINALE_CAST=1 # note this is only used by doom II but doesnt take that much more space
             TINY_WAD_ADDR=0x10048000
             )
-    if (PICO_ON_DEVICE)
+    if (TARGET tinyusb_host)
         suppress_tinyusb_warnings()
         add_doom_tiny(_usb render_newhope)
         target_include_directories(doom_tiny_usb PRIVATE ${CMAKE_CURRENT_LIST_DIR}/tusb_config)
