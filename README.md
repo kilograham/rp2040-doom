@@ -17,7 +17,7 @@ The regular build instructions should work with the latest [pico-sdk](https://gi
 - Playing a game
 - Completing levels
 - Save/Load game (note these are stored in flash, so will persist across badge power cycles)
-- Muliplayer via I2C (at least with 2 players, should work with up to 4) - see below for wiring
+- Multiplayer via SAO (at least with 2 players, should work with up to 4) - see below for wiring
 
 ### Things that don't work:
 
@@ -64,8 +64,6 @@ Button|Behavior
 Up/Down | Cycle through letters/space
 Left | Backspace
 Right | Select letter
-
-Note that typing does not seem to work in any dialogs except save game.
 
 ## Multiplayer Wiring
 
