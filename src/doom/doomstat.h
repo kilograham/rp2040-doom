@@ -284,6 +284,7 @@ extern  gamestate_t     wipegamestate;
 
 extern  isb_int8_t      mouseSensitivity;
 
+extern  isb_int8_t      brightnessLevel;
 extern  isb_uint8_t     bodyqueslot;
 
 

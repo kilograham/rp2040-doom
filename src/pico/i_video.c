@@ -1438,6 +1438,10 @@ void I_DisplayFPSDots(boolean dots_on)
 {
 }
 
+void I_SetBrightness(uint8_t brightness) {
+    dispSetBrightness(brightness);
+}
+
 #if PICO_ON_DEVICE
 bool video_doom_adapt_for_mode(const struct scanvideo_pio_program *program, const struct scanvideo_mode *mode,
                                struct scanvideo_scanline_buffer *missing_scanvideo_scanline_buffer, uint16_t *modifiable_instructions) {

@@ -184,7 +184,7 @@ static std::vector<std::string> named_lumps = {
         "E3M1",
 };
 
-// large menu graphics with lots of transparency, ecnodedd as runs
+// large menu graphics with lots of transparency, encoded as runs
 static std::vector<std::string> run16_menu_vpatches = {
         "M_RDTHIS",
         "M_OPTION",
@@ -236,6 +236,8 @@ static std::vector<std::string> run16_menu_vpatches = {
         "M_NAME",
         "M_NETWK",
         "M_TWO",
+        // and brightness menu
+        "M_BRIGHT",
         // these seem red but have other colors
         "WISPLAT",
         "WIURH0",
@@ -4695,7 +4697,7 @@ std::vector<uint8_t> png_to_patch(wad& wad, const char *prefix, const char *name
     }
     auto image = std::vector<int>(w*h);
     for(uint i = 0; i < w*h; i++) {
-        if (image[i*4+3] == 0xff) {
+        if (image32[i*4+3] == 0xff) {
             uint32_t col = image32[i*4] + (image32[i*4+1]<<8) + (image32[i*4+2]<<16) + (image32[i*4+3]<<24);
             image[i] = palette_lookup[col];
         } else {

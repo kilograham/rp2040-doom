@@ -15,7 +15,7 @@
 #include "dispDefcon.h"
 #include "hardware/structs/iobank0.h"
 #include "hardware/structs/padsbank0.h"
-
+#include "doom/doomstat.h"
 
 #define PIO_Nth2(x)                            pio ## x ## _hw
 #define PIO_Nth(x)                            PIO_Nth2(x)
@@ -38,7 +38,7 @@
 static uint16_t mFb[DISP_WIDTH * DISP_HEIGHT];
 static uint32_t mFbStartAddr = (uintptr_t) mFb;
 static uint64_t mPerFrameSpace, mNextFrame;
-static uint8_t mSm0start, mBri = 15;
+static uint8_t mSm0start;
 static bool mDispOn;
 
 void gpiosConfig(bool firstTime)
@@ -220,7 +220,7 @@ static bool dispPrvTurnOn(bool firstTime) {
             (pwm_hw->slice[BACKLITE_PWM_INDEX].div & ~(PWM_CH0_DIV_INT_BITS | PWM_CH0_DIV_FRAC_BITS)) |
             (1 << PWM_CH0_DIV_INT_LSB);
     pwm_hw->slice[BACKLITE_PWM_INDEX].csr |= PWM_CH0_CSR_EN_BITS;
-    dispSetBrightness(mBri);
+    dispSetBrightness((uint8_t)brightnessLevel);
 
     mDispOn = true;
 
@@ -276,8 +276,8 @@ bool dispInit(uint32_t desiredFramerate) {
 
     divClk = (clock_get_hz(clk_sys) / 2 + maxClk - 1) / maxClk;    //non-integer divisions do not do well with PIO
 //    __breakpoint();
-divClk = 2;
-    printf("DISP: using divisor %u for a clock rate of %luHz\n", divClk, clock_get_hz(clk_sys)  / 2 / divClk);
+    divClk = 2;
+    //printf("DISP: using divisor %u for a clock rate of %luHz\n", divClk, clock_get_hz(clk_sys)  / 2 / divClk);
     //configure sm0
     MY_PIO->sm[DISP_PIO_SM].clkdiv = (divClk << PIO_SM0_CLKDIV_INT_LSB);
     MY_PIO->sm[DISP_PIO_SM].execctrl = (MY_PIO->sm[DISP_PIO_SM].execctrl &
@@ -371,7 +371,7 @@ divClk = 2;
     }
     sio_hw->gpio_set = 1 << PIN_LCD_CS;
 
-    printf("inited display at %u fps\n", desiredFramerate);
+    printf("inited display at %u fps\n", (uint)desiredFramerate);
 
 //    lcdSetRegion((HARDWARE_WIDTH - DISP_WIDTH) / 2, (HARDWARE_HEIGHT - DISP_HEIGHT) / 2, DISP_WIDTH, DISP_HEIGHT, 0, 0);
 //    lcdSetRegion(40, 0, 1, 320, 0, 0);//(HARDWARE_WIDTH - DISP_WIDTH) / 2, (HARDWARE_HEIGHT - DISP_HEIGHT) / 2, DISP_WIDTH, DISP_HEIGHT, 0, 0);
@@ -407,13 +407,12 @@ void dispSetContrast(uint_fast8_t val) {
 void dispSetBrightness(uint_fast8_t bri) {
     uint32_t pwmVal = bri;
 
-    mBri = bri;
-
     //useful output range is 100..1023
-    //inout is 0..31
+    //inout is 0..15
 
-    pwmVal *= pwmVal;
-    pwmVal += 61;
+    pwmVal *= pwmVal * pwmVal * 2;
+    pwmVal /= 9;
+    pwmVal += 114;
 
 //    printf("bri %u -> %u\n", bri, pwmVal);
     *(volatile uint16_t *) &pwm_hw->slice[BACKLITE_PWM_INDEX].cc = pwmVal;        //so backlight stays on

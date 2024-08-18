@@ -72,6 +72,7 @@ void I_BindVideoVariables(void);
 void I_InitWindowTitle(void);
 void I_InitWindowIcon(void);
 
+void I_SetBrightness(uint8_t brightness); // 0-31
 // Called before processing any tics in a frame (just after displaying a frame).
 // Time consuming syncronous operations are performed here (joystick reading).
 

@@ -68,6 +68,8 @@
 #define NET_MENU 1
 #endif
 
+#define BRIGHTNESS_MENU 1 // for badge
+
 #define DEFAULTPLAYERNAME "DOOMGUY"
 
 extern vpatch_sequence_t 	hu_font;
@@ -79,6 +81,10 @@ extern boolean		chat_on;		// in heads-up code
 // defaulted values
 //
 isb_int8_t		mouseSensitivity = 5;
+
+#if BRIGHTNESS_MENU
+isb_int8_t brightnessLevel = 9;
+#endif
 
 // Show messages fdefault, 0 = off, 1 = on
 isb_int8_t		showMessages = 1;
@@ -271,7 +277,7 @@ static int  M_StringWidth(const char *string);
 static int  M_StringHeight(const char *string);
 
 
-
+static void M_ChangeBrightness(int choice);
 
 //
 // DOOM MENU
@@ -401,6 +407,9 @@ enum
     option_empty2,
 #endif
     soundvol,
+#if BRIGHTNESS_MENU
+    brightness,
+#endif
     opt_end
 } options_e;
 
@@ -420,7 +429,11 @@ static const menuitem_t OptionsMenu[]=
     {2,VPATCH_NAME(M_MSENS),'m',	M_ChangeSensitivity},
     {-1,VPATCH_NAME_INVALID,'\0',0},
 #endif
-    {1,VPATCH_NAME(M_SVOL),'s',	M_Sound}
+    {1,VPATCH_NAME(M_SVOL),'s',	M_Sound},
+#if BRIGHTNESS_MENU
+    {2,VPATCH_NAME(M_BRIGHT), 'b', M_ChangeBrightness},
+    {-1,VPATCH_NAME_INVALID,'\0',0},
+#endif
 };
 
 menu_t  OptionsDef =
@@ -1222,6 +1235,11 @@ void M_DrawOptions(void)
     M_DrawThermo(OptionsDef.x,OptionsDef.y+LINEHEIGHT*(scrnsize+1),
 		 9,screenSize);
 #endif
+
+#if BRIGHTNESS_MENU
+    M_DrawThermo(OptionsDef.x, OptionsDef.y + LINEHEIGHT * (brightness + 1),
+		 16, brightnessLevel);
+#endif
 }
 
 void M_Options(int choice)
@@ -1577,6 +1595,22 @@ void M_ChangeSensitivity(int choice)
     }
 }
 
+
+void M_ChangeBrightness(int choice)
+{
+    switch(choice)
+    {
+        case 0:
+            if (brightnessLevel)
+                brightnessLevel--;
+            break;
+        case 1:
+            if (brightnessLevel < 31)
+                brightnessLevel++;
+            break;
+    }
+    I_SetBrightness(brightnessLevel);
+}
 
 
 
@@ -2308,7 +2342,7 @@ boolean M_Responder (event_t* ev)
 	}
 	return true;
     }
-    else if (key == key_menu_activate)
+    else if (key == key_menu_activate )
     {
         // Deactivate menu
 
