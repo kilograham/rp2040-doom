@@ -253,13 +253,13 @@ static bool dispPrvTurnOff(void) {
     return true;
 }
 
+#define LCD_IRQN 3
+
 extern void fill_scanlines(void);
 void __not_in_flash_func(line_done)(void) {
-    dma_irqn_acknowledge_channel(2, DISP_DMA_XFER_CH);
+    dma_irqn_acknowledge_channel(LCD_IRQN, DISP_DMA_XFER_CH);
     fill_scanlines();
 }
-
-
 
 bool dispInit(uint32_t desiredFramerate) {
     uint_fast8_t pc = DISP_PIO_FIRST_USED_PC, sm0Start, sm0LoopTo, sm0LoopFrom;
@@ -318,9 +318,9 @@ bool dispInit(uint32_t desiredFramerate) {
 //            (DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_WORD << DMA_CH0_CTRL_TRIG_DATA_SIZE_LSB) |
 //            DMA_CH0_CTRL_TRIG_EN_BITS;
 
-    dma_irqn_set_channel_enabled(2, DISP_DMA_XFER_CH, true);
-    irq_set_exclusive_handler(DMA_IRQ_2, line_done);
-    irq_set_enabled(DMA_IRQ_2, true);
+    dma_irqn_set_channel_enabled(LCD_IRQN, DISP_DMA_XFER_CH, true);
+    irq_set_exclusive_handler(DMA_IRQ_NUM(LCD_IRQN), line_done);
+    irq_set_enabled(DMA_IRQ_NUM(LCD_IRQN), true);
     dma_hw->ch[DISP_DMA_XFER_CH].write_addr = (uintptr_t) &MY_PIO->txf[DISP_PIO_SM];
     dma_hw->ch[DISP_DMA_XFER_CH].transfer_count = DISP_WIDTH;
     dma_hw->ch[DISP_DMA_XFER_CH].al1_ctrl =
