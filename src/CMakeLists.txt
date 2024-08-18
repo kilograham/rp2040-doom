@@ -669,15 +669,15 @@ if (PICO_SDK)
     if (TARGET tinyusb_host)
         suppress_tinyusb_warnings()
         add_doom_tiny(_usb render_newhope)
-        target_include_directories(doom_tiny_usb PRIVATE ${CMAKE_CURRENT_LIST_DIR}/tusb_config)
+        target_include_directories(doom_tiny_usb PRIVATE ${CMAKE_CURRENT_LIST_DIR}/pico/tusb_config)
         target_link_libraries(doom_tiny_usb PRIVATE tiny_settings pico_cd)
         target_compile_definitions(doom_tiny_usb PRIVATE
                 USB_SUPPORT=1
-                TINY_WAD_ADDR=0x10042000 # ugh tinyusb is >8K currently!!
+                TINY_WAD_ADDR=0x10040000 # we seem to fit on badge at same address
         )
         add_doom_tiny(_nost_usb render_newhope)
-        target_include_directories(doom_tiny_nost_usb PRIVATE ${CMAKE_CURRENT_LIST_DIR}/tusb_config)
-        target_link_libraries(doom_tiny_nost_usb PRIVATE ${CMAKE_CURRENT_LIST_DIR}/tusb_config)
+        target_include_directories(doom_tiny_nost_usb PRIVATE ${CMAKE_CURRENT_LIST_DIR}/pico/tusb_config)
+        target_link_libraries(doom_tiny_nost_usb PRIVATE pico_cd)
         target_compile_definitions(doom_tiny_nost_usb PRIVATE
                 USB_SUPPORT=1
                 TINY_WAD_ADDR=0x10048000
