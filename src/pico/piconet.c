@@ -184,8 +184,9 @@ static struct {
 
 static void i2c_locked_cancel_dma() {
     if (i2c_state.dma_active) {
-        dma_hw->abort = I2C_DMA_CHANNEL_READ | I2C_DMA_CHANNEL_WRITE;
-        while (dma_hw->abort & (I2C_DMA_CHANNEL_READ | I2C_DMA_CHANNEL_WRITE)) tight_loop_contents();
+        uint32_t channel_mask = (1u << I2C_DMA_CHANNEL_READ) | (1u << I2C_DMA_CHANNEL_WRITE);
+        dma_hw->abort = channel_mask;
+        while (dma_hw->abort & (channel_mask)) tight_loop_contents();
         i2c_state.dma_active = false;
     }
 }
