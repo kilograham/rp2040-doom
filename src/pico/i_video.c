@@ -777,7 +777,7 @@ static inline uint draw_vpatch(uint16_t *dest, patch_t *patch, vpatchlist_t *vp,
                         //                        once = true;
                         xip_ctrl_hw->stream_ctr = 0;
                         // workaround yucky bug
-#if !PICO_RP2350
+#if PICO_RP2040
                         (void) *(io_rw_32 *) XIP_NOCACHE_NOALLOC_BASE;
                         xip_ctrl_hw->stream_fifo;
 #endif
@@ -786,7 +786,7 @@ static inline uint draw_vpatch(uint16_t *dest, patch_t *patch, vpatchlist_t *vp,
                         channel_config_set_read_increment(&c, false);
                         channel_config_set_write_increment(&c, true);
                         channel_config_set_dreq(&c, DREQ_XIP_STREAM);
-#if !PICO_RP2350
+#if PICO_RP2040
                         dma_channel_set_read_addr(DMA_CHANNEL, (void *) XIP_AUX_BASE, false);
 #else
                         dma_channel_set_read_addr(DMA_CHANNEL, &xip_ctrl_hw->stream_fifo, false);
@@ -1078,7 +1078,7 @@ void __scratch_x("scanlines") fill_scanlines() {
 static void __not_in_flash_func(free_buffer_callback)() {
 //    irq_set_pending(LOW_PRIO_IRQ);
     // ^ is in flash by default
-#if !PICO_RP2350
+#if PICO_RP2040
     *((io_rw_32 *) (PPB_BASE + M0PLUS_NVIC_ISPR_OFFSET)) = 1u << LOW_PRIO_IRQ;
 #else
     nvic_hw->ispr[LOW_PRIO_IRQ / 32] = 1 << (LOW_PRIO_IRQ % 32);
@@ -1115,7 +1115,7 @@ static void core1() {
     }
 }
 
-#if PICO_RP2350
+#if !PICO_RP2040
 #include "hardware/structs/accessctrl.h"
 #endif
 void I_InitGraphics(void)
@@ -1131,7 +1131,7 @@ void I_InitGraphics(void)
 #if USE_ZONE_FOR_MALLOC
     disallow_core1_malloc = true;
 #endif
-#if PICO_RP2350
+#if !PICO_RP2040
     hw_set_bits(&accessctrl_hw->xip_ctrl, ACCESSCTRL_PASSWORD_BITS | 0xff);
 #endif
     initialized = true;

@@ -141,8 +141,7 @@ static byte *AutoAllocMemory(int *size, int default_ram, int min_ram)
         // we have set heap size to 0, so __end__ is a good value
         extern char __end__;
         zonemem = (uint8_t *)(((uintptr_t)&__end__)&~3);
-        *size = ((uint8_t *)SRAM4_BASE) - zonemem;
-#if !PICO_RP2350
+#if PICO_RP2040
         *size = ((uint8_t *)SRAM4_BASE) - zonemem;
 #else
         // because of our shortptrs, heap cannot be bigger than 256K

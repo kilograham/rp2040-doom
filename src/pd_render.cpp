@@ -317,7 +317,7 @@ const char *type_name(pd_column column) {
 #endif
 }
 
-#if !PICO_RP2350
+#if PICO_RP2040
 #define RENDER_COL_MAX 3600
 #else
 #define RENDER_COL_MAX 7200
@@ -821,7 +821,7 @@ void pd_init() {
     sem_init(&core1_done, 0, 1);
 #if PICO_ON_DEVICE
     static_assert(sizeof(vpatchlists_t) < 0xc00, "");
-#if !PICO_RP2350
+#if PICO_RP2040
     vpatchlists = (vpatchlists_t *)(USBCTRL_DPRAM_BASE + 0x400);
 #else
     static_assert(SRAM_SCRATCH_X_BASE - 0xc00 >= SHORTPTR_BASE + 0x4000, ""); // avoid potential heap locations
