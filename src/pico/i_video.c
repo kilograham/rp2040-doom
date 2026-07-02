@@ -1115,7 +1115,7 @@ static void core1() {
     }
 }
 
-#if !PICO_RP2040
+#if PICO_ON_DEVICE && !PICO_RP2040
 #include "hardware/structs/accessctrl.h"
 #endif
 void I_InitGraphics(void)
@@ -1131,7 +1131,7 @@ void I_InitGraphics(void)
 #if USE_ZONE_FOR_MALLOC
     disallow_core1_malloc = true;
 #endif
-#if !PICO_RP2040
+#if PICO_ON_DEVICE && !PICO_RP2040
     hw_set_bits(&accessctrl_hw->xip_ctrl, ACCESSCTRL_PASSWORD_BITS | 0xff);
 #endif
     initialized = true;
