@@ -1199,6 +1199,7 @@ void M_DrawOptions(void)
 {
     V_DrawPatchDirect(108, 15, VPATCH_HANDLE(VPATCH_NAME(M_OPTTTL)));
 
+#if NET_MENU
 #if !DOOM_TINY
     V_DrawPatchDirect(OptionsDef.x + 175, OptionsDef.y + LINEHEIGHT * detail,
 		      W_CacheLumpName(DEH_String(detailNames[detailLevel]),
@@ -1208,6 +1209,7 @@ void M_DrawOptions(void)
     V_DrawPatchDirect(OptionsDef.x + 105, OptionsDef.y + LINEHEIGHT * networkgame,
                       VPATCH_HANDLE(VPATCH_NAME(M_GAME)));
 
+#endif
 #endif
 
     V_DrawPatchDirect(OptionsDef.x + 120, OptionsDef.y + LINEHEIGHT * messages,
